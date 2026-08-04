@@ -89,14 +89,16 @@
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
+        let currentUser = null;
+
         (async function() {
             const isAuth = await auth.requireAuth();
             if (!isAuth) return;
 
-            const user = auth.getCurrentUser();
-            if (user) {
-                document.getElementById('fullName').value = user.full_name || '';
-                document.getElementById('email').value = user.email;
+            currentUser = auth.getCurrentUser();
+            if (currentUser) {
+                document.getElementById('fullName').value = currentUser.full_name || '';
+                document.getElementById('email').value = currentUser.email;
             }
 
             document.getElementById('settingsForm').addEventListener('submit', async (e) => {
@@ -106,14 +108,14 @@
                 const email = document.getElementById('email').value.trim();
 
                 try {
-                    await db.updateUser(user.id, {
+                    await db.updateUser(currentUser.id, {
                         full_name: fullName,
                         email: email
                     });
                     
-                    user.full_name = fullName;
-                    user.email = email;
-                    localStorage.setItem('userData', JSON.stringify(user));
+                    currentUser.full_name = fullName;
+                    currentUser.email = email;
+                    localStorage.setItem('userData', JSON.stringify(currentUser));
                     
                     await showToast('Настройки сохранены!', 'success');
                 } catch (error) {
@@ -139,9 +141,7 @@
 
             try {
                 const user = auth.getCurrentUser();
-                await db.supabaseQuery(`users?id=eq.${user.id}`, {
-                    method: 'DELETE'
-                });
+                await db.deleteUser(user.id);
                 localStorage.removeItem('userData');
                 await showToast('Аккаунт удален', 'success');
                 setTimeout(() => {
