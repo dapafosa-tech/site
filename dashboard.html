@@ -8,37 +8,442 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        /* ТЕ ЖЕ СТИЛИ ЧТО И БЫЛИ + НОВЫЕ */
-        .btn-join {
-            background: #10b981;
+        body {
+            background: var(--gray-50);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100%;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            padding: 1.5rem;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .sidebar .logo i {
+            color: var(--primary);
+        }
+
+        .sidebar .logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar .user-info {
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-sm);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sidebar .user-info .name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .sidebar .user-info .email {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .sidebar .nav-menu {
+            list-style: none;
+        }
+
+        .sidebar .nav-menu li {
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar .nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .sidebar .nav-menu a:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+        }
+
+        .sidebar .nav-menu a.active {
+            background: var(--primary);
             color: white;
         }
-        .btn-join:hover {
-            background: #059669;
+
+        .sidebar .nav-menu a i {
+            width: 20px;
+            text-align: center;
         }
-        .join-code {
-            font-family: monospace;
-            font-size: 1.2rem;
-            background: var(--gray-100);
-            padding: 0.25rem 0.75rem;
+
+        .sidebar .nav-menu .logout-btn {
+            margin-top: 2rem;
+            border-top: 1px solid var(--gray-200);
+            padding-top: 1rem;
+        }
+
+        .sidebar .nav-menu .logout-btn a {
+            color: var(--danger);
+            cursor: pointer;
+        }
+
+        .sidebar .nav-menu .logout-btn a:hover {
+            background: #fef2f2;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--gray-500);
+        }
+
+        .org-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .org-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .org-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .org-card .org-icon {
+            width: 48px;
+            height: 48px;
             border-radius: var(--radius-sm);
-            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
         }
+
+        .org-card .org-icon.shop {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .org-card .org-icon.library {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .org-card .org-icon.company {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .org-card .org-icon.other {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .org-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .org-card p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        .org-card .org-type {
+            display: inline-block;
+            padding: 0.2rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            margin-top: 0.5rem;
+        }
+
         .org-card .org-join-code {
             font-size: 0.8rem;
             color: var(--gray-500);
             margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        /* Остальные стили как в предыдущей версии */
+
+        .org-card .org-join-code .join-code {
+            font-family: monospace;
+            font-size: 1rem;
+            background: var(--gray-100);
+            padding: 0.1rem 0.6rem;
+            border-radius: var(--radius-sm);
+            letter-spacing: 2px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .create-org-card {
+            border: 2px dashed var(--gray-300);
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .create-org-card:hover {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .create-org-card i {
+            font-size: 3rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .create-org-card h4 {
+            color: var(--gray-600);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--gray-300);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: var(--gray-500);
+            max-width: 400px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .btn-join {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-join:hover {
+            background: #059669;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--gray-700);
+        }
+
+        .modal .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            background: white;
+        }
+
+        .modal .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .modal select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        .modal textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- ТОТ ЖЕ САЙДБАР ЧТО И БЫЛ -->
     <aside class="sidebar">
         <a href="/dashboard" class="logo">
             <i class="fas fa-cubes"></i>
             <span>Typebiz</span>
         </a>
+
         <div class="user-info">
             <div class="avatar avatar-sm" id="userAvatar">U</div>
             <div>
@@ -46,10 +451,11 @@
                 <div class="email" id="userEmail">---</div>
             </div>
         </div>
+
         <ul class="nav-menu">
             <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мои организации</a></li>
             <li><a href="#" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Вступить по коду</a></li>
-            <li id="adminLink" style="display:none;"><a href="/admin"><i class="fas fa-crown"></i> Админ-панель</a></li>
+            <li id="adminLink" style="display: none;"><a href="/admin"><i class="fas fa-crown"></i> Админ-панель</a></li>
             <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
             <li><a href="/settings"><i class="fas fa-cog"></i> Настройки</a></li>
             <li class="logout-btn"><a onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
@@ -71,6 +477,7 @@
                 </button>
             </div>
         </div>
+
         <div id="orgsContainer">
             <div class="empty-state" id="emptyState">
                 <i class="fas fa-building"></i>
@@ -402,7 +809,6 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
 
             try {
-                // Ищем организацию по коду
                 const org = await db.getOrganizationByJoinCode(code);
                 
                 if (!org) {
@@ -412,7 +818,6 @@
                     return;
                 }
 
-                // Проверяем, не состоит ли уже пользователь
                 const members = await db.getOrganizationMembers(org.id);
                 const alreadyMember = members.some(m => m.user_id === user.id);
                 
@@ -423,7 +828,6 @@
                     return;
                 }
 
-                // Создаём заявку на вступление
                 await db.createJoinRequest(org.id, user.id, message);
 
                 alert('Заявка отправлена! Лидер организации рассмотрит её.');
