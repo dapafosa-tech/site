@@ -2,15 +2,9 @@
 // ORGSPACE - РАБОТА С БАЗОЙ ДАННЫХ
 // ============================================
 
-// Конфигурация Supabase
 const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
-// ===== БАЗОВЫЕ ФУНКЦИИ ЗАПРОСОВ =====
-
-/**
- * Выполняет запрос к Supabase
- */
 async function supabaseQuery(endpoint, options = {}) {
     const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
     const headers = {
@@ -37,11 +31,7 @@ async function supabaseQuery(endpoint, options = {}) {
     }
 }
 
-// ===== ОРГАНИЗАЦИИ =====
-
-/**
- * Создает новую организацию
- */
+// Organizations
 async function createOrganization(data) {
     return supabaseQuery('organizations', {
         method: 'POST',
@@ -49,24 +39,15 @@ async function createOrganization(data) {
     });
 }
 
-/**
- * Получает все организации пользователя
- */
 async function getUserOrganizations(userId) {
     return supabaseQuery(`organizations?created_by=eq.${userId}`);
 }
 
-/**
- * Получает организацию по ID
- */
 async function getOrganization(id) {
     const result = await supabaseQuery(`organizations?id=eq.${id}`);
     return result[0] || null;
 }
 
-/**
- * Обновляет организацию
- */
 async function updateOrganization(id, data) {
     return supabaseQuery(`organizations?id=eq.${id}`, {
         method: 'PATCH',
@@ -74,20 +55,13 @@ async function updateOrganization(id, data) {
     });
 }
 
-/**
- * Удаляет организацию
- */
 async function deleteOrganization(id) {
     return supabaseQuery(`organizations?id=eq.${id}`, {
         method: 'DELETE'
     });
 }
 
-// ===== ПОЛЬЗОВАТЕЛИ =====
-
-/**
- * Создает профиль пользователя
- */
+// Users
 async function createUserProfile(data) {
     return supabaseQuery('users', {
         method: 'POST',
@@ -95,17 +69,11 @@ async function createUserProfile(data) {
     });
 }
 
-/**
- * Получает профиль пользователя по auth_id
- */
 async function getUserProfile(authId) {
     const result = await supabaseQuery(`users?auth_id=eq.${authId}`);
     return result[0] || null;
 }
 
-/**
- * Обновляет профиль пользователя
- */
 async function updateUserProfile(id, data) {
     return supabaseQuery(`users?id=eq.${id}`, {
         method: 'PATCH',
@@ -113,11 +81,7 @@ async function updateUserProfile(id, data) {
     });
 }
 
-// ===== СОТРУДНИКИ =====
-
-/**
- * Создает сотрудника
- */
+// Employees
 async function createEmployee(data) {
     return supabaseQuery('employees', {
         method: 'POST',
@@ -125,16 +89,10 @@ async function createEmployee(data) {
     });
 }
 
-/**
- * Получает сотрудников организации
- */
 async function getOrganizationEmployees(orgId) {
     return supabaseQuery(`employees?organization_id=eq.${orgId}`);
 }
 
-/**
- * Обновляет сотрудника
- */
 async function updateEmployee(id, data) {
     return supabaseQuery(`employees?id=eq.${id}`, {
         method: 'PATCH',
@@ -142,20 +100,13 @@ async function updateEmployee(id, data) {
     });
 }
 
-/**
- * Удаляет сотрудника
- */
 async function deleteEmployee(id) {
     return supabaseQuery(`employees?id=eq.${id}`, {
         method: 'DELETE'
     });
 }
 
-// ===== ОТДЕЛЫ =====
-
-/**
- * Создает отдел
- */
+// Departments
 async function createDepartment(data) {
     return supabaseQuery('departments', {
         method: 'POST',
@@ -163,16 +114,10 @@ async function createDepartment(data) {
     });
 }
 
-/**
- * Получает отделы организации
- */
 async function getOrganizationDepartments(orgId) {
     return supabaseQuery(`departments?organization_id=eq.${orgId}`);
 }
 
-/**
- * Обновляет отдел
- */
 async function updateDepartment(id, data) {
     return supabaseQuery(`departments?id=eq.${id}`, {
         method: 'PATCH',
@@ -180,20 +125,13 @@ async function updateDepartment(id, data) {
     });
 }
 
-/**
- * Удаляет отдел
- */
 async function deleteDepartment(id) {
     return supabaseQuery(`departments?id=eq.${id}`, {
         method: 'DELETE'
     });
 }
 
-// ===== ДОКУМЕНТЫ =====
-
-/**
- * Создает документ
- */
+// Documents
 async function createDocument(data) {
     return supabaseQuery('documents', {
         method: 'POST',
@@ -201,16 +139,10 @@ async function createDocument(data) {
     });
 }
 
-/**
- * Получает документы организации
- */
 async function getOrganizationDocuments(orgId) {
     return supabaseQuery(`documents?organization_id=eq.${orgId}`);
 }
 
-/**
- * Обновляет документ
- */
 async function updateDocument(id, data) {
     return supabaseQuery(`documents?id=eq.${id}`, {
         method: 'PATCH',
@@ -218,20 +150,13 @@ async function updateDocument(id, data) {
     });
 }
 
-/**
- * Удаляет документ
- */
 async function deleteDocument(id) {
     return supabaseQuery(`documents?id=eq.${id}`, {
         method: 'DELETE'
     });
 }
 
-// ===== ТОВАРЫ (для магазинов) =====
-
-/**
- * Создает товар
- */
+// Products
 async function createProduct(data) {
     return supabaseQuery('products', {
         method: 'POST',
@@ -239,16 +164,10 @@ async function createProduct(data) {
     });
 }
 
-/**
- * Получает товары организации
- */
 async function getOrganizationProducts(orgId) {
     return supabaseQuery(`products?organization_id=eq.${orgId}`);
 }
 
-/**
- * Обновляет товар
- */
 async function updateProduct(id, data) {
     return supabaseQuery(`products?id=eq.${id}`, {
         method: 'PATCH',
@@ -256,68 +175,13 @@ async function updateProduct(id, data) {
     });
 }
 
-/**
- * Удаляет товар
- */
 async function deleteProduct(id) {
     return supabaseQuery(`products?id=eq.${id}`, {
         method: 'DELETE'
     });
 }
 
-// ===== ЗАЯВЛЕНИЯ =====
-
-/**
- * Создает заявление
- */
-async function createApplication(data) {
-    return supabaseQuery('applications', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-/**
- * Получает заявления организации
- */
-async function getOrganizationApplications(orgId) {
-    return supabaseQuery(`applications?organization_id=eq.${orgId}`);
-}
-
-/**
- * Обновляет заявление
- */
-async function updateApplication(id, data) {
-    return supabaseQuery(`applications?id=eq.${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
-
-// ===== АУДИТ =====
-
-/**
- * Логирует действие пользователя
- */
-async function logActivity(data) {
-    return supabaseQuery('activity_logs', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-/**
- * Получает логи организации
- */
-async function getOrganizationLogs(orgId, limit = 50) {
-    return supabaseQuery(`activity_logs?organization_id=eq.${orgId}&order=created_at.desc&limit=${limit}`);
-}
-
-// ===== КНИГИ (для библиотек) =====
-
-/**
- * Создает книгу
- */
+// Books
 async function createBook(data) {
     return supabaseQuery('books', {
         method: 'POST',
@@ -325,16 +189,10 @@ async function createBook(data) {
     });
 }
 
-/**
- * Получает книги организации
- */
 async function getOrganizationBooks(orgId) {
     return supabaseQuery(`books?organization_id=eq.${orgId}`);
 }
 
-/**
- * Обновляет книгу
- */
 async function updateBook(id, data) {
     return supabaseQuery(`books?id=eq.${id}`, {
         method: 'PATCH',
@@ -342,67 +200,78 @@ async function updateBook(id, data) {
     });
 }
 
-/**
- * Удаляет книгу
- */
 async function deleteBook(id) {
     return supabaseQuery(`books?id=eq.${id}`, {
         method: 'DELETE'
     });
 }
 
-// Экспортируем для использования
+// Applications
+async function createApplication(data) {
+    return supabaseQuery('applications', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
+async function getOrganizationApplications(orgId) {
+    return supabaseQuery(`applications?organization_id=eq.${orgId}`);
+}
+
+async function updateApplication(id, data) {
+    return supabaseQuery(`applications?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    });
+}
+
+// Logs
+async function logActivity(data) {
+    return supabaseQuery('activity_logs', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
+async function getOrganizationLogs(orgId, limit = 50) {
+    return supabaseQuery(`activity_logs?organization_id=eq.${orgId}&order=created_at.desc&limit=${limit}`);
+}
+
 window.db = {
-    // Organizations
     createOrganization,
     getUserOrganizations,
     getOrganization,
     updateOrganization,
     deleteOrganization,
-    
-    // Users
     createUserProfile,
     getUserProfile,
     updateUserProfile,
-    
-    // Employees
     createEmployee,
     getOrganizationEmployees,
     updateEmployee,
     deleteEmployee,
-    
-    // Departments
     createDepartment,
     getOrganizationDepartments,
     updateDepartment,
     deleteDepartment,
-    
-    // Documents
     createDocument,
     getOrganizationDocuments,
     updateDocument,
     deleteDocument,
-    
-    // Products
     createProduct,
     getOrganizationProducts,
     updateProduct,
     deleteProduct,
-    
-    // Books
     createBook,
     getOrganizationBooks,
     updateBook,
     deleteBook,
-    
-    // Applications
     createApplication,
     getOrganizationApplications,
     updateApplication,
-    
-    // Logs
     logActivity,
-    getOrganizationLogs
+    getOrganizationLogs,
+    supabaseQuery
 };
 
-console.log('✅ Database module loaded');
+console.log('✅ DB module loaded');
