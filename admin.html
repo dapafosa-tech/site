@@ -83,6 +83,7 @@
             text-decoration: none;
             transition: all 0.3s ease;
             font-weight: 500;
+            cursor: pointer;
         }
 
         .sidebar .nav-menu a:hover {
@@ -198,7 +199,6 @@
     </style>
 </head>
 <body>
-    <!-- Боковое меню -->
     <aside class="sidebar">
         <div class="logo">
             <i class="fas fa-cubes"></i>
@@ -223,7 +223,6 @@
         </ul>
     </aside>
 
-    <!-- Основной контент -->
     <main class="main-content" id="mainContent">
         <div class="page-header">
             <div>
@@ -233,7 +232,6 @@
             <span class="admin-badge"><i class="fas fa-shield-alt"></i> Админ</span>
         </div>
 
-        <!-- Статистика -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-value" id="totalUsers">0</div>
@@ -253,7 +251,6 @@
             </div>
         </div>
 
-        <!-- Контент -->
         <div id="adminContent">
             <div class="admin-section">
                 <div class="section-header">
@@ -268,6 +265,7 @@
 
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
     <script src="/js/admin.js"></script>
 </body>
 </html>
