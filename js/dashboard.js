@@ -2,11 +2,6 @@
 // ORGSPACE - ЛОГИКА ДАШБОРДА
 // ============================================
 
-// ===== ЗАГРУЗКА ДАННЫХ =====
-
-/**
- * Загружает организации пользователя
- */
 async function loadOrganizations() {
     const user = auth.getCurrentUser();
     if (!user) return;
@@ -24,27 +19,26 @@ async function loadOrganizations() {
 
     emptyState.style.display = 'none';
 
-    // Создаем карточки организаций
+    const iconMap = {
+        'shop': { icon: 'fa-store', class: 'shop' },
+        'library': { icon: 'fa-book', class: 'library' },
+        'company': { icon: 'fa-building', class: 'company' },
+        'school': { icon: 'fa-graduation-cap', class: 'other' },
+        'clinic': { icon: 'fa-heartbeat', class: 'other' },
+        'other': { icon: 'fa-cubes', class: 'other' }
+    };
+
+    const typeLabels = {
+        'shop': 'Магазин',
+        'library': 'Библиотека',
+        'company': 'Компания',
+        'school': 'Школа',
+        'clinic': 'Клиника',
+        'other': 'Другое'
+    };
+
     orgs.forEach(org => {
-        const iconMap = {
-            'shop': { icon: 'fa-store', class: 'shop' },
-            'library': { icon: 'fa-book', class: 'library' },
-            'company': { icon: 'fa-building', class: 'company' },
-            'school': { icon: 'fa-graduation-cap', class: 'other' },
-            'clinic': { icon: 'fa-heartbeat', class: 'other' },
-            'other': { icon: 'fa-cubes', class: 'other' }
-        };
-
         const iconData = iconMap[org.type] || iconMap['other'];
-        const typeLabels = {
-            'shop': 'Магазин',
-            'library': 'Библиотека',
-            'company': 'Компания',
-            'school': 'Школа',
-            'clinic': 'Клиника',
-            'other': 'Другое'
-        };
-
         const card = document.createElement('div');
         card.className = 'org-card';
         card.innerHTML = `
@@ -61,7 +55,6 @@ async function loadOrganizations() {
         grid.appendChild(card);
     });
 
-    // Добавляем карточку создания
     const createCard = document.createElement('div');
     createCard.className = 'org-card create-org-card';
     createCard.innerHTML = `
@@ -72,27 +65,14 @@ async function loadOrganizations() {
     grid.appendChild(createCard);
 }
 
-// ===== МОДАЛЬНОЕ ОКНО =====
-
-/**
- * Открывает модалку создания организации
- */
 function openCreateOrg() {
     document.getElementById('createOrgModal').classList.add('active');
 }
 
-/**
- * Закрывает модалку
- */
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
-// ===== СОЗДАНИЕ ОРГАНИЗАЦИИ =====
-
-/**
- * Обработчик создания организации
- */
 document.getElementById('createOrgForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -102,17 +82,17 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
     const user = auth.getCurrentUser();
 
     if (!user) {
-        alert('Пожалуйста, войдите в систему');
+        await showAlert('Пожалуйста, войдите в систему', 'warning');
         return;
     }
 
     if (!name) {
-        alert('Введите название организации');
+        await showAlert('Введите название организации', 'warning');
         return;
     }
 
     if (!type) {
-        alert('Выберите тип организации');
+        await showAlert('Выберите тип организации', 'warning');
         return;
     }
 
@@ -133,7 +113,6 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
         const result = await db.createOrganization(data);
 
         if (result && result.length > 0) {
-            // Логируем действие
             await db.logActivity({
                 organization_id: result[0].id,
                 user_id: user.id,
@@ -143,27 +122,22 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
                 changes: data
             });
 
-            alert('Организация создана!');
+            await showToast('Организация создана! 🎉', 'success');
             closeModal('createOrgModal');
             document.getElementById('createOrgForm').reset();
             loadOrganizations();
         } else {
-            alert('Ошибка при создании организации');
+            await showAlert('Ошибка при создании организации', 'error');
         }
     } catch (error) {
         console.error('Create organization error:', error);
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
 });
 
-// ===== ЗАГРУЗКА ПРОФИЛЯ =====
-
-/**
- * Загружает информацию о пользователе
- */
 async function loadUserInfo() {
     const user = auth.getCurrentUser();
     if (!user) return;
@@ -174,24 +148,17 @@ async function loadUserInfo() {
     document.getElementById('userEmail').textContent = user.email;
     document.getElementById('userAvatar').textContent = (profile?.full_name || 'U')[0].toUpperCase();
 
-    // Показываем ссылку на админку если админ
     if (auth.isAdmin()) {
         document.getElementById('adminLink').style.display = 'block';
     }
 }
 
-// ===== ВЫХОД =====
-
-/**
- * Обработчик выхода
- */
 async function handleLogout() {
-    if (confirm('Вы уверены, что хотите выйти?')) {
+    const confirmed = await showConfirm('Вы уверены, что хотите выйти?', 'Выход');
+    if (confirmed) {
         await auth.logoutUser();
     }
 }
-
-// ===== ЗАКРЫТИЕ МОДАЛКИ ПО КЛИКУ СНАРУЖИ =====
 
 document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
@@ -201,14 +168,10 @@ document.querySelectorAll('.modal').forEach(modal => {
     });
 });
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
-
 (async function init() {
-    // Проверяем авторизацию
     const isAuth = await auth.requireAuth();
     if (!isAuth) return;
 
-    // Загружаем данные
     await loadUserInfo();
     await loadOrganizations();
 
