@@ -377,7 +377,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="#" class="logo">
+        <a href="/" class="logo">
             <i class="fas fa-cubes"></i>
             <span>Typebiz</span>
         </a>
@@ -386,8 +386,8 @@
             <li><a href="#features">Возможности</a></li>
             <li><a href="#types">Типы организаций</a></li>
             <li><a href="#pricing">Тарифы</a></li>
-            <li><a href="/login.html" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Войти</a></li>
-            <li><a href="/register.html" class="btn-primary"><i class="fas fa-rocket"></i> Начать</a></li>
+            <li><a href="/login" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Войти</a></li>
+            <li><a href="/register" class="btn-primary"><i class="fas fa-rocket"></i> Начать</a></li>
         </ul>
 
         <div class="hamburger" id="hamburger" onclick="toggleMenu()">
@@ -409,10 +409,10 @@
                 просто выбери тип организации.
             </p>
             <div class="hero-buttons">
-                <a href="/register.html" class="btn-hero-primary">
+                <a href="/register" class="btn-hero-primary">
                     <i class="fas fa-plus-circle"></i> Создать организацию
                 </a>
-                <a href="/login.html" class="btn-hero-secondary">
+                <a href="/login" class="btn-hero-secondary">
                     <i class="fas fa-play-circle"></i> Демо
                 </a>
             </div>
@@ -460,8 +460,8 @@
             <strong>Typebiz</strong> — универсальная цифровая платформа для организаций
         </p>
         <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-            © 2026 · <a href="/privacy.html">Политика конфиденциальности</a> · 
-            <a href="/terms.html">Пользовательское соглашение</a>
+            © 2026 · <a href="/privacy">Политика конфиденциальности</a> · 
+            <a href="/terms">Пользовательское соглашение</a>
         </p>
     </footer>
 
@@ -476,7 +476,6 @@
             });
         });
 
-        // Плавный скролл для якорей
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 const href = this.getAttribute('href');
