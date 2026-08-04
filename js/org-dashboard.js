@@ -1,10 +1,10 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ (С ОТЛАДКОЙ)
+// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ (ИСПРАВЛЕННЫЙ)
 // ============================================
 
+// Убираем дублирование переменных - используем глобальные
 let currentOrgId = null;
 let currentOrg = null;
-let currentUser = null;
 
 const typeLabels = {
     'shop': 'Магазин',
@@ -64,8 +64,8 @@ async function init() {
         return;
     }
 
-    currentUser = auth.getCurrentUser();
-    debugLog('👤 Пользователь:', currentUser);
+    const user = auth.getCurrentUser();
+    debugLog('👤 Пользователь:', user);
     
     await loadOrganization();
 }
@@ -150,17 +150,9 @@ async function loadOverview() {
     document.getElementById('pageSubtitle').textContent = `Управление организацией "${currentOrg?.name}"`;
 
     try {
-        debugLog('📡 Загрузка участников...');
         const members = await db.getOrganizationMembers(currentOrgId);
-        debugLog(`📊 Участников: ${members?.length || 0}`);
-        
-        debugLog('📡 Загрузка должностей...');
         const ranks = await db.getOrganizationRanks(currentOrgId);
-        debugLog(`📊 Должностей: ${ranks?.length || 0}`);
-        
-        debugLog('📡 Загрузка заявок...');
         const requests = await db.getJoinRequests(currentOrgId);
-        debugLog(`📊 Заявок: ${requests?.length || 0}`);
 
         container.innerHTML = `
             <div class="grid-4">
@@ -198,7 +190,6 @@ async function loadOverview() {
                 </div>
             </div>
         `;
-        debugLog('✅ Обзор загружен');
     } catch (error) {
         debugLog('❌ Ошибка загрузки обзора:', error);
         container.innerHTML = `<div class="alert alert-danger">Ошибка загрузки данных: ${error.message}</div>`;
@@ -214,10 +205,7 @@ async function loadMembers() {
 
     try {
         const members = await db.getOrganizationMembers(currentOrgId);
-        debugLog(`👥 Участников: ${members?.length || 0}`);
-        
         const ranks = await db.getOrganizationRanks(currentOrgId);
-        debugLog(`📊 Должностей: ${ranks?.length || 0}`);
 
         let html = `
             <div class="card">
@@ -238,10 +226,11 @@ async function loadMembers() {
         `;
 
         if (members && members.length > 0) {
+            const user = auth.getCurrentUser();
             for (const member of members) {
                 try {
-                    const user = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
-                    const userName = user && user.length > 0 ? (user[0].full_name || user[0].email) : 'Неизвестно';
+                    const userData = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
+                    const userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : 'Неизвестно';
                     const rank = ranks?.find(r => r.id === member.rank_id);
                     const isLeader = currentOrg.leader_id === member.user_id;
 
@@ -251,7 +240,7 @@ async function loadMembers() {
                             <td>${rank ? `<span style="color:${rank.color}">${rank.name}</span>` : 'Без должности'}</td>
                             <td>${new Date(member.joined_at).toLocaleDateString('ru-RU')}</td>
                             <td>
-                                ${!isLeader && currentOrg.leader_id === currentUser?.id ? `
+                                ${!isLeader && currentOrg.leader_id === user?.id ? `
                                     <button class="btn btn-sm btn-outline" onclick="openAssignRank('${member.id}', '${userName}')">
                                         <i class="fas fa-crown"></i>
                                     </button>
@@ -278,7 +267,6 @@ async function loadMembers() {
         `;
 
         container.innerHTML = html;
-        debugLog('✅ Участники загружены');
     } catch (error) {
         debugLog('❌ Ошибка загрузки участников:', error);
         container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
@@ -294,7 +282,6 @@ async function loadRequests() {
 
     try {
         const requests = await db.getJoinRequests(currentOrgId);
-        debugLog(`📩 Заявок: ${requests?.length || 0}`);
 
         let html = `
             <div class="card">
@@ -316,13 +303,14 @@ async function loadRequests() {
         `;
 
         if (requests && requests.length > 0) {
+            const user = auth.getCurrentUser();
             for (const req of requests) {
                 try {
-                    const user = await db.supabaseQuery(`users?id=eq.${req.user_id}`);
-                    const userName = user && user.length > 0 ? (user[0].full_name || user[0].email) : 'Неизвестно';
+                    const userData = await db.supabaseQuery(`users?id=eq.${req.user_id}`);
+                    const userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : 'Неизвестно';
 
                     const isPending = req.status === 'pending';
-                    const isLeader = currentOrg.leader_id === currentUser?.id;
+                    const isLeader = currentOrg.leader_id === user?.id;
 
                     const statusClass = req.status === 'pending' ? 'badge-warning' : 
                                        req.status === 'approved' ? 'badge-success' : 'badge-danger';
@@ -361,7 +349,6 @@ async function loadRequests() {
         `;
 
         container.innerHTML = html;
-        debugLog('✅ Заявки загружены');
     } catch (error) {
         debugLog('❌ Ошибка загрузки заявок:', error);
         container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
@@ -418,13 +405,13 @@ async function loadRanks() {
 
     try {
         const ranks = await db.getOrganizationRanks(currentOrgId);
-        debugLog(`👑 Должностей: ${ranks?.length || 0}`);
+        const user = auth.getCurrentUser();
 
         let html = `
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Должности (${ranks?.length || 0})</h3>
-                    ${currentOrg.leader_id === currentUser?.id ? `
+                    ${currentOrg.leader_id === user?.id ? `
                         <button class="btn btn-primary btn-sm" onclick="openCreateRank()">
                             <i class="fas fa-plus"></i> Создать должность
                         </button>
@@ -451,7 +438,7 @@ async function loadRanks() {
                         <td><strong>${rank.name}</strong></td>
                         <td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${rank.color};"></span> ${rank.color}</td>
                         <td>
-                            ${!isDefault && currentOrg.leader_id === currentUser?.id ? `
+                            ${!isDefault && currentOrg.leader_id === user?.id ? `
                                 <button class="btn btn-sm btn-danger" onclick="deleteRank('${rank.id}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -472,7 +459,6 @@ async function loadRanks() {
         `;
 
         container.innerHTML = html;
-        debugLog('✅ Должности загружены');
     } catch (error) {
         debugLog('❌ Ошибка загрузки должностей:', error);
         container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
@@ -610,13 +596,13 @@ async function loadDepartments() {
 
     try {
         const depts = await db.getOrganizationDepartments(currentOrgId);
-        debugLog(`🏢 Отделов: ${depts?.length || 0}`);
+        const user = auth.getCurrentUser();
 
         let html = `
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Отделы (${depts?.length || 0})</h3>
-                    ${currentOrg.leader_id === currentUser?.id ? `
+                    ${currentOrg.leader_id === user?.id ? `
                         <button class="btn btn-primary btn-sm" onclick="openCreateDepartment()">
                             <i class="fas fa-plus"></i> Создать отдел
                         </button>
@@ -641,7 +627,7 @@ async function loadDepartments() {
                         <td><strong>${dept.name}</strong></td>
                         <td>${dept.description || '—'}</td>
                         <td>
-                            ${currentOrg.leader_id === currentUser?.id ? `
+                            ${currentOrg.leader_id === user?.id ? `
                                 <button class="btn btn-sm btn-danger" onclick="deleteDepartment('${dept.id}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -662,7 +648,6 @@ async function loadDepartments() {
         `;
 
         container.innerHTML = html;
-        debugLog('✅ Отделы загружены');
     } catch (error) {
         debugLog('❌ Ошибка загрузки отделов:', error);
         container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
@@ -740,14 +725,14 @@ async function loadSettings() {
                     <label class="form-label">Код вступления</label>
                     <div style="display:flex;gap:0.5rem;">
                         <input type="text" class="form-control" id="settingsCode" value="${currentOrg?.join_code || ''}" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;" readonly>
-                        ${currentOrg.leader_id === currentUser?.id ? `
+                        ${currentOrg.leader_id === auth.getCurrentUser()?.id ? `
                             <button type="button" class="btn btn-outline" onclick="regenerateCode()">
                                 <i class="fas fa-sync"></i>
                             </button>
                         ` : ''}
                     </div>
                 </div>
-                ${currentOrg.leader_id === currentUser?.id ? `
+                ${currentOrg.leader_id === auth.getCurrentUser()?.id ? `
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Сохранить настройки
                     </button>
@@ -758,7 +743,6 @@ async function loadSettings() {
             </form>
         </div>
     `;
-    debugLog('✅ Настройки загружены');
 
     document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
