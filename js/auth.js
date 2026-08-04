@@ -1,13 +1,15 @@
 // ============================================
-// TYPEBIZ - ПОЛНАЯ СИСТЕМА АВТОРИЗАЦИИ
+// TYPEBIZ - АВТОРИЗАЦИЯ
 // ============================================
 
-const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+// Убираем дублирование - используем глобальные переменные
+if (typeof SUPABASE_URL === 'undefined') {
+    var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+}
 
 let currentUser = null;
 
-// ===== ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ =====
 function getCurrentUser() {
     try {
         const userData = localStorage.getItem('userData');
@@ -21,7 +23,6 @@ function getCurrentUser() {
     }
 }
 
-// ===== ПРОВЕРКА АВТОРИЗАЦИИ =====
 async function checkAuth() {
     const user = getCurrentUser();
     if (!user) return false;
@@ -47,7 +48,6 @@ async function checkAuth() {
     }
 }
 
-// ===== ЗАЩИТА СТРАНИЦ =====
 async function requireAuth() {
     const isAuth = await checkAuth();
     if (!isAuth) {
@@ -57,7 +57,6 @@ async function requireAuth() {
     return true;
 }
 
-// ===== ПРОВЕРКА АДМИНА =====
 async function requireAdmin() {
     const isAuth = await checkAuth();
     if (!isAuth) {
@@ -74,7 +73,6 @@ async function requireAdmin() {
     return true;
 }
 
-// ===== ВЫХОД =====
 function logoutUser() {
     localStorage.removeItem('userData');
     localStorage.removeItem('isGuest');
@@ -82,7 +80,6 @@ function logoutUser() {
     window.location.href = '/login';
 }
 
-// ===== ВХОД =====
 async function loginUser(email, password) {
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}`, {
@@ -118,7 +115,6 @@ async function loginUser(email, password) {
     }
 }
 
-// ===== РЕГИСТРАЦИЯ =====
 async function registerUser(email, password, fullName) {
     try {
         const userId = generateUUID();
@@ -166,8 +162,6 @@ async function registerUser(email, password, fullName) {
     }
 }
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
-
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0,
@@ -181,7 +175,6 @@ function isAdmin() {
     return user?.role === 'admin';
 }
 
-// ===== ЭКСПОРТ =====
 window.auth = {
     getCurrentUser,
     checkAuth,
