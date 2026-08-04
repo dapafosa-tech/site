@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ (ОБНОВЛЁННАЯ)
+// TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ (ИСПРАВЛЕННАЯ)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -98,8 +98,6 @@ async function createOrganization(data) {
     if (result && result.length > 0) {
         const orgId = result[0].id;
         await createDefaultRanks(orgId);
-        
-        // Добавляем создателя как участника
         await addMemberToOrganization(orgId, user.id, null);
     }
 
@@ -111,12 +109,8 @@ async function getUserOrganizations() {
     if (!user) throw new Error('Не авторизован');
     
     try {
-        // Получаем организации, где пользователь является участником
-        const members = await supabaseQuery(`org_members?user_id=eq.${user.id}`);
-        if (!members || members.length === 0) return [];
-        
-        const orgIds = members.map(m => m.organization_id);
-        const orgs = await supabaseQuery(`organizations?id=in.(${orgIds.join(',')})`);
+        // ПРОСТОЙ ВАРИАНТ: получаем организации где пользователь создатель
+        const orgs = await supabaseQuery(`organizations?created_by=eq.${user.id}`);
         return orgs || [];
     } catch (error) {
         console.error('Load orgs error:', error);
@@ -282,7 +276,7 @@ async function deleteUser(id) {
     });
 }
 
-// ===== СОТРУДНИКИ (старое, оставляем для совместимости) =====
+// ===== СОТРУДНИКИ (старое) =====
 async function createEmployee(data) {
     return supabaseQuery('employees', {
         method: 'POST',
