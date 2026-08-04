@@ -140,13 +140,12 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
     submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
 });
 
-async function handleLogout() {
-    const confirmed = await showConfirm('Вы уверены, что хотите выйти?', 'Выход');
-    if (confirmed) {
-        auth.logoutUser();
-    }
+// ===== ВЫХОД (ПРЯМОЙ ВЫЗОВ) =====
+function handleLogout() {
+    auth.logoutUser();
 }
 
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 (async function init() {
     const isAuth = await auth.requireAuth();
     if (!isAuth) return;
