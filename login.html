@@ -167,7 +167,7 @@
                 <label>
                     <input type="checkbox" id="remember"> Запомнить меня
                 </label>
-                <a href="#">Забыли пароль?</a>
+                <a href="/forgot-password">Забыли пароль?</a>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
@@ -176,20 +176,29 @@
         </form>
 
         <p class="register-link">
-            Нет аккаунта? <a href="/register.html">Зарегистрироваться</a>
+            Нет аккаунта? <a href="/register">Зарегистрироваться</a>
         </p>
     </div>
 
     <script>
         // ============================================
-        // TYPEBIZ - ВХОД БЕЗ AUTH
-        // ПРОСТО ПРОВЕРКА ПО ТАБЛИЦЕ users
+        // TYPEBIZ - ВХОД
         // ============================================
 
         const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
-        // ===== UI ФУНКЦИИ =====
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.querySelector('.toggle-btn i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
 
         function showToast(message, type = 'info', duration = 3000) {
             const container = document.getElementById('toastContainer') || createToastContainer();
@@ -280,20 +289,6 @@
             });
         }
 
-        function togglePassword() {
-            const input = document.getElementById('password');
-            const icon = document.querySelector('.toggle-btn i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fas fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fas fa-eye';
-            }
-        }
-
-        // ===== ВХОД =====
-
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -310,7 +305,6 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
 
             try {
-                // Ищем пользователя по email
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}`, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -330,17 +324,10 @@
 
                 const user = users[0];
 
-                // Проверяем пароль (простым сравнением, без хеширования)
-                // ВНИМАНИЕ: В реальном проекте пароли должны быть захешированы!
                 if (user.password && user.password !== password) {
                     throw new Error('Неверный пароль');
                 }
 
-                // Если пароль не хранится в БД - пропускаем проверку
-                // и просто пускаем пользователя
-                console.log('✅ Вход успешен:', user);
-
-                // Сохраняем данные пользователя
                 localStorage.setItem('userData', JSON.stringify(user));
                 localStorage.setItem('isGuest', 'false');
 
@@ -350,18 +337,17 @@
                 await showToast('Добро пожаловать!', 'success');
                 
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/dashboard';
                 }, 1000);
 
             } catch (error) {
-                console.error('❌ Ошибка:', error);
+                console.error('Login error:', error);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
                 await showAlert(error.message, 'error');
             }
         });
 
-        // ===== ПРОВЕРКА: УЖЕ ЗАЛОГИНЕН =====
         (async () => {
             try {
                 const userData = localStorage.getItem('userData');
@@ -377,7 +363,7 @@
                     if (response.ok) {
                         const data = await response.json();
                         if (data && data.length > 0) {
-                            window.location.href = '/dashboard.html';
+                            window.location.href = '/dashboard';
                         }
                     }
                 }
