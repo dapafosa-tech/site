@@ -5,20 +5,16 @@
 let currentUser = null;
 let organizations = [];
 
-// ===== ЗАГРУЗКА ДАННЫХ =====
 async function loadDashboard() {
     currentUser = auth.getCurrentUser();
     if (!currentUser) return;
 
-    // Загружаем организации
     await loadOrganizations();
     
-    // Обновляем профиль
     document.getElementById('userName').textContent = currentUser.full_name || 'Пользователь';
     document.getElementById('userEmail').textContent = currentUser.email;
     document.getElementById('userAvatar').textContent = (currentUser.full_name || 'U')[0].toUpperCase();
     
-    // Показываем админку если админ
     if (currentUser.role === 'admin') {
         document.getElementById('adminLink').style.display = 'block';
     }
@@ -75,7 +71,6 @@ async function loadOrganizations() {
             grid.appendChild(card);
         });
 
-        // Кнопка создания
         const createCard = document.createElement('div');
         createCard.className = 'org-card create-org-card';
         createCard.innerHTML = `
@@ -87,11 +82,10 @@ async function loadOrganizations() {
 
     } catch (error) {
         console.error('Load organizations error:', error);
-        await showAlert('Ошибка загрузки организаций', 'error');
+        await showAlert('Ошибка загрузки организаций: ' + error.message, 'error');
     }
 }
 
-// ===== СОЗДАНИЕ ОРГАНИЗАЦИИ =====
 function openCreateOrg() {
     document.getElementById('createOrgModal').classList.add('active');
 }
@@ -122,7 +116,7 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
 
     try {
-        await db.createOrganization({
+        const result = await db.createOrganization({
             name,
             type,
             description: description || '',
@@ -130,13 +124,15 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
             settings: {}
         });
 
+        console.log('✅ Организация создана:', result);
+
         await showToast('Организация создана! 🎉', 'success');
         closeModal('createOrgModal');
         document.getElementById('createOrgForm').reset();
         await loadOrganizations();
 
     } catch (error) {
-        console.error('Create organization error:', error);
+        console.error('❌ Create organization error:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 
@@ -144,7 +140,6 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
     submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
 });
 
-// ===== ВЫХОД =====
 async function handleLogout() {
     const confirmed = await showConfirm('Вы уверены, что хотите выйти?', 'Выход');
     if (confirmed) {
@@ -152,7 +147,6 @@ async function handleLogout() {
     }
 }
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
 (async function init() {
     const isAuth = await auth.requireAuth();
     if (!isAuth) return;
