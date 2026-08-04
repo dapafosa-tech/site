@@ -8,10 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        body {
-            background: var(--gray-50);
-        }
-
+        body { background: var(--gray-50); }
         .sidebar {
             position: fixed;
             left: 0;
@@ -24,7 +21,6 @@
             overflow-y: auto;
             z-index: 100;
         }
-
         .sidebar .logo {
             font-size: 1.5rem;
             font-weight: 800;
@@ -35,17 +31,12 @@
             gap: 0.75rem;
             text-decoration: none;
         }
-
-        .sidebar .logo i {
-            color: var(--primary);
-        }
-
+        .sidebar .logo i { color: var(--primary); }
         .sidebar .logo span {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         .sidebar .user-info {
             padding: 1rem;
             background: var(--gray-50);
@@ -55,25 +46,10 @@
             align-items: center;
             gap: 1rem;
         }
-
-        .sidebar .user-info .name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .sidebar .user-info .email {
-            font-size: 0.8rem;
-            color: var(--gray-500);
-        }
-
-        .sidebar .nav-menu {
-            list-style: none;
-        }
-
-        .sidebar .nav-menu li {
-            margin-bottom: 0.25rem;
-        }
-
+        .sidebar .user-info .name { font-weight: 600; font-size: 0.95rem; }
+        .sidebar .user-info .email { font-size: 0.8rem; color: var(--gray-500); }
+        .sidebar .nav-menu { list-style: none; }
+        .sidebar .nav-menu li { margin-bottom: 0.25rem; }
         .sidebar .nav-menu a {
             display: flex;
             align-items: center;
@@ -86,43 +62,17 @@
             font-weight: 500;
             cursor: pointer;
         }
-
-        .sidebar .nav-menu a:hover {
-            background: var(--gray-50);
-            color: var(--primary);
-        }
-
-        .sidebar .nav-menu a.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .sidebar .nav-menu a i {
-            width: 20px;
-            text-align: center;
-        }
-
+        .sidebar .nav-menu a:hover { background: var(--gray-50); color: var(--primary); }
+        .sidebar .nav-menu a.active { background: var(--primary); color: white; }
+        .sidebar .nav-menu a i { width: 20px; text-align: center; }
         .sidebar .nav-menu .logout-btn {
             margin-top: 2rem;
             border-top: 1px solid var(--gray-200);
             padding-top: 1rem;
         }
-
-        .sidebar .nav-menu .logout-btn a {
-            color: var(--danger);
-            cursor: pointer;
-        }
-
-        .sidebar .nav-menu .logout-btn a:hover {
-            background: #fef2f2;
-        }
-
-        .main-content {
-            margin-left: 260px;
-            padding: 2rem;
-            min-height: 100vh;
-        }
-
+        .sidebar .nav-menu .logout-btn a { color: var(--danger); cursor: pointer; }
+        .sidebar .nav-menu .logout-btn a:hover { background: #fef2f2; }
+        .main-content { margin-left: 260px; padding: 2rem; min-height: 100vh; }
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -131,23 +81,14 @@
             flex-wrap: wrap;
             gap: 1rem;
         }
-
-        .page-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .page-header p {
-            color: var(--gray-500);
-        }
-
+        .page-header h1 { font-size: 2rem; font-weight: 700; }
+        .page-header p { color: var(--gray-500); }
         .org-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
             margin-top: 1.5rem;
         }
-
         .org-card {
             background: white;
             border-radius: var(--radius);
@@ -157,12 +98,7 @@
             transition: all 0.3s ease;
             cursor: pointer;
         }
-
-        .org-card:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-4px);
-        }
-
+        .org-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); }
         .org-card .org-icon {
             width: 48px;
             height: 48px;
@@ -173,37 +109,12 @@
             font-size: 1.5rem;
             margin-bottom: 1rem;
         }
-
-        .org-card .org-icon.shop {
-            background: #dbeafe;
-            color: #2563eb;
-        }
-
-        .org-card .org-icon.library {
-            background: #d1fae5;
-            color: #059669;
-        }
-
-        .org-card .org-icon.company {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .org-card .org-icon.other {
-            background: #f3e8ff;
-            color: #7c3aed;
-        }
-
-        .org-card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .org-card p {
-            color: var(--gray-500);
-            font-size: 0.9rem;
-        }
-
+        .org-card .org-icon.shop { background: #dbeafe; color: #2563eb; }
+        .org-card .org-icon.library { background: #d1fae5; color: #059669; }
+        .org-card .org-icon.company { background: #fef3c7; color: #d97706; }
+        .org-card .org-icon.other { background: #f3e8ff; color: #7c3aed; }
+        .org-card h3 { font-size: 1.1rem; margin-bottom: 0.25rem; }
+        .org-card p { color: var(--gray-500); font-size: 0.9rem; }
         .org-card .org-type {
             display: inline-block;
             padding: 0.2rem 0.75rem;
@@ -214,7 +125,6 @@
             color: var(--gray-600);
             margin-top: 0.5rem;
         }
-
         .create-org-card {
             border: 2px dashed var(--gray-300);
             background: transparent;
@@ -226,43 +136,13 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
-        .create-org-card:hover {
-            border-color: var(--primary);
-            background: rgba(79, 70, 229, 0.05);
-        }
-
-        .create-org-card i {
-            font-size: 3rem;
-            color: var(--gray-400);
-            margin-bottom: 1rem;
-        }
-
-        .create-org-card h4 {
-            color: var(--gray-600);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            color: var(--gray-300);
-            margin-bottom: 1rem;
-        }
-
-        .empty-state h3 {
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-state p {
-            color: var(--gray-500);
-            max-width: 400px;
-            margin: 0 auto 1.5rem;
-        }
-
+        .create-org-card:hover { border-color: var(--primary); background: rgba(79, 70, 229, 0.05); }
+        .create-org-card i { font-size: 3rem; color: var(--gray-400); margin-bottom: 1rem; }
+        .create-org-card h4 { color: var(--gray-600); }
+        .empty-state { text-align: center; padding: 4rem 2rem; }
+        .empty-state i { font-size: 4rem; color: var(--gray-300); margin-bottom: 1rem; }
+        .empty-state h3 { margin-bottom: 0.5rem; }
+        .empty-state p { color: var(--gray-500); max-width: 400px; margin: 0 auto 1.5rem; }
         .modal {
             display: none;
             position: fixed;
@@ -276,11 +156,7 @@
             justify-content: center;
             backdrop-filter: blur(4px);
         }
-
-        .modal.active {
-            display: flex;
-        }
-
+        .modal.active { display: flex; }
         .modal-content {
             background: white;
             border-radius: var(--radius);
@@ -291,14 +167,12 @@
             overflow-y: auto;
             animation: modalSlideIn 0.3s ease;
         }
-
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
         }
-
         .modal-close {
             background: none;
             border: none;
@@ -307,24 +181,11 @@
             color: var(--gray-500);
             transition: color 0.3s ease;
         }
-
-        .modal-close:hover {
-            color: var(--gray-700);
-        }
-
+        .modal-close:hover { color: var(--gray-700); }
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
-
-            .page-header h1 {
-                font-size: 1.5rem;
-            }
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 1rem; }
+            .page-header h1 { font-size: 1.5rem; }
         }
     </style>
 </head>
@@ -334,53 +195,48 @@
             <i class="fas fa-cubes"></i>
             <span>Typebiz</span>
         </a>
-
-        <div class="user-info" id="userInfo">
+        <div class="user-info">
             <div class="avatar avatar-sm" id="userAvatar">U</div>
             <div>
                 <div class="name" id="userName">Загрузка...</div>
                 <div class="email" id="userEmail">---</div>
             </div>
         </div>
-
         <ul class="nav-menu">
             <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мои организации</a></li>
-            <li id="adminLink" style="display: none;"><a href="/admin"><i class="fas fa-crown"></i> Админ-панель</a></li>
+            <li id="adminLink" style="display:none;"><a href="/admin"><i class="fas fa-crown"></i> Админ-панель</a></li>
             <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
             <li><a href="/settings"><i class="fas fa-cog"></i> Настройки</a></li>
-            <li class="logout-btn"><a id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
+            <li class="logout-btn"><a onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
         </ul>
     </aside>
-
     <main class="main-content">
         <div class="page-header">
             <div>
                 <h1>Мои организации</h1>
                 <p>Управляйте своими организациями и создавайте новые</p>
             </div>
-            <button class="btn btn-primary" id="createOrgBtn">
+            <button class="btn btn-primary" onclick="openCreateOrg()">
                 <i class="fas fa-plus"></i> Создать организацию
             </button>
         </div>
-
         <div id="orgsContainer">
             <div class="empty-state" id="emptyState">
                 <i class="fas fa-building"></i>
                 <h3>У вас пока нет организаций</h3>
                 <p>Создайте свою первую организацию и начните управлять бизнесом</p>
-                <button class="btn btn-primary" id="emptyCreateBtn">
+                <button class="btn btn-primary" onclick="openCreateOrg()">
                     <i class="fas fa-plus"></i> Создать организацию
                 </button>
             </div>
             <div class="org-grid" id="orgGrid"></div>
         </div>
     </main>
-
     <div class="modal" id="createOrgModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Создать организацию</h2>
-                <button class="modal-close" id="closeModalBtn">&times;</button>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <form id="createOrgForm">
                 <div class="form-group">
@@ -403,7 +259,7 @@
                     <label class="form-label">Описание (необязательно)</label>
                     <textarea class="form-control" id="orgDesc" rows="3" placeholder="Краткое описание организации"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block" id="submitOrgBtn">
+                <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-rocket"></i> Создать организацию
                 </button>
             </form>
@@ -415,37 +271,52 @@
     <script src="/js/ui.js"></script>
     <script>
         // ============================================
-        // TYPEBIZ - ДАШБОРД (ВСЁ В ОДНОМ ФАЙЛЕ)
+        // TYPEBIZ - ДАШБОРД (БЕЗ ДУБЛИРОВАНИЯ ПЕРЕМЕННЫХ)
         // ============================================
 
-        let currentUser = null;
-        let organizations = [];
+        // ===== ВЫХОД =====
+        function logoutUser() {
+            if (confirm('Вы уверены, что хотите выйти?')) {
+                localStorage.removeItem('userData');
+                localStorage.removeItem('isGuest');
+                window.location.href = '/login';
+            }
+        }
 
-        // ===== ЗАГРУЗКА ДАННЫХ =====
+        // ===== МОДАЛКА =====
+        function openCreateOrg() {
+            document.getElementById('createOrgModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('createOrgModal').classList.remove('active');
+        }
+
+        // ===== ЗАГРУЗКА =====
         async function loadDashboard() {
-            currentUser = auth.getCurrentUser();
-            if (!currentUser) return;
+            const user = auth.getCurrentUser();
+            if (!user) return;
 
             await loadOrganizations();
             
-            document.getElementById('userName').textContent = currentUser.full_name || 'Пользователь';
-            document.getElementById('userEmail').textContent = currentUser.email;
-            document.getElementById('userAvatar').textContent = (currentUser.full_name || 'U')[0].toUpperCase();
+            document.getElementById('userName').textContent = user.full_name || 'Пользователь';
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userAvatar').textContent = (user.full_name || 'U')[0].toUpperCase();
             
-            if (currentUser.role === 'admin') {
+            if (user.role === 'admin') {
                 document.getElementById('adminLink').style.display = 'block';
             }
         }
 
         async function loadOrganizations() {
             try {
-                organizations = await db.getUserOrganizations();
+                const orgs = await db.getUserOrganizations();
                 const grid = document.getElementById('orgGrid');
                 const emptyState = document.getElementById('emptyState');
 
                 grid.innerHTML = '';
 
-                if (!organizations || organizations.length === 0) {
+                if (!orgs || orgs.length === 0) {
                     emptyState.style.display = 'block';
                     return;
                 }
@@ -470,7 +341,7 @@
                     'other': 'Другое'
                 };
 
-                organizations.forEach(org => {
+                orgs.forEach(org => {
                     const iconData = iconMap[org.type] || iconMap['other'];
                     const card = document.createElement('div');
                     card.className = 'org-card';
@@ -499,17 +370,8 @@
 
             } catch (error) {
                 console.error('Load organizations error:', error);
-                await showAlert('Ошибка загрузки организаций: ' + error.message, 'error');
+                alert('Ошибка загрузки организаций: ' + error.message);
             }
-        }
-
-        // ===== МОДАЛКА =====
-        function openCreateOrg() {
-            document.getElementById('createOrgModal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('createOrgModal').classList.remove('active');
         }
 
         // ===== СОЗДАНИЕ ОРГАНИЗАЦИИ =====
@@ -521,21 +383,21 @@
             const description = document.getElementById('orgDesc').value.trim();
 
             if (!name) {
-                await showAlert('Введите название организации', 'warning');
+                alert('Введите название организации');
                 return;
             }
 
             if (!type) {
-                await showAlert('Выберите тип организации', 'warning');
+                alert('Выберите тип организации');
                 return;
             }
 
-            const submitBtn = document.getElementById('submitOrgBtn');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
 
             try {
-                const result = await db.createOrganization({
+                await db.createOrganization({
                     name,
                     type,
                     description: description || '',
@@ -543,47 +405,25 @@
                     settings: {}
                 });
 
-                console.log('✅ Организация создана:', result);
-
-                await showToast('Организация создана! 🎉', 'success');
+                alert('Организация создана! 🎉');
                 closeModal();
                 document.getElementById('createOrgForm').reset();
                 await loadOrganizations();
 
             } catch (error) {
-                console.error('❌ Create organization error:', error);
-                await showAlert('Ошибка: ' + error.message, 'error');
+                console.error('Create organization error:', error);
+                alert('Ошибка: ' + error.message);
             }
 
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
         });
 
-        // ===== ВЫХОД =====
-        function handleLogout() {
-            auth.logoutUser();
-        }
-
-        // ===== НАЗНАЧАЕМ КНОПКИ =====
-        document.addEventListener('DOMContentLoaded', function() {
-            // Кнопка "Создать организацию" в хедере
-            document.getElementById('createOrgBtn').addEventListener('click', openCreateOrg);
-            
-            // Кнопка "Создать организацию" в пустом состоянии
-            document.getElementById('emptyCreateBtn').addEventListener('click', openCreateOrg);
-            
-            // Кнопка закрытия модалки
-            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-            
-            // Кнопка "Выйти"
-            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-            
-            // Закрытие модалки по клику вне
-            document.getElementById('createOrgModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeModal();
-                }
-            });
+        // Закрытие модалки по клику вне
+        document.getElementById('createOrgModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
         });
 
         // ===== ИНИЦИАЛИЗАЦИЯ =====
