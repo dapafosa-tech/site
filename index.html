@@ -72,6 +72,7 @@
             transition: all 0.3s ease;
             padding: 0.5rem 0.75rem;
             border-radius: 8px;
+            cursor: pointer;
         }
 
         .nav-links a:hover {
@@ -302,6 +303,205 @@
             text-decoration: underline;
         }
 
+        .features-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .features-section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: var(--gray-800);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-card i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        .types-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .types-section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--gray-800);
+        }
+
+        .types-section .subtitle {
+            color: var(--gray-500);
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .types-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .type-tag {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .type-tag:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow);
+            color: var(--primary);
+        }
+
+        .type-tag i {
+            color: var(--primary);
+        }
+
+        .pricing-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .pricing-section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--gray-800);
+        }
+
+        .pricing-section .subtitle {
+            color: var(--gray-500);
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 2.5rem 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .pricing-card.popular {
+            border: 2px solid var(--primary);
+        }
+
+        .pricing-card .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 0.2rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 0.25rem;
+        }
+
+        .pricing-card .price span {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--gray-500);
+        }
+
+        .pricing-card .description {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-card ul li {
+            padding: 0.5rem 0;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pricing-card ul li i {
+            color: var(--success);
+            font-size: 0.8rem;
+        }
+
         @media (max-width: 968px) {
             .hero {
                 grid-template-columns: 1fr;
@@ -446,10 +646,182 @@
                     <p>Книги, читатели, выдача</p>
                 </div>
                 <div class="card">
-                    <i class="fas fa-users"></i>
-                    <h3>Компания</h3>
-                    <p>Сотрудники, отделы, проекты</p>
+                    <i class="fas fa-gamepad"></i>
+                    <h3>GameDev</h3>
+                    <p>Разработка, команда, релизы</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <h2>Возможности платформы</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <i class="fas fa-users"></i>
+                <h3>Сотрудники и должности</h3>
+                <p>Управляйте командой, назначайте роли и отслеживайте эффективность</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-sitemap"></i>
+                <h3>Отделы и подразделения</h3>
+                <p>Структурируйте организацию, создавайте иерархию и отделы</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-file-alt"></i>
+                <h3>Документы и шаблоны</h3>
+                <p>Создавайте, храните и используйте готовые шаблоны документов</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-inbox"></i>
+                <h3>Заявления и обращения</h3>
+                <p>Обрабатывайте внутренние заявки и отслеживайте их статус</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-database"></i>
+                <h3>Базы данных и карточки</h3>
+                <p>Храните любые данные в удобном формате с гибкой структурой</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-puzzle-piece"></i>
+                <h3>Специальные модули</h3>
+                <p>Адаптируйте платформу под свой тип организации</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Отчёты и статистика</h3>
+                <p>Анализируйте данные, стройте графики и принимайте решения</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Роли и права доступа</h3>
+                <p>Настраивайте доступ для каждого сотрудника индивидуально</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="types-section" id="types">
+        <h2>Типы организаций</h2>
+        <p class="subtitle">Выберите подходящий тип и получите готовые инструменты</p>
+        <div class="types-grid">
+            <div class="type-tag"><i class="fas fa-store"></i> Магазин</div>
+            <div class="type-tag"><i class="fas fa-book"></i> Библиотека</div>
+            <div class="type-tag"><i class="fas fa-building"></i> Компания</div>
+            <div class="type-tag"><i class="fas fa-graduation-cap"></i> Школа</div>
+            <div class="type-tag"><i class="fas fa-heartbeat"></i> Клиника</div>
+            <div class="type-tag"><i class="fas fa-utensils"></i> Ресторан</div>
+            <div class="type-tag"><i class="fas fa-coffee"></i> Кафе</div>
+            <div class="type-tag"><i class="fas fa-hotel"></i> Отель</div>
+            <div class="type-tag"><i class="fas fa-dumbbell"></i> Спортзал</div>
+            <div class="type-tag"><i class="fas fa-spa"></i> Салон красоты</div>
+            <div class="type-tag"><i class="fas fa-car"></i> Автосервис</div>
+            <div class="type-tag"><i class="fas fa-home"></i> Недвижимость</div>
+            <div class="type-tag"><i class="fas fa-code"></i> IT-компания</div>
+            <div class="type-tag"><i class="fas fa-chart-line"></i> Маркетинг</div>
+            <div class="type-tag"><i class="fas fa-gavel"></i> Юридическая</div>
+            <div class="type-tag"><i class="fas fa-coins"></i> Финансы</div>
+            <div class="type-tag"><i class="fas fa-graduation-cap"></i> Образование</div>
+            <div class="type-tag"><i class="fas fa-heartbeat"></i> Медицина</div>
+            <div class="type-tag"><i class="fas fa-running"></i> Спорт</div>
+            <div class="type-tag"><i class="fas fa-palette"></i> Искусство</div>
+            <div class="type-tag"><i class="fas fa-music"></i> Музыка</div>
+            <div class="type-tag"><i class="fas fa-camera"></i> Фото</div>
+            <div class="type-tag"><i class="fas fa-video"></i> Видео</div>
+            <div class="type-tag"><i class="fas fa-hard-hat"></i> Строительство</div>
+            <div class="type-tag"><i class="fas fa-tools"></i> Ремонт</div>
+            <div class="type-tag"><i class="fas fa-broom"></i> Клининг</div>
+            <div class="type-tag"><i class="fas fa-truck"></i> Доставка</div>
+            <div class="type-tag"><i class="fas fa-shipping-fast"></i> Логистика</div>
+            <div class="type-tag"><i class="fas fa-tractor"></i> Сельское хозяйство</div>
+            <div class="type-tag"><i class="fas fa-plane"></i> Туризм</div>
+            <div class="type-tag"><i class="fas fa-calendar-check"></i> Ивент</div>
+            <div class="type-tag"><i class="fas fa-hand-holding-heart"></i> Благотворительность</div>
+            <div class="type-tag"><i class="fas fa-landmark"></i> Государственная</div>
+            <div class="type-tag"><i class="fas fa-gamepad"></i> GameDev</div>
+            <div class="type-tag"><i class="fas fa-rocket"></i> Инди-разработка</div>
+            <div class="type-tag"><i class="fas fa-newspaper"></i> Издательство</div>
+            <div class="type-tag"><i class="fas fa-film"></i> Анимация</div>
+            <div class="type-tag"><i class="fas fa-vr-cardboard"></i> VR/AR</div>
+            <div class="type-tag"><i class="fas fa-trophy"></i> Киберспорт</div>
+            <div class="type-tag"><i class="fas fa-broadcast"></i> Стриминг</div>
+            <div class="type-tag"><i class="fas fa-microphone"></i> Подкаст</div>
+            <div class="type-tag"><i class="fas fa-blog"></i> Блоггинг</div>
+            <div class="type-tag"><i class="fas fa-share-alt"></i> Соцсети</div>
+            <div class="type-tag"><i class="fas fa-lightbulb"></i> Стартап</div>
+            <div class="type-tag"><i class="fas fa-ad"></i> Агентство</div>
+            <div class="type-tag"><i class="fas fa-handshake"></i> Консалтинг</div>
+            <div class="type-tag"><i class="fas fa-user-tie"></i> Фриланс</div>
+            <div class="type-tag"><i class="fas fa-globe"></i> Удалённая работа</div>
+            <div class="type-tag"><i class="fas fa-building"></i> Коворкинг</div>
+            <div class="type-tag"><i class="fas fa-seedling"></i> Инкубатор</div>
+            <div class="type-tag"><i class="fas fa-rocket"></i> Акселератор</div>
+            <div class="type-tag"><i class="fas fa-chart-pie"></i> Венчур</div>
+            <div class="type-tag"><i class="fas fa-heart"></i> Некоммерческая</div>
+            <div class="type-tag"><i class="fas fa-users"></i> Сообщество</div>
+            <div class="type-tag"><i class="fas fa-church"></i> Религиозная</div>
+            <div class="type-tag"><i class="fas fa-landmark"></i> Культурная</div>
+            <div class="type-tag"><i class="fas fa-flask"></i> Исследования</div>
+            <div class="type-tag"><i class="fas fa-atom"></i> Наука</div>
+            <div class="type-tag"><i class="fas fa-rocket"></i> Космос</div>
+            <div class="type-tag"><i class="fas fa-robot"></i> Робототехника</div>
+            <div class="type-tag"><i class="fas fa-brain"></i> ИИ</div>
+            <div class="type-tag"><i class="fas fa-link"></i> Блокчейн</div>
+            <div class="type-tag"><i class="fas fa-coins"></i> Криптовалюта</div>
+            <div class="type-tag"><i class="fas fa-chart-line"></i> DeFi</div>
+            <div class="type-tag"><i class="fas fa-image"></i> NFT</div>
+            <div class="type-tag"><i class="fas fa-vr-cardboard"></i> Метавселенная</div>
+            <div class="type-tag"><i class="fas fa-globe"></i> Web3</div>
+            <div class="type-tag"><i class="fas fa-cubes"></i> Другое</div>
+        </div>
+    </section>
+
+    <section class="pricing-section" id="pricing">
+        <h2>Тарифы</h2>
+        <p class="subtitle">Выберите подходящий тариф для вашей организации</p>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Бесплатный</h3>
+                <div class="price">0 <span>₽/мес</span></div>
+                <p class="description">Для старта и знакомства с платформой</p>
+                <ul>
+                    <li><i class="fas fa-check"></i> 1 организация</li>
+                    <li><i class="fas fa-check"></i> До 5 сотрудников</li>
+                    <li><i class="fas fa-check"></i> Основные модули</li>
+                    <li><i class="fas fa-check"></i> 100 МБ хранилища</li>
+                    <li><i class="fas fa-check"></i> Базовая поддержка</li>
+                </ul>
+                <a href="/register" class="btn btn-primary btn-block">Начать бесплатно</a>
+            </div>
+
+            <div class="pricing-card popular">
+                <div class="popular-badge">Популярный</div>
+                <h3>Профессиональный</h3>
+                <div class="price">990 <span>₽/мес</span></div>
+                <p class="description">Для растущего бизнеса</p>
+                <ul>
+                    <li><i class="fas fa-check"></i> До 10 организаций</li>
+                    <li><i class="fas fa-check"></i> До 100 сотрудников</li>
+                    <li><i class="fas fa-check"></i> Все модули</li>
+                    <li><i class="fas fa-check"></i> 5 ГБ хранилища</li>
+                    <li><i class="fas fa-check"></i> Приоритетная поддержка</li>
+                    <li><i class="fas fa-check"></i> Расширенная статистика</li>
+                </ul>
+                <a href="/register" class="btn btn-primary btn-block">Выбрать тариф</a>
+            </div>
+
+            <div class="pricing-card">
+                <h3>Бизнес</h3>
+                <div class="price">2 490 <span>₽/мес</span></div>
+                <p class="description">Для крупных организаций</p>
+                <ul>
+                    <li><i class="fas fa-check"></i> Неограниченные организации</li>
+                    <li><i class="fas fa-check"></i> Неограниченные сотрудники</li>
+                    <li><i class="fas fa-check"></i> Все модули + API</li>
+                    <li><i class="fas fa-check"></i> 20 ГБ хранилища</li>
+                    <li><i class="fas fa-check"></i> Персональный менеджер</li>
+                    <li><i class="fas fa-check"></i> Кастомные интеграции</li>
+                </ul>
+                <a href="/register" class="btn btn-primary btn-block">Связаться</a>
             </div>
         </div>
     </section>
