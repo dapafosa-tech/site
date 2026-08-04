@@ -108,6 +108,48 @@
             color: #4f46e5;
         }
 
+        .nav-links .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--gray-700);
+            cursor: pointer;
+            padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+            border-radius: 9999px;
+            background: var(--gray-100);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-links .user-profile:hover {
+            background: var(--gray-200);
+        }
+
+        .nav-links .user-profile .avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .nav-links .user-profile .avatar-small img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .nav-links .user-profile .username {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
         .hamburger {
             display: none;
             flex-direction: column;
@@ -586,8 +628,7 @@
             <li><a href="#features">Возможности</a></li>
             <li><a href="#types">Типы организаций</a></li>
             <li><a href="#pricing">Тарифы</a></li>
-            <li><a href="/login" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Войти</a></li>
-            <li><a href="/register" class="btn-primary"><i class="fas fa-rocket"></i> Начать</a></li>
+            <div id="navAuthButtons"></div>
         </ul>
 
         <div class="hamburger" id="hamburger" onclick="toggleMenu()">
@@ -837,6 +878,8 @@
         </p>
     </footer>
 
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
     <script>
         function toggleMenu() {
             document.getElementById('navLinks').classList.toggle('active');
@@ -859,6 +902,44 @@
                 }
             });
         });
+
+        // ===== ДИНАМИЧЕСКАЯ ШАПКА =====
+        function updateNavbar() {
+            const navContainer = document.getElementById('navAuthButtons');
+            const user = auth.getCurrentUser();
+
+            if (user) {
+                const initial = (user.full_name || 'U')[0].toUpperCase();
+                const avatarHtml = user.avatar_url 
+                    ? `<img src="${user.avatar_url}" alt="Avatar">` 
+                    : initial;
+
+                navContainer.innerHTML = `
+                    <li><a href="/dashboard" class="user-profile">
+                        <span class="avatar-small">${avatarHtml}</span>
+                        <span class="username">${user.full_name || 'Профиль'}</span>
+                    </a></li>
+                    <li><a href="/dashboard" class="btn-primary"><i class="fas fa-th-large"></i> Дашборд</a></li>
+                `;
+            } else {
+                navContainer.innerHTML = `
+                    <li><a href="/login" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Войти</a></li>
+                    <li><a href="/register" class="btn-primary"><i class="fas fa-rocket"></i> Начать</a></li>
+                `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNavbar();
+            
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'userData') {
+                    updateNavbar();
+                }
+            });
+        });
+
+        setTimeout(updateNavbar, 100);
     </script>
 </body>
 </html>
