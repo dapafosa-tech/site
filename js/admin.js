@@ -2,17 +2,12 @@
 // ORGSPACE - АДМИН-ПАНЕЛЬ
 // ============================================
 
-// ===== ПРОВЕРКА ПРАВ =====
-
-/**
- * Проверяет, является ли пользователь администратором
- */
 async function checkAdminAccess() {
     const isAuth = await auth.requireAuth();
     if (!isAuth) return false;
 
     if (!auth.isAdmin()) {
-        alert('Доступ запрещен. Требуются права администратора.');
+        await showAlert('Доступ запрещен. Требуются права администратора.', 'error');
         window.location.href = '/dashboard.html';
         return false;
     }
@@ -20,15 +15,8 @@ async function checkAdminAccess() {
     return true;
 }
 
-// ===== ЗАГРУЗКА СТАТИСТИКИ =====
-
-/**
- * Загружает общую статистику
- */
 async function loadStats() {
     try {
-        // Получаем всех пользователей (через админский доступ)
-        // В реальном проекте нужны специальные эндпоинты с RLS политиками
         const users = await db.supabaseQuery('users?select=*');
         const orgs = await db.supabaseQuery('organizations?select=*');
         const employees = await db.supabaseQuery('employees?select=*');
@@ -43,11 +31,6 @@ async function loadStats() {
     }
 }
 
-// ===== ЗАГРУЗКА ЛОГОВ =====
-
-/**
- * Загружает последние логи
- */
 async function loadRecentLogs() {
     try {
         const logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=20');
@@ -80,11 +63,6 @@ async function loadRecentLogs() {
     }
 }
 
-// ===== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ =====
-
-/**
- * Загружает список всех пользователей
- */
 async function loadUsersSection() {
     const container = document.getElementById('adminContent');
     
@@ -148,11 +126,6 @@ async function loadUsersSection() {
     }
 }
 
-// ===== ЗАГРУЗКА ОРГАНИЗАЦИЙ =====
-
-/**
- * Загружает список всех организаций
- */
 async function loadOrgsSection() {
     const container = document.getElementById('adminContent');
     
@@ -225,11 +198,6 @@ async function loadOrgsSection() {
     }
 }
 
-// ===== ЗАГРУЗКА ЛОГОВ (админ) =====
-
-/**
- * Загружает все логи системы
- */
 async function loadLogsSection() {
     const container = document.getElementById('adminContent');
     
@@ -287,11 +255,6 @@ async function loadLogsSection() {
     }
 }
 
-// ===== ЗАГРУЗКА РАЗДЕЛА =====
-
-/**
- * Загружает выбранный раздел
- */
 function loadSection(section) {
     switch(section) {
         case 'users':
@@ -308,9 +271,6 @@ function loadSection(section) {
     }
 }
 
-/**
- * Загружает раздел по умолчанию (главный)
- */
 async function loadDefaultSection() {
     const container = document.getElementById('adminContent');
     container.innerHTML = `
@@ -326,17 +286,12 @@ async function loadDefaultSection() {
     await loadRecentLogs();
 }
 
-// ===== ДЕЙСТВИЯ С ПОЛЬЗОВАТЕЛЯМИ =====
-
-/**
- * Редактирует пользователя
- */
 async function editUser(id) {
-    const newRole = prompt('Введите роль (user/admin):', 'user');
+    const newRole = await showPrompt('Введите роль (user/admin):', 'user', 'Изменение роли');
     if (newRole === null) return;
     
     if (!['user', 'admin'].includes(newRole)) {
-        alert('Роль должна быть user или admin');
+        await showAlert('Роль должна быть user или admin', 'warning');
         return;
     }
 
@@ -345,70 +300,56 @@ async function editUser(id) {
             method: 'PATCH',
             body: JSON.stringify({ role: newRole })
         });
-        alert('Роль обновлена!');
+        await showToast('Роль обновлена! ✅', 'success');
         loadUsersSection();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-/**
- * Удаляет пользователя
- */
 async function deleteUser(id) {
-    if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) return;
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этого пользователя?', 'Подтверждение');
+    if (!confirmed) return;
     
     try {
         await db.supabaseQuery(`users?id=eq.${id}`, {
             method: 'DELETE'
         });
-        alert('Пользователь удален!');
+        await showToast('Пользователь удален', 'success');
         loadUsersSection();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ДЕЙСТВИЯ С ОРГАНИЗАЦИЯМИ =====
-
-/**
- * Переключает статус организации
- */
 async function toggleOrgStatus(id, newStatus) {
     try {
         await db.supabaseQuery(`organizations?id=eq.${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ is_active: newStatus })
         });
-        alert('Статус обновлен!');
+        await showToast('Статус обновлен!', 'success');
         loadOrgsSection();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-/**
- * Удаляет организацию
- */
 async function deleteOrg(id) {
-    if (!confirm('Вы уверены, что хотите удалить эту организацию? Это действие необратимо!')) return;
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить эту организацию? Это действие необратимо!', '⚠️ Внимание');
+    if (!confirmed) return;
     
     try {
         await db.supabaseQuery(`organizations?id=eq.${id}`, {
             method: 'DELETE'
         });
-        alert('Организация удалена!');
+        await showToast('Организация удалена', 'success');
         loadOrgsSection();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ЗАГРУЗКА ПРОФИЛЯ АДМИНА =====
-
-/**
- * Загружает информацию об администраторе
- */
 async function loadAdminInfo() {
     const user = auth.getCurrentUser();
     if (!user) return;
@@ -420,25 +361,17 @@ async function loadAdminInfo() {
     document.getElementById('userAvatar').textContent = (profile?.full_name || 'A')[0].toUpperCase();
 }
 
-// ===== ВЫХОД =====
-
-/**
- * Обработчик выхода
- */
 async function handleLogout() {
-    if (confirm('Вы уверены, что хотите выйти?')) {
+    const confirmed = await showConfirm('Вы уверены, что хотите выйти?', 'Выход');
+    if (confirmed) {
         await auth.logoutUser();
     }
 }
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
-
 (async function init() {
-    // Проверяем права администратора
     const hasAccess = await checkAdminAccess();
     if (!hasAccess) return;
 
-    // Загружаем данные
     await loadAdminInfo();
     await loadStats();
     await loadDefaultSection();
