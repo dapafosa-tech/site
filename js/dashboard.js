@@ -148,7 +148,7 @@ document.getElementById('createOrgForm')?.addEventListener('submit', async (e) =
 async function handleLogout() {
     const confirmed = await showConfirm('Вы уверены, что хотите выйти?', 'Выход');
     if (confirmed) {
-        await auth.logoutUser();
+        auth.logoutUser();
     }
 }
 
