@@ -71,7 +71,7 @@
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="email" required>
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
                 <i class="fas fa-save"></i> Сохранить
             </button>
         </form>
@@ -79,7 +79,7 @@
         <div class="danger-zone">
             <h3><i class="fas fa-exclamation-triangle"></i> Опасная зона</h3>
             <p style="color: var(--gray-500); margin-bottom: 1rem;">Удаление аккаунта приведет к потере всех данных</p>
-            <button class="btn btn-danger" onclick="deleteAccount()">
+            <button class="btn btn-danger" id="deleteBtn">
                 <i class="fas fa-trash"></i> Удалить аккаунт
             </button>
         </div>
@@ -101,6 +101,7 @@
                 document.getElementById('email').value = currentUser.email;
             }
 
+            // Сохранение
             document.getElementById('settingsForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -122,35 +123,36 @@
                     await showAlert('Ошибка: ' + error.message, 'error');
                 }
             });
+
+            // Удаление аккаунта
+            document.getElementById('deleteBtn').addEventListener('click', async function() {
+                const confirmed = await showConfirm(
+                    'Вы уверены, что хотите удалить аккаунт? Это действие необратимо!',
+                    'Удаление аккаунта'
+                );
+                
+                if (!confirmed) return;
+                
+                const confirmed2 = await showConfirm(
+                    'Все ваши данные будут потеряны. Продолжить?',
+                    'Последнее предупреждение'
+                );
+                
+                if (!confirmed2) return;
+
+                try {
+                    const user = auth.getCurrentUser();
+                    await db.deleteUser(user.id);
+                    localStorage.removeItem('userData');
+                    await showToast('Аккаунт удален', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1500);
+                } catch (error) {
+                    await showAlert('Ошибка: ' + error.message, 'error');
+                }
+            });
         })();
-
-        async function deleteAccount() {
-            const confirmed = await showConfirm(
-                'Вы уверены, что хотите удалить аккаунт? Это действие необратимо!',
-                'Удаление аккаунта'
-            );
-            
-            if (!confirmed) return;
-            
-            const confirmed2 = await showConfirm(
-                'Все ваши данные будут потеряны. Продолжить?',
-                'Последнее предупреждение'
-            );
-            
-            if (!confirmed2) return;
-
-            try {
-                const user = auth.getCurrentUser();
-                await db.deleteUser(user.id);
-                localStorage.removeItem('userData');
-                await showToast('Аккаунт удален', 'success');
-                setTimeout(() => {
-                    window.location.href = '/login';
-                }, 1500);
-            } catch (error) {
-                await showAlert('Ошибка: ' + error.message, 'error');
-            }
-        }
     </script>
 </body>
 </html>
