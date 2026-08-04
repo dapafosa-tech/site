@@ -72,7 +72,6 @@ async function requireAdmin() {
     return true;
 }
 
-// ===== ВЫХОД (СИНХРОННЫЙ) =====
 function logoutUser() {
     localStorage.removeItem('userData');
     localStorage.removeItem('isGuest');
