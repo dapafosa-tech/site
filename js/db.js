@@ -2,8 +2,11 @@
 // TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ
 // ============================================
 
-const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+// Используем глобальные переменные из auth.js
+if (typeof SUPABASE_URL === 'undefined') {
+    var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+}
 
 function getCurrentUser() {
     try {
@@ -32,30 +35,23 @@ async function supabaseQuery(endpoint, options = {}) {
             headers
         });
 
-        // Если статус 204 (No Content) или 201 (Created) без тела
         if (response.status === 204) {
             return [];
         }
 
-        // Если статус не OK
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        // Пытаемся прочитать ответ
         const text = await response.text();
-        
-        // Если ответ пустой
         if (!text || text.trim() === '') {
             return [];
         }
 
-        // Парсим JSON
         try {
             return JSON.parse(text);
-        } catch (parseError) {
-            // Если не JSON, но похоже на массив
+        } catch {
             if (text.trim().startsWith('[') || text.trim().startsWith('{')) {
                 try {
                     return eval('(' + text + ')');
@@ -91,7 +87,7 @@ async function createOrganization(data) {
         method: 'POST',
         body: JSON.stringify(orgData),
         headers: {
-            'Prefer': 'return=representation'  // 👈 ЭТО ГЛАВНОЕ!
+            'Prefer': 'return=representation'
         }
     });
 }
@@ -132,6 +128,12 @@ async function updateUser(id, data) {
     return supabaseQuery(`users?id=eq.${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data)
+    });
+}
+
+async function deleteUser(id) {
+    return supabaseQuery(`users?id=eq.${id}`, {
+        method: 'DELETE'
     });
 }
 
@@ -273,7 +275,6 @@ async function logActivity(data) {
     });
 }
 
-// ===== ЭКСПОРТ =====
 window.db = {
     supabaseQuery,
     createOrganization,
@@ -282,6 +283,7 @@ window.db = {
     updateOrganization,
     deleteOrganization,
     updateUser,
+    deleteUser,
     createEmployee,
     getOrganizationEmployees,
     deleteEmployee,
