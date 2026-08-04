@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход — OrgSpace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-xl);
+            padding: 3rem;
+            max-width: 420px;
+            width: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .login-container .logo {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            color: var(--gray-800);
+        }
+
+        .login-container .logo i {
+            color: var(--primary);
+            margin-right: 0.5rem;
+        }
+
+        .login-container .logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-container p.subtitle {
+            text-align: center;
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .form-options label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            cursor: pointer;
+        }
+
+        .form-options a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .form-options a:hover {
+            text-decoration: underline;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--gray-500);
+        }
+
+        .register-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .password-toggle .toggle-btn {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <i class="fas fa-cubes"></i>
+            <span>OrgSpace</span>
+        </div>
+
+        <h2>Добро пожаловать!</h2>
+        <p class="subtitle">Войдите в свою учетную запись</p>
+
+        <form id="loginForm" autocomplete="off">
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Пароль</label>
+                <div class="password-toggle">
+                    <input type="password" id="password" class="form-control" placeholder="Введите пароль" required>
+                    <button type="button" class="toggle-btn" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-options">
+                <label>
+                    <input type="checkbox" id="remember"> Запомнить меня
+                </label>
+                <a href="#">Забыли пароль?</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                <i class="fas fa-sign-in-alt"></i> Войти
+            </button>
+        </form>
+
+        <p class="register-link">
+            Нет аккаунта? <a href="/register.html">Зарегистрироваться</a>
+        </p>
+    </div>
+
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.querySelector('.toggle-btn i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
+
+            const result = await auth.loginUser(email, password);
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
+
+            if (!result.success) {
+                await showAlert(result.error, 'error');
+                return;
+            }
+
+            await showToast('Добро пожаловать!', 'success');
+            window.location.href = '/dashboard.html';
+        });
+
+        (async () => {
+            const isAuth = await auth.checkAuth();
+            if (isAuth) {
+                window.location.href = '/dashboard.html';
+            }
+        })();
+    </script>
+</body>
+</html>
