@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ (ИСПРАВЛЕННЫЙ)
+// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ (С ОТЛАДКОЙ)
 // ============================================
 
 let currentOrgId = null;
@@ -49,52 +49,74 @@ const statusLabels = {
     'rejected': '❌ Отклонено'
 };
 
+// ===== ОТЛАДКА =====
+function debugLog(message, data = null) {
+    console.log(`[ORG-DASHBOARD] ${message}`, data || '');
+}
+
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 async function init() {
+    debugLog('🚀 Инициализация...');
+    
     const isAuth = await auth.requireAuth();
-    if (!isAuth) return;
+    if (!isAuth) {
+        debugLog('❌ Не авторизован');
+        return;
+    }
 
     currentUser = auth.getCurrentUser();
+    debugLog('👤 Пользователь:', currentUser);
+    
     await loadOrganization();
 }
 
 function getOrgIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    return params.get('id');
+    const id = params.get('id');
+    debugLog('📌 ID из URL:', id);
+    return id;
 }
 
 async function loadOrganization() {
     const orgId = getOrgIdFromUrl();
     if (!orgId) {
+        debugLog('❌ Нет ID организации');
         window.location.href = '/dashboard';
         return;
     }
 
     currentOrgId = orgId;
+    debugLog('📡 Загрузка организации...');
     
     try {
         currentOrg = await db.getOrganization(orgId);
+        debugLog('✅ Организация загружена:', currentOrg);
     } catch (error) {
-        console.error('Load org error:', error);
-        await showAlert('Ошибка загрузки организации', 'error');
+        debugLog('❌ Ошибка загрузки организации:', error);
+        await showAlert('Ошибка загрузки организации: ' + error.message, 'error');
         window.location.href = '/dashboard';
         return;
     }
 
     if (!currentOrg) {
+        debugLog('❌ Организация не найдена');
         await showAlert('Организация не найдена', 'error');
         window.location.href = '/dashboard';
         return;
     }
 
+    debugLog('✅ Заполняем информацию...');
     document.getElementById('orgName').textContent = currentOrg.name;
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
     document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
 
+    debugLog('📡 Загружаем раздел overview...');
     loadSection('overview');
 }
 
 function loadSection(section) {
+    debugLog(`📂 Загрузка раздела: ${section}`);
+    
     document.querySelectorAll('.nav-menu a').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-menu a').forEach(el => {
         const onclick = el.getAttribute('onclick') || '';
@@ -103,27 +125,42 @@ function loadSection(section) {
         }
     });
 
-    switch (section) {
-        case 'overview': loadOverview(); break;
-        case 'members': loadMembers(); break;
-        case 'requests': loadRequests(); break;
-        case 'ranks': loadRanks(); break;
-        case 'departments': loadDepartments(); break;
-        case 'settings': loadSettings(); break;
-        default: loadOverview();
+    try {
+        switch (section) {
+            case 'overview': loadOverview(); break;
+            case 'members': loadMembers(); break;
+            case 'requests': loadRequests(); break;
+            case 'ranks': loadRanks(); break;
+            case 'departments': loadDepartments(); break;
+            case 'settings': loadSettings(); break;
+            default: loadOverview();
+        }
+        debugLog(`✅ Раздел ${section} загружен`);
+    } catch (error) {
+        debugLog(`❌ Ошибка загрузки раздела ${section}:`, error);
+        document.getElementById('sectionContent').innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
     }
 }
 
 // ===== ОБЗОР =====
 async function loadOverview() {
+    debugLog('📊 Загрузка обзора...');
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Обзор';
     document.getElementById('pageSubtitle').textContent = `Управление организацией "${currentOrg?.name}"`;
 
     try {
+        debugLog('📡 Загрузка участников...');
         const members = await db.getOrganizationMembers(currentOrgId);
+        debugLog(`📊 Участников: ${members?.length || 0}`);
+        
+        debugLog('📡 Загрузка должностей...');
         const ranks = await db.getOrganizationRanks(currentOrgId);
+        debugLog(`📊 Должностей: ${ranks?.length || 0}`);
+        
+        debugLog('📡 Загрузка заявок...');
         const requests = await db.getJoinRequests(currentOrgId);
+        debugLog(`📊 Заявок: ${requests?.length || 0}`);
 
         container.innerHTML = `
             <div class="grid-4">
@@ -161,21 +198,26 @@ async function loadOverview() {
                 </div>
             </div>
         `;
+        debugLog('✅ Обзор загружен');
     } catch (error) {
-        console.error('Load overview error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+        debugLog('❌ Ошибка загрузки обзора:', error);
+        container.innerHTML = `<div class="alert alert-danger">Ошибка загрузки данных: ${error.message}</div>`;
     }
 }
 
 // ===== УЧАСТНИКИ =====
 async function loadMembers() {
+    debugLog('👥 Загрузка участников...');
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Участники';
     document.getElementById('pageSubtitle').textContent = 'Управление участниками организации';
 
     try {
         const members = await db.getOrganizationMembers(currentOrgId);
+        debugLog(`👥 Участников: ${members?.length || 0}`);
+        
         const ranks = await db.getOrganizationRanks(currentOrgId);
+        debugLog(`📊 Должностей: ${ranks?.length || 0}`);
 
         let html = `
             <div class="card">
@@ -201,7 +243,6 @@ async function loadMembers() {
                     const user = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
                     const userName = user && user.length > 0 ? (user[0].full_name || user[0].email) : 'Неизвестно';
                     const rank = ranks?.find(r => r.id === member.rank_id);
-
                     const isLeader = currentOrg.leader_id === member.user_id;
 
                     html += `
@@ -217,12 +258,12 @@ async function loadMembers() {
                                     <button class="btn btn-sm btn-danger" onclick="removeMember('${member.id}')">
                                         <i class="fas fa-times"></i>
                                     </button>
-                                ` : ''}
+                                ` : '—'}
                             </td>
                         </tr>
                     `;
                 } catch (e) {
-                    console.error('Error loading user:', e);
+                    debugLog('❌ Ошибка загрузки пользователя:', e);
                 }
             }
         } else {
@@ -237,20 +278,23 @@ async function loadMembers() {
         `;
 
         container.innerHTML = html;
+        debugLog('✅ Участники загружены');
     } catch (error) {
-        console.error('Load members error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+        debugLog('❌ Ошибка загрузки участников:', error);
+        container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
     }
 }
 
 // ===== ЗАЯВКИ =====
 async function loadRequests() {
+    debugLog('📩 Загрузка заявок...');
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Заявки на вступление';
     document.getElementById('pageSubtitle').textContent = 'Управление заявками';
 
     try {
         const requests = await db.getJoinRequests(currentOrgId);
+        debugLog(`📩 Заявок: ${requests?.length || 0}`);
 
         let html = `
             <div class="card">
@@ -280,11 +324,14 @@ async function loadRequests() {
                     const isPending = req.status === 'pending';
                     const isLeader = currentOrg.leader_id === currentUser?.id;
 
+                    const statusClass = req.status === 'pending' ? 'badge-warning' : 
+                                       req.status === 'approved' ? 'badge-success' : 'badge-danger';
+
                     html += `
                         <tr>
                             <td><strong>${userName}</strong></td>
                             <td>${req.message || 'Без сообщения'}</td>
-                            <td><span class="badge ${req.status === 'pending' ? 'badge-warning' : req.status === 'approved' ? 'badge-success' : 'badge-danger'}">${statusLabels[req.status] || req.status}</span></td>
+                            <td><span class="badge ${statusClass}">${statusLabels[req.status] || req.status}</span></td>
                             <td>${new Date(req.created_at).toLocaleDateString('ru-RU')}</td>
                             <td>
                                 ${isPending && isLeader ? `
@@ -294,13 +341,12 @@ async function loadRequests() {
                                     <button class="btn btn-sm btn-danger" onclick="handleRequest('${req.id}', 'rejected')">
                                         <i class="fas fa-times"></i>
                                     </button>
-                                ` : ''}
-                                ${!isPending ? '—' : ''}
+                                ` : (isPending ? '⏳' : '—')}
                             </td>
                         </tr>
                     `;
                 } catch (e) {
-                    console.error('Error loading user:', e);
+                    debugLog('❌ Ошибка загрузки пользователя:', e);
                 }
             }
         } else {
@@ -315,14 +361,16 @@ async function loadRequests() {
         `;
 
         container.innerHTML = html;
+        debugLog('✅ Заявки загружены');
     } catch (error) {
-        console.error('Load requests error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+        debugLog('❌ Ошибка загрузки заявок:', error);
+        container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
     }
 }
 
 // ===== ОБРАБОТКА ЗАЯВКИ =====
 async function handleRequest(requestId, status) {
+    debugLog(`📩 Обработка заявки ${requestId} -> ${status}`);
     try {
         await db.updateJoinRequest(requestId, status);
 
@@ -339,13 +387,14 @@ async function handleRequest(requestId, status) {
         loadRequests();
         loadOverview();
     } catch (error) {
-        console.error('Handle request error:', error);
+        debugLog('❌ Ошибка обработки заявки:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
 // ===== УДАЛЕНИЕ УЧАСТНИКА =====
 async function removeMember(memberId) {
+    debugLog(`🗑️ Удаление участника ${memberId}`);
     const confirmed = await showConfirm('Вы уверены, что хотите удалить этого участника?', 'Подтверждение');
     if (!confirmed) return;
 
@@ -355,19 +404,21 @@ async function removeMember(memberId) {
         loadMembers();
         loadOverview();
     } catch (error) {
-        console.error('Remove member error:', error);
+        debugLog('❌ Ошибка удаления участника:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
 // ===== ДОЛЖНОСТИ =====
 async function loadRanks() {
+    debugLog('👑 Загрузка должностей...');
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Должности';
     document.getElementById('pageSubtitle').textContent = 'Управление должностями в организации';
 
     try {
         const ranks = await db.getOrganizationRanks(currentOrgId);
+        debugLog(`👑 Должностей: ${ranks?.length || 0}`);
 
         let html = `
             <div class="card">
@@ -421,14 +472,16 @@ async function loadRanks() {
         `;
 
         container.innerHTML = html;
+        debugLog('✅ Должности загружены');
     } catch (error) {
-        console.error('Load ranks error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+        debugLog('❌ Ошибка загрузки должностей:', error);
+        container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
     }
 }
 
 // ===== СОЗДАНИЕ ДОЛЖНОСТИ =====
 function openCreateRank(editData = null) {
+    debugLog('➕ Открытие создания должности');
     document.getElementById('rankModal').classList.add('active');
 
     if (editData) {
@@ -451,6 +504,7 @@ function openCreateRank(editData = null) {
 
 document.getElementById('rankForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    debugLog('📝 Сохранение должности');
 
     const editId = document.getElementById('rankEditId').value;
     const name = document.getElementById('rankName').value.trim();
@@ -476,13 +530,14 @@ document.getElementById('rankForm')?.addEventListener('submit', async (e) => {
         closeModal('rankModal');
         loadRanks();
     } catch (error) {
-        console.error('Save rank error:', error);
+        debugLog('❌ Ошибка сохранения должности:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 });
 
 // ===== УДАЛЕНИЕ ДОЛЖНОСТИ =====
 async function deleteRank(rankId) {
+    debugLog(`🗑️ Удаление должности ${rankId}`);
     const confirmed = await showConfirm('Вы уверены, что хотите удалить эту должность?', 'Подтверждение');
     if (!confirmed) return;
 
@@ -491,13 +546,14 @@ async function deleteRank(rankId) {
         await showToast('Должность удалена', 'success');
         loadRanks();
     } catch (error) {
-        console.error('Delete rank error:', error);
+        debugLog('❌ Ошибка удаления должности:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
 // ===== НАЗНАЧЕНИЕ ДОЛЖНОСТИ =====
 async function openAssignRank(memberId, userName) {
+    debugLog(`👑 Назначение должности для ${userName}`);
     document.getElementById('assignMemberId').value = memberId;
     document.getElementById('assignUserName').value = userName;
 
@@ -517,13 +573,14 @@ async function openAssignRank(memberId, userName) {
 
         document.getElementById('assignRankModal').classList.add('active');
     } catch (error) {
-        console.error('Load ranks for assign error:', error);
+        debugLog('❌ Ошибка загрузки должностей:', error);
         await showAlert('Ошибка загрузки должностей', 'error');
     }
 }
 
 document.getElementById('assignRankForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    debugLog('📝 Сохранение назначения должности');
 
     const memberId = document.getElementById('assignMemberId').value;
     const rankId = document.getElementById('assignRankSelect').value;
@@ -539,19 +596,21 @@ document.getElementById('assignRankForm')?.addEventListener('submit', async (e) 
         closeModal('assignRankModal');
         loadMembers();
     } catch (error) {
-        console.error('Assign rank error:', error);
+        debugLog('❌ Ошибка назначения должности:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 });
 
 // ===== ОТДЕЛЫ =====
 async function loadDepartments() {
+    debugLog('🏢 Загрузка отделов...');
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Отделы';
     document.getElementById('pageSubtitle').textContent = 'Управление отделами организации';
 
     try {
         const depts = await db.getOrganizationDepartments(currentOrgId);
+        debugLog(`🏢 Отделов: ${depts?.length || 0}`);
 
         let html = `
             <div class="card">
@@ -603,18 +662,21 @@ async function loadDepartments() {
         `;
 
         container.innerHTML = html;
+        debugLog('✅ Отделы загружены');
     } catch (error) {
-        console.error('Load departments error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+        debugLog('❌ Ошибка загрузки отделов:', error);
+        container.innerHTML = `<div class="alert alert-danger">Ошибка: ${error.message}</div>`;
     }
 }
 
 function openCreateDepartment() {
+    debugLog('➕ Открытие создания отдела');
     document.getElementById('departmentModal').classList.add('active');
 }
 
 document.getElementById('departmentForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    debugLog('📝 Сохранение отдела');
 
     const name = document.getElementById('deptName').value.trim();
     const description = document.getElementById('deptDesc').value.trim();
@@ -635,12 +697,13 @@ document.getElementById('departmentForm')?.addEventListener('submit', async (e) 
         document.getElementById('departmentForm').reset();
         loadDepartments();
     } catch (error) {
-        console.error('Create department error:', error);
+        debugLog('❌ Ошибка создания отдела:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 });
 
 async function deleteDepartment(deptId) {
+    debugLog(`🗑️ Удаление отдела ${deptId}`);
     const confirmed = await showConfirm('Вы уверены, что хотите удалить этот отдел?', 'Подтверждение');
     if (!confirmed) return;
 
@@ -649,13 +712,14 @@ async function deleteDepartment(deptId) {
         await showToast('Отдел удален', 'success');
         loadDepartments();
     } catch (error) {
-        console.error('Delete department error:', error);
+        debugLog('❌ Ошибка удаления отдела:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
 // ===== НАСТРОЙКИ =====
 async function loadSettings() {
+    debugLog('⚙️ Загрузка настроек...');
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Настройки';
     document.getElementById('pageSubtitle').textContent = 'Управление настройками организации';
@@ -694,9 +758,12 @@ async function loadSettings() {
             </form>
         </div>
     `;
+    debugLog('✅ Настройки загружены');
 
     document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        debugLog('📝 Сохранение настроек');
+
         const name = document.getElementById('settingsName').value.trim();
         const description = document.getElementById('settingsDesc').value.trim();
 
@@ -711,13 +778,14 @@ async function loadSettings() {
             currentOrg = await db.getOrganization(currentOrgId);
             document.getElementById('orgName').textContent = currentOrg.name;
         } catch (error) {
-            console.error('Update settings error:', error);
+            debugLog('❌ Ошибка сохранения настроек:', error);
             await showAlert('Ошибка: ' + error.message, 'error');
         }
     });
 }
 
 async function regenerateCode() {
+    debugLog('🔄 Генерация нового кода');
     const confirmed = await showConfirm('Вы уверены, что хотите изменить код вступления?', 'Подтверждение');
     if (!confirmed) return;
 
@@ -729,12 +797,13 @@ async function regenerateCode() {
         document.getElementById('settingsCode').value = currentOrg.join_code;
         document.getElementById('joinCode').textContent = currentOrg.join_code;
     } catch (error) {
-        console.error('Regenerate code error:', error);
+        debugLog('❌ Ошибка генерации кода:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
 async function deleteOrganization() {
+    debugLog('🗑️ Удаление организации');
     const confirmed = await showConfirm('Вы уверены, что хотите удалить организацию? Это действие необратимо!', '⚠️ Внимание');
     if (!confirmed) return;
 
@@ -743,13 +812,14 @@ async function deleteOrganization() {
         await showToast('Организация удалена', 'success');
         window.location.href = '/dashboard';
     } catch (error) {
-        console.error('Delete organization error:', error);
+        debugLog('❌ Ошибка удаления организации:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
 // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 function closeModal(id) {
+    debugLog(`❌ Закрытие модалки ${id}`);
     document.getElementById(id).classList.remove('active');
 }
 
