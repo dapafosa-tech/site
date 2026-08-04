@@ -72,6 +72,13 @@ async function createOrganization(data) {
     const user = getCurrentUser();
     if (!user) throw new Error('Не авторизован');
     
+    // Проверяем лимит лидерства
+    const orgs = await getUserOrganizations();
+    const leaderOrgs = orgs.filter(o => o.leader_id === user.id);
+    if (leaderOrgs.length >= 2) {
+        throw new Error('Вы можете быть лидером максимум в 2 организациях');
+    }
+    
     const joinCode = generateJoinCode();
     
     const orgData = {
@@ -96,7 +103,8 @@ async function createOrganization(data) {
 
     if (result && result.length > 0) {
         const orgId = result[0].id;
-        await createDefaultRanks(orgId);
+        // Создаём только роль "Директор"
+        await createDefaultRank(orgId);
         await addMemberToOrganization(orgId, user.id, null);
     }
 
@@ -168,27 +176,25 @@ async function getOrganizationByJoinCode(code) {
     return result[0] || null;
 }
 
-// ===== РАНГИ =====
-async function createDefaultRanks(orgId) {
-    const ranks = [
-        { name: 'Основатель', color: '#ef4444', permissions: { all: true, manage_members: true, manage_ranks: true, manage_departments: true, manage_settings: true, manage_requests: true, delete_org: true } },
-        { name: 'Администратор', color: '#f59e0b', permissions: { manage_members: true, manage_ranks: true, manage_departments: true, manage_settings: true, manage_requests: true } },
-        { name: 'Модератор', color: '#3b82f6', permissions: { manage_members: true, manage_requests: true } },
-        { name: 'Старший участник', color: '#8b5cf6', permissions: { invite_members: true, create_departments: true } },
-        { name: 'Участник', color: '#10b981', permissions: { view: true } }
-    ];
-
-    for (const rank of ranks) {
-        await supabaseQuery('org_ranks', {
-            method: 'POST',
-            body: JSON.stringify({
-                organization_id: orgId,
-                name: rank.name,
-                color: rank.color,
-                permissions: rank.permissions
-            })
-        });
-    }
+// ===== РАНГИ (ТОЛЬКО ДИРЕКТОР) =====
+async function createDefaultRank(orgId) {
+    await supabaseQuery('org_ranks', {
+        method: 'POST',
+        body: JSON.stringify({
+            organization_id: orgId,
+            name: 'Директор',
+            color: '#ef4444',
+            permissions: { 
+                all: true,
+                manage_members: true,
+                manage_ranks: true,
+                manage_departments: true,
+                manage_settings: true,
+                manage_requests: true,
+                delete_org: true
+            }
+        })
+    });
 }
 
 async function getOrganizationRanks(orgId) {
@@ -264,10 +270,6 @@ async function createJoinRequest(orgId, userId, message = '') {
 
 async function getJoinRequests(orgId, status = 'pending') {
     return supabaseQuery(`join_requests?organization_id=eq.${orgId}&status=eq.${status}`);
-}
-
-async function getMyJoinRequests(userId) {
-    return supabaseQuery(`join_requests?user_id=eq.${userId}&order=created_at.desc`);
 }
 
 async function updateJoinRequest(requestId, status) {
@@ -350,127 +352,127 @@ async function deleteDepartment(id) {
     });
 }
 
+// ===== НАЗНАЧЕНИЕ В ОТДЕЛ =====
+async function assignEmployeeToDepartment(employeeId, departmentId) {
+    return supabaseQuery(`employees?id=eq.${employeeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ department_id: departmentId })
+    });
+}
+
+async function getEmployeesByDepartment(departmentId) {
+    return supabaseQuery(`employees?department_id=eq.${departmentId}`);
+}
+
+async function removeEmployeeFromDepartment(employeeId) {
+    return supabaseQuery(`employees?id=eq.${employeeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ department_id: null })
+    });
+}
+
+// ===== МОДУЛЬ: МАГАЗИН =====
+async function createShopProduct(data) {
+    return supabaseQuery('shop_products', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getShopProducts(orgId) {
+    return supabaseQuery(`shop_products?organization_id=eq.${orgId}`);
+}
+
+// ===== МОДУЛЬ: БИБЛИОТЕКА =====
+async function createLibraryBook(data) {
+    return supabaseQuery('library_books', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getLibraryBooks(orgId) {
+    return supabaseQuery(`library_books?organization_id=eq.${orgId}`);
+}
+
+// ===== МОДУЛЬ: РЕСТОРАН =====
+async function createRestaurantItem(data) {
+    return supabaseQuery('restaurant_menu', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getRestaurantMenu(orgId) {
+    return supabaseQuery(`restaurant_menu?organization_id=eq.${orgId}`);
+}
+
+// ===== МОДУЛЬ: ШКОЛА =====
+async function createSchoolClass(data) {
+    return supabaseQuery('school_classes', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getSchoolClasses(orgId) {
+    return supabaseQuery(`school_classes?organization_id=eq.${orgId}`);
+}
+
+// ===== МОДУЛЬ: КЛИНИКА =====
+async function createClinicPatient(data) {
+    return supabaseQuery('clinic_patients', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getClinicPatients(orgId) {
+    return supabaseQuery(`clinic_patients?organization_id=eq.${orgId}`);
+}
+
+// ===== МОДУЛЬ: IT =====
+async function createItProject(data) {
+    return supabaseQuery('it_projects', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getItProjects(orgId) {
+    return supabaseQuery(`it_projects?organization_id=eq.${orgId}`);
+}
+
+// ===== МОДУЛЬ: ОТЕЛЬ =====
+async function createHotelRoom(data) {
+    return supabaseQuery('hotel_rooms', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getHotelRooms(orgId) {
+    return supabaseQuery(`hotel_rooms?organization_id=eq.${orgId}`);
+}
+
 // ===== ДОКУМЕНТЫ =====
 async function createDocument(data) {
     return supabaseQuery('documents', {
         method: 'POST',
         body: JSON.stringify(data),
-        headers: {
-            'Prefer': 'return=representation'
-        }
+        headers: { 'Prefer': 'return=representation' }
     });
 }
 
 async function getOrganizationDocuments(orgId) {
     return supabaseQuery(`documents?organization_id=eq.${orgId}`);
-}
-
-async function updateDocument(id, data) {
-    return supabaseQuery(`documents?id=eq.${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
-
-async function deleteDocument(id) {
-    return supabaseQuery(`documents?id=eq.${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ===== ТОВАРЫ =====
-async function createProduct(data) {
-    return supabaseQuery('products', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-            'Prefer': 'return=representation'
-        }
-    });
-}
-
-async function getOrganizationProducts(orgId) {
-    return supabaseQuery(`products?organization_id=eq.${orgId}`);
-}
-
-async function updateProduct(id, data) {
-    return supabaseQuery(`products?id=eq.${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
-
-async function deleteProduct(id) {
-    return supabaseQuery(`products?id=eq.${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ===== КНИГИ =====
-async function createBook(data) {
-    return supabaseQuery('books', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-            'Prefer': 'return=representation'
-        }
-    });
-}
-
-async function getOrganizationBooks(orgId) {
-    return supabaseQuery(`books?organization_id=eq.${orgId}`);
-}
-
-async function updateBook(id, data) {
-    return supabaseQuery(`books?id=eq.${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
-
-async function deleteBook(id) {
-    return supabaseQuery(`books?id=eq.${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ===== ЗАЯВЛЕНИЯ =====
-async function createApplication(data) {
-    return supabaseQuery('applications', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-            'Prefer': 'return=representation'
-        }
-    });
-}
-
-async function getOrganizationApplications(orgId) {
-    return supabaseQuery(`applications?organization_id=eq.${orgId}`);
-}
-
-async function updateApplication(id, data) {
-    return supabaseQuery(`applications?id=eq.${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
-
-async function deleteApplication(id) {
-    return supabaseQuery(`applications?id=eq.${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ===== ЛОГИ =====
-async function logActivity(data) {
-    return supabaseQuery('activity_logs', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-            'Prefer': 'return=representation'
-        }
-    });
 }
 
 // ===== ЭКСПОРТ =====
@@ -483,7 +485,7 @@ window.db = {
     updateOrganization,
     deleteOrganization,
     getOrganizationByJoinCode,
-    createDefaultRanks,
+    createDefaultRank,
     getOrganizationRanks,
     createRank,
     deleteRank,
@@ -493,7 +495,6 @@ window.db = {
     removeMemberFromOrganization,
     createJoinRequest,
     getJoinRequests,
-    getMyJoinRequests,
     updateJoinRequest,
     updateUser,
     deleteUser,
@@ -505,23 +506,25 @@ window.db = {
     getOrganizationDepartments,
     updateDepartment,
     deleteDepartment,
+    assignEmployeeToDepartment,
+    getEmployeesByDepartment,
+    removeEmployeeFromDepartment,
+    createShopProduct,
+    getShopProducts,
+    createLibraryBook,
+    getLibraryBooks,
+    createRestaurantItem,
+    getRestaurantMenu,
+    createSchoolClass,
+    getSchoolClasses,
+    createClinicPatient,
+    getClinicPatients,
+    createItProject,
+    getItProjects,
+    createHotelRoom,
+    getHotelRooms,
     createDocument,
-    getOrganizationDocuments,
-    updateDocument,
-    deleteDocument,
-    createProduct,
-    getOrganizationProducts,
-    updateProduct,
-    deleteProduct,
-    createBook,
-    getOrganizationBooks,
-    updateBook,
-    deleteBook,
-    createApplication,
-    getOrganizationApplications,
-    updateApplication,
-    deleteApplication,
-    logActivity
+    getOrganizationDocuments
 };
 
 console.log('✅ DB module loaded');
