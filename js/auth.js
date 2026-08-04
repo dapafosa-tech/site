@@ -12,7 +12,8 @@ function getCurrentUser() {
     try {
         const userData = localStorage.getItem('userData');
         if (userData) {
-            return JSON.parse(userData);
+            currentUser = JSON.parse(userData);
+            return currentUser;
         }
         return null;
     } catch {
@@ -74,7 +75,7 @@ async function requireAdmin() {
 }
 
 // ===== ВЫХОД =====
-async function logoutUser() {
+function logoutUser() {
     localStorage.removeItem('userData');
     localStorage.removeItem('isGuest');
     currentUser = null;
