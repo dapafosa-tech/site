@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — Typebiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background: var(--gray-50);
+            padding: 2rem;
+        }
+
+        .profile-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .profile-container .header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-container .header .back {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .profile-container .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <div class="header">
+            <a href="/dashboard" class="back"><i class="fas fa-arrow-left"></i></a>
+            <h1>Мой профиль</h1>
+        </div>
+
+        <div class="profile-avatar" id="profileAvatar">U</div>
+
+        <div id="profileInfo">
+            <div class="form-group">
+                <label class="form-label">Имя</label>
+                <input type="text" class="form-control" id="fullName" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Роль</label>
+                <input type="text" class="form-control" id="role" disabled>
+            </div>
+            <button class="btn btn-primary" onclick="window.location.href='/dashboard'">
+                <i class="fas fa-arrow-left"></i> Назад
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
+    <script>
+        (async function() {
+            const isAuth = await auth.requireAuth();
+            if (!isAuth) return;
+
+            const user = auth.getCurrentUser();
+            if (user) {
+                document.getElementById('fullName').value = user.full_name || 'Не указано';
+                document.getElementById('email').value = user.email;
+                document.getElementById('role').value = user.role || 'user';
+                document.getElementById('profileAvatar').textContent = (user.full_name || 'U')[0].toUpperCase();
+            }
+        })();
+    </script>
+</body>
+</html>
