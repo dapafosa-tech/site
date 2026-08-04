@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ (ПОЛНАЯ)
+// TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -17,6 +17,23 @@ function getCurrentUser() {
     } catch {
         return null;
     }
+}
+
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0,
+            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function generateJoinCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
 }
 
 async function supabaseQuery(endpoint, options = {}) {
@@ -72,7 +89,6 @@ async function createOrganization(data) {
     const user = getCurrentUser();
     if (!user) throw new Error('Не авторизован');
     
-    // Проверяем лимит лидерства
     const orgs = await getUserOrganizations();
     const leaderOrgs = orgs.filter(o => o.leader_id === user.id);
     if (leaderOrgs.length >= 2) {
@@ -82,6 +98,7 @@ async function createOrganization(data) {
     const joinCode = generateJoinCode();
     
     const orgData = {
+        id: generateUUID(),
         name: data.name,
         type: data.type,
         description: data.description || '',
@@ -103,7 +120,6 @@ async function createOrganization(data) {
 
     if (result && result.length > 0) {
         const orgId = result[0].id;
-        // Создаём только роль "Директор"
         await createDefaultRank(orgId);
         await addMemberToOrganization(orgId, user.id, null);
     }
@@ -161,26 +177,17 @@ async function deleteOrganization(id) {
     });
 }
 
-// ===== КОД ВСТУПЛЕНИЯ =====
-function generateJoinCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
-
 async function getOrganizationByJoinCode(code) {
     const result = await supabaseQuery(`organizations?join_code=eq.${code}`);
     return result[0] || null;
 }
 
-// ===== РАНГИ (ТОЛЬКО ДИРЕКТОР) =====
+// ===== РАНГИ =====
 async function createDefaultRank(orgId) {
     await supabaseQuery('org_ranks', {
         method: 'POST',
         body: JSON.stringify({
+            id: generateUUID(),
             organization_id: orgId,
             name: 'Директор',
             color: '#ef4444',
@@ -205,6 +212,7 @@ async function createRank(orgId, data) {
     return supabaseQuery('org_ranks', {
         method: 'POST',
         body: JSON.stringify({
+            id: generateUUID(),
             organization_id: orgId,
             ...data
         }),
@@ -225,6 +233,7 @@ async function addMemberToOrganization(orgId, userId, rankId = null) {
     return supabaseQuery('org_members', {
         method: 'POST',
         body: JSON.stringify({
+            id: generateUUID(),
             organization_id: orgId,
             user_id: userId,
             rank_id: rankId,
@@ -256,6 +265,7 @@ async function createJoinRequest(orgId, userId, message = '') {
     return supabaseQuery('join_requests', {
         method: 'POST',
         body: JSON.stringify({
+            id: generateUUID(),
             organization_id: orgId,
             user_id: userId,
             status: 'pending',
@@ -300,7 +310,10 @@ async function deleteUser(id) {
 async function createEmployee(data) {
     return supabaseQuery('employees', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: {
             'Prefer': 'return=representation'
         }
@@ -328,7 +341,10 @@ async function deleteEmployee(id) {
 async function createDepartment(data) {
     return supabaseQuery('departments', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: {
             'Prefer': 'return=representation'
         }
@@ -375,7 +391,10 @@ async function removeEmployeeFromDepartment(employeeId) {
 async function createShopProduct(data) {
     return supabaseQuery('shop_products', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -388,7 +407,10 @@ async function getShopProducts(orgId) {
 async function createLibraryBook(data) {
     return supabaseQuery('library_books', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -401,7 +423,10 @@ async function getLibraryBooks(orgId) {
 async function createRestaurantItem(data) {
     return supabaseQuery('restaurant_menu', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -414,7 +439,10 @@ async function getRestaurantMenu(orgId) {
 async function createSchoolClass(data) {
     return supabaseQuery('school_classes', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -427,7 +455,10 @@ async function getSchoolClasses(orgId) {
 async function createClinicPatient(data) {
     return supabaseQuery('clinic_patients', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -440,7 +471,10 @@ async function getClinicPatients(orgId) {
 async function createItProject(data) {
     return supabaseQuery('it_projects', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -453,7 +487,10 @@ async function getItProjects(orgId) {
 async function createHotelRoom(data) {
     return supabaseQuery('hotel_rooms', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -466,7 +503,10 @@ async function getHotelRooms(orgId) {
 async function createDocument(data) {
     return supabaseQuery('documents', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            id: generateUUID(),
+            ...data
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
