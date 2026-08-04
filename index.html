@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrgSpace — цифровая платформа для организаций</title>
+    <title>Typebiz — цифровая платформа для организаций</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
@@ -298,6 +298,10 @@
             font-weight: 500;
         }
 
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
         @media (max-width: 968px) {
             .hero {
                 grid-template-columns: 1fr;
@@ -375,7 +379,7 @@
     <nav class="navbar">
         <a href="#" class="logo">
             <i class="fas fa-cubes"></i>
-            <span>OrgSpace</span>
+            <span>Typebiz</span>
         </a>
 
         <ul class="nav-links" id="navLinks">
@@ -453,11 +457,11 @@
     <footer class="footer">
         <p>
             <i class="fas fa-cubes" style="color: #4f46e5;"></i> 
-            <strong>OrgSpace</strong> — универсальная цифровая платформа для организаций
+            <strong>Typebiz</strong> — универсальная цифровая платформа для организаций
         </p>
         <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-            © 2026 · <a href="#">Политика конфиденциальности</a> · 
-            <a href="#">Пользовательское соглашение</a>
+            © 2026 · <a href="/privacy.html">Политика конфиденциальности</a> · 
+            <a href="/terms.html">Пользовательское соглашение</a>
         </p>
     </footer>
 
@@ -469,6 +473,19 @@
         document.querySelectorAll('.nav-links a').forEach(link => {
             link.addEventListener('click', () => {
                 document.getElementById('navLinks').classList.remove('active');
+            });
+        });
+
+        // Плавный скролл для якорей
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
             });
         });
     </script>
