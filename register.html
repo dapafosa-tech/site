@@ -133,7 +133,6 @@
             cursor: not-allowed;
         }
 
-        /* Отладка */
         #debugLog {
             margin-top: 1rem;
             padding: 0.75rem;
@@ -142,7 +141,7 @@
             border-radius: var(--radius-sm);
             font-family: 'Courier New', monospace;
             font-size: 0.75rem;
-            max-height: 150px;
+            max-height: 200px;
             overflow-y: auto;
             display: none;
             white-space: pre-wrap;
@@ -221,13 +220,12 @@
             Уже есть аккаунт? <a href="/login.html">Войти</a>
         </p>
 
-        <!-- Отладка -->
         <div id="debugLog"></div>
     </div>
 
     <script>
         // ============================================
-        // TYPEBIZ - РЕГИСТРАЦИЯ (прямая, без зависимостей)
+        // TYPEBIZ - РЕГИСТРАЦИЯ (ИСПРАВЛЕННАЯ)
         // ============================================
 
         const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
@@ -358,18 +356,22 @@
                     throw new Error(authData.message || 'Ошибка регистрации в Auth');
                 }
 
-                if (!authData.user) {
+                // ⚠️ ИСПРАВЛЕНИЕ: проверяем наличие id напрямую, а не user.id
+                const userId = authData.id || authData.user?.id;
+                
+                if (!userId) {
+                    logDebug('❌ Нет ID пользователя в ответе');
                     throw new Error('Пользователь не создан в Auth');
                 }
 
-                logDebug(`✅ Пользователь создан в Auth: ${authData.user.id}`);
+                logDebug(`✅ Пользователь создан в Auth: ${userId}`);
 
                 // ===== ШАГ 2: Создание профиля в таблице users =====
                 logDebug('📡 Шаг 2: Создание профиля в таблице users');
 
                 const profileData = {
-                    auth_id: authData.user.id,
-                    email: authData.user.email,
+                    auth_id: userId,
+                    email: authData.email || email,
                     full_name: fullName || 'Пользователь',
                     role: 'user',
                     is_active: true
@@ -393,17 +395,57 @@
                 if (!profileResponse.ok) {
                     const errorText = await profileResponse.text();
                     logDebug('❌ Ошибка создания профиля:', errorText);
-                    throw new Error(`Не удалось создать профиль: ${errorText}`);
+                    
+                    // Если профиль не создался, но пользователь уже есть в Auth —
+                    // пробуем обновить существующий профиль
+                    if (profileResponse.status === 409) {
+                        logDebug('⚠️ Профиль уже существует, пробуем обновить');
+                        const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?auth_id=eq.${userId}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ full_name: fullName })
+                        });
+                        
+                        if (!updateResponse.ok) {
+                            throw new Error('Не удалось обновить профиль');
+                        }
+                        logDebug('✅ Профиль обновлен');
+                    } else {
+                        throw new Error(`Не удалось создать профиль: ${errorText}`);
+                    }
+                } else {
+                    const profileResult = await profileResponse.json();
+                    logDebug('✅ Профиль создан:', profileResult);
                 }
-
-                const profileResult = await profileResponse.json();
-                logDebug('✅ Профиль создан:', profileResult);
 
                 // ===== ШАГ 3: Сохранение сессии =====
                 if (authData.session) {
                     logDebug('📡 Шаг 3: Сохранение сессии');
                     localStorage.setItem('supabase_session', JSON.stringify(authData.session));
                     logDebug('✅ Сессия сохранена');
+                } else {
+                    logDebug('⚠️ Сессия не получена, пробуем войти автоматически');
+                    // Пробуем войти
+                    const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    
+                    if (loginResponse.ok) {
+                        const loginData = await loginResponse.json();
+                        if (loginData.session) {
+                            localStorage.setItem('supabase_session', JSON.stringify(loginData.session));
+                            logDebug('✅ Сессия получена через вход');
+                        }
+                    }
                 }
 
                 // ===== УСПЕХ =====
