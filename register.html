@@ -133,6 +133,26 @@
             cursor: not-allowed;
         }
 
+        /* Отладка */
+        #debugLog {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #1a202c;
+            color: #68d391;
+            border-radius: var(--radius-sm);
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        #debugLog.show {
+            display: block;
+        }
+
         @media (max-width: 480px) {
             .register-container {
                 padding: 2rem 1.5rem;
@@ -200,12 +220,33 @@
         <p class="login-link">
             Уже есть аккаунт? <a href="/login.html">Войти</a>
         </p>
+
+        <!-- Отладка -->
+        <div id="debugLog"></div>
     </div>
 
-    <script src="/js/db.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/ui.js"></script>
     <script>
+        // ============================================
+        // TYPEBIZ - РЕГИСТРАЦИЯ (прямая, без зависимостей)
+        // ============================================
+
+        const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+
+        let debugLog = document.getElementById('debugLog');
+
+        function logDebug(message, data = null) {
+            debugLog.classList.add('show');
+            const timestamp = new Date().toLocaleTimeString();
+            let line = `[${timestamp}] ${message}`;
+            if (data) {
+                line += '\n' + JSON.stringify(data, null, 2);
+            }
+            debugLog.textContent += line + '\n---\n';
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(message, data || '');
+        }
+
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             const icon = input.parentElement.querySelector('.toggle-btn i');
@@ -239,8 +280,12 @@
             }
         });
 
+        // ===== ОСНОВНАЯ ФУНКЦИЯ РЕГИСТРАЦИИ =====
+
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            logDebug('🚀 Начало регистрации');
 
             const fullName = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim();
@@ -249,28 +294,41 @@
             const terms = document.getElementById('terms').checked;
             const submitBtn = document.getElementById('registerBtn');
 
+            logDebug('📝 Данные формы:', { fullName, email, password: '***', confirmPassword: '***', terms });
+
             // Валидация
             if (!fullName) {
+                logDebug('❌ Ошибка: пустое имя');
                 await showAlert('Пожалуйста, введите ваше имя', 'warning');
                 return;
             }
 
             if (!email) {
+                logDebug('❌ Ошибка: пустой email');
                 await showAlert('Пожалуйста, введите email', 'warning');
                 return;
             }
 
+            if (!email.includes('@')) {
+                logDebug('❌ Ошибка: неверный email');
+                await showAlert('Введите корректный email', 'warning');
+                return;
+            }
+
             if (password.length < 6) {
+                logDebug('❌ Ошибка: короткий пароль');
                 await showAlert('Пароль должен содержать минимум 6 символов', 'warning');
                 return;
             }
 
             if (password !== confirmPassword) {
+                logDebug('❌ Ошибка: пароли не совпадают');
                 await showAlert('Пароли не совпадают!', 'error');
                 return;
             }
 
             if (!terms) {
+                logDebug('❌ Ошибка: не приняты условия');
                 await showAlert('Пожалуйста, примите условия использования', 'warning');
                 return;
             }
@@ -278,31 +336,212 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
 
-            const result = await auth.registerUser(email, password, fullName);
+            try {
+                // ===== ШАГ 1: Регистрация в Supabase Auth =====
+                logDebug('📡 Шаг 1: Регистрация в Supabase Auth');
 
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+                const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
 
-            if (!result.success) {
-                await showAlert(result.error, 'error');
-                return;
+                logDebug(`📡 Auth ответ: статус ${authResponse.status}`);
+
+                const authData = await authResponse.json();
+                logDebug('📡 Auth данные:', authData);
+
+                if (!authResponse.ok) {
+                    throw new Error(authData.message || 'Ошибка регистрации в Auth');
+                }
+
+                if (!authData.user) {
+                    throw new Error('Пользователь не создан в Auth');
+                }
+
+                logDebug(`✅ Пользователь создан в Auth: ${authData.user.id}`);
+
+                // ===== ШАГ 2: Создание профиля в таблице users =====
+                logDebug('📡 Шаг 2: Создание профиля в таблице users');
+
+                const profileData = {
+                    auth_id: authData.user.id,
+                    email: authData.user.email,
+                    full_name: fullName || 'Пользователь',
+                    role: 'user',
+                    is_active: true
+                };
+
+                logDebug('📝 Профиль:', profileData);
+
+                const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                logDebug(`📡 Профиль ответ: статус ${profileResponse.status}`);
+
+                if (!profileResponse.ok) {
+                    const errorText = await profileResponse.text();
+                    logDebug('❌ Ошибка создания профиля:', errorText);
+                    throw new Error(`Не удалось создать профиль: ${errorText}`);
+                }
+
+                const profileResult = await profileResponse.json();
+                logDebug('✅ Профиль создан:', profileResult);
+
+                // ===== ШАГ 3: Сохранение сессии =====
+                if (authData.session) {
+                    logDebug('📡 Шаг 3: Сохранение сессии');
+                    localStorage.setItem('supabase_session', JSON.stringify(authData.session));
+                    logDebug('✅ Сессия сохранена');
+                }
+
+                // ===== УСПЕХ =====
+                logDebug('🎉 РЕГИСТРАЦИЯ УСПЕШНА!');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+
+                await showToast('Аккаунт создан! Добро пожаловать в Typebiz! 🎉', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/dashboard.html';
+                }, 1500);
+
+            } catch (error) {
+                logDebug('❌ КРИТИЧЕСКАЯ ОШИБКА:', error.message);
+                console.error('Полная ошибка:', error);
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+
+                await showAlert('Ошибка: ' + error.message, 'error');
             }
-
-            await showToast('Аккаунт создан! Добро пожаловать в Typebiz! 🎉', 'success');
-            
-            // Небольшая задержка перед редиректом
-            setTimeout(() => {
-                window.location.href = '/dashboard.html';
-            }, 1500);
         });
 
-        // Проверка авторизации — если уже залогинен, редирект
+        // ===== ИМПОРТ UI ФУНКЦИЙ =====
+
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toastContainer') || createToastContainer();
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon ${type}">
+                    <i class="fas ${icons[type] || icons.info}"></i>
+                </span>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        function showAlert(message, type = 'info', title = '') {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay active';
+
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+
+                const titles = {
+                    success: 'Успешно!',
+                    error: 'Ошибка!',
+                    warning: 'Внимание!',
+                    info: 'Информация'
+                };
+
+                overlay.innerHTML = `
+                    <div class="modal-box">
+                        <div class="modal-icon ${type}">
+                            <i class="fas ${icons[type] || icons.info}"></i>
+                        </div>
+                        <h3>${title || titles[type] || 'Информация'}</h3>
+                        <p>${message}</p>
+                        <div class="modal-buttons">
+                            <button class="btn btn-primary" id="alertOkBtn">OK</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+                
+                const okBtn = overlay.querySelector('#alertOkBtn');
+                okBtn.addEventListener('click', () => {
+                    overlay.remove();
+                    resolve(true);
+                });
+
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                        resolve(true);
+                    }
+                });
+
+                setTimeout(() => okBtn.focus(), 100);
+            });
+        }
+
+        // Проверка авторизации
         (async () => {
-            const isAuth = await auth.checkAuth();
-            if (isAuth) {
-                window.location.href = '/dashboard.html';
+            try {
+                const session = localStorage.getItem('supabase_session');
+                if (session) {
+                    const sessionData = JSON.parse(session);
+                    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${sessionData.access_token}`
+                        }
+                    });
+                    if (response.ok) {
+                        window.location.href = '/dashboard.html';
+                    }
+                }
+            } catch (e) {
+                console.log('Не авторизован');
             }
         })();
+
+        logDebug('🔧 Страница загружена, ждем действий');
     </script>
 </body>
 </html>
