@@ -1,5 +1,5 @@
 // ============================================
-// ORGSPACE - UI КОМПОНЕНТЫ (кастомные модалки)
+// TYPEBIZ - UI КОМПОНЕНТЫ (кастомные модалки)
 // ============================================
 
 function showToast(message, type = 'info', duration = 3000) {
@@ -68,22 +68,39 @@ function showAlert(message, type = 'info', title = '') {
                 <h3>${title || titles[type] || 'Информация'}</h3>
                 <p>${message}</p>
                 <div class="modal-buttons">
-                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove(); resolve(true);">
-                        OK
-                    </button>
+                    <button class="btn btn-primary" id="alertOkBtn">OK</button>
                 </div>
             </div>
         `;
 
         document.body.appendChild(overlay);
-        overlay._resolve = resolve;
         
+        const okBtn = overlay.querySelector('#alertOkBtn');
+        okBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
+        });
+
+        // Закрытие по клику вне модалки
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.remove();
                 resolve(true);
             }
         });
+
+        // Закрытие по Escape
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                resolve(true);
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+        
+        // Фокус на кнопку OK
+        setTimeout(() => okBtn.focus(), 100);
     });
 }
 
@@ -101,20 +118,25 @@ function showConfirm(message, title = 'Подтверждение', confirmText 
                 <h3>${title}</h3>
                 <p>${message}</p>
                 <div class="modal-buttons">
-                    <button class="btn btn-secondary" data-result="false">${cancelText}</button>
-                    <button class="btn btn-primary" data-result="true">${confirmText}</button>
+                    <button class="btn btn-secondary" data-result="false" id="confirmCancel">${cancelText}</button>
+                    <button class="btn btn-primary" data-result="true" id="confirmOk">${confirmText}</button>
                 </div>
             </div>
         `;
 
         document.body.appendChild(overlay);
 
-        overlay.querySelectorAll('.modal-buttons .btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const result = btn.dataset.result === 'true';
-                overlay.remove();
-                resolve(result);
-            });
+        const cancelBtn = overlay.querySelector('#confirmCancel');
+        const okBtn = overlay.querySelector('#confirmOk');
+
+        cancelBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(false);
+        });
+
+        okBtn.addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
         });
 
         overlay.addEventListener('click', (e) => {
@@ -123,6 +145,19 @@ function showConfirm(message, title = 'Подтверждение', confirmText 
                 resolve(false);
             }
         });
+
+        // Escape = отмена
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                resolve(false);
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Фокус на кнопку OK
+        setTimeout(() => okBtn.focus(), 100);
     });
 }
 
@@ -143,8 +178,8 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
                     <input type="text" class="form-control" id="promptInput" value="${defaultValue}" autofocus>
                 </div>
                 <div class="modal-buttons">
-                    <button class="btn btn-secondary" data-result="cancel">Отмена</button>
-                    <button class="btn btn-primary" data-result="ok">OK</button>
+                    <button class="btn btn-secondary" data-result="cancel" id="promptCancel">Отмена</button>
+                    <button class="btn btn-primary" data-result="ok" id="promptOk">OK</button>
                 </div>
             </div>
         `;
@@ -152,6 +187,9 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
         document.body.appendChild(overlay);
 
         const input = overlay.querySelector('#promptInput');
+        const cancelBtn = overlay.querySelector('#promptCancel');
+        const okBtn = overlay.querySelector('#promptOk');
+
         input.focus();
         input.select();
 
@@ -160,14 +198,12 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
             resolve(value);
         };
 
-        overlay.querySelectorAll('.modal-buttons .btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.dataset.result === 'ok') {
-                    resolveWith(input.value);
-                } else {
-                    resolveWith(null);
-                }
-            });
+        cancelBtn.addEventListener('click', () => {
+            resolveWith(null);
+        });
+
+        okBtn.addEventListener('click', () => {
+            resolveWith(input.value);
         });
 
         input.addEventListener('keydown', (e) => {
@@ -186,6 +222,7 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
     });
 }
 
+// Переопределяем глобальные функции
 window.alert = showAlert;
 window.confirm = showConfirm;
 window.prompt = showPrompt;
