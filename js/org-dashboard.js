@@ -5,19 +5,20 @@
 let currentOrgId = null;
 let currentOrg = null;
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
+const typeLabels = {
+    'shop': 'Магазин',
+    'library': 'Библиотека',
+    'company': 'Компания',
+    'school': 'Школа',
+    'clinic': 'Клиника',
+    'other': 'Другое'
+};
 
-/**
- * Получает ID организации из URL
- */
 function getOrgIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
     return params.get('id');
 }
 
-/**
- * Загружает информацию об организации
- */
 async function loadOrganization() {
     const orgId = getOrgIdFromUrl();
     if (!orgId) {
@@ -29,25 +30,14 @@ async function loadOrganization() {
     currentOrg = await db.getOrganization(orgId);
 
     if (!currentOrg) {
-        alert('Организация не найдена');
+        await showAlert('Организация не найдена', 'error');
         window.location.href = '/dashboard.html';
         return;
     }
 
-    // Обновляем информацию в сайдбаре
     document.getElementById('orgName').textContent = currentOrg.name;
-    
-    const typeLabels = {
-        'shop': 'Магазин',
-        'library': 'Библиотека',
-        'company': 'Компания',
-        'school': 'Школа',
-        'clinic': 'Клиника',
-        'other': 'Другое'
-    };
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
 
-    // Показываем специфичные разделы
     if (currentOrg.type === 'shop') {
         document.getElementById('productsNav').style.display = 'block';
     }
@@ -55,17 +45,10 @@ async function loadOrganization() {
         document.getElementById('booksNav').style.display = 'block';
     }
 
-    // Загружаем раздел по умолчанию
     loadSection('overview');
 }
 
-// ===== ЗАГРУЗКА РАЗДЕЛОВ =====
-
-/**
- * Загружает выбранный раздел
- */
 function loadSection(section) {
-    // Обновляем активный пункт меню
     document.querySelectorAll('.nav-menu a').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-menu a').forEach(el => {
         if (el.textContent.trim().toLowerCase() === section || 
@@ -74,42 +57,19 @@ function loadSection(section) {
         }
     });
 
-    // Загружаем контент
     switch(section) {
-        case 'overview':
-            loadOverview();
-            break;
-        case 'employees':
-            loadEmployees();
-            break;
-        case 'departments':
-            loadDepartments();
-            break;
-        case 'documents':
-            loadDocuments();
-            break;
-        case 'products':
-            loadProducts();
-            break;
-        case 'books':
-            loadBooks();
-            break;
-        case 'applications':
-            loadApplications();
-            break;
-        case 'settings':
-            loadSettings();
-            break;
-        default:
-            loadOverview();
+        case 'overview': loadOverview(); break;
+        case 'employees': loadEmployees(); break;
+        case 'departments': loadDepartments(); break;
+        case 'documents': loadDocuments(); break;
+        case 'products': loadProducts(); break;
+        case 'books': loadBooks(); break;
+        case 'applications': loadApplications(); break;
+        case 'settings': loadSettings(); break;
+        default: loadOverview();
     }
 }
 
-// ===== ОБЗОР =====
-
-/**
- * Загружает обзорную страницу
- */
 async function loadOverview() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Обзор';
@@ -139,7 +99,6 @@ async function loadOverview() {
                     <div class="stat-label">Активностей</div>
                 </div>
             </div>
-
             <div class="card mt-3">
                 <div class="card-header">
                     <h3 class="card-title">Информация об организации</h3>
@@ -164,11 +123,6 @@ async function loadOverview() {
     }
 }
 
-// ===== СОТРУДНИКИ =====
-
-/**
- * Загружает список сотрудников
- */
 async function loadEmployees() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Сотрудники';
@@ -239,11 +193,6 @@ async function loadEmployees() {
     }
 }
 
-// ===== ОТДЕЛЫ =====
-
-/**
- * Загружает список отделов
- */
 async function loadDepartments() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Отделы';
@@ -307,11 +256,6 @@ async function loadDepartments() {
     }
 }
 
-// ===== ДОКУМЕНТЫ =====
-
-/**
- * Загружает список документов
- */
 async function loadDocuments() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Документы';
@@ -378,11 +322,6 @@ async function loadDocuments() {
     }
 }
 
-// ===== ТОВАРЫ (для магазинов) =====
-
-/**
- * Загружает список товаров
- */
 async function loadProducts() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Товары';
@@ -452,11 +391,6 @@ async function loadProducts() {
     }
 }
 
-// ===== КНИГИ (для библиотек) =====
-
-/**
- * Загружает список книг
- */
 async function loadBooks() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Книги';
@@ -526,11 +460,6 @@ async function loadBooks() {
     }
 }
 
-// ===== ЗАЯВЛЕНИЯ =====
-
-/**
- * Загружает список заявлений
- */
 async function loadApplications() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Заявления';
@@ -613,11 +542,6 @@ async function loadApplications() {
     }
 }
 
-// ===== НАСТРОЙКИ =====
-
-/**
- * Загружает настройки организации
- */
 async function loadSettings() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Настройки';
@@ -659,18 +583,12 @@ async function loadSettings() {
         const is_active = document.getElementById('settingsStatus').value === 'true';
 
         if (!name) {
-            alert('Название обязательно');
+            await showAlert('Название обязательно', 'warning');
             return;
         }
 
         try {
-            await db.updateOrganization(currentOrgId, {
-                name,
-                description,
-                is_active
-            });
-            
-            // Логируем
+            await db.updateOrganization(currentOrgId, { name, description, is_active });
             await db.logActivity({
                 organization_id: currentOrgId,
                 user_id: auth.getCurrentUser()?.id,
@@ -680,259 +598,274 @@ async function loadSettings() {
                 changes: { name, description, is_active }
             });
 
-            alert('Настройки сохранены!');
+            await showToast('Настройки сохранены! ✅', 'success');
             currentOrg = await db.getOrganization(currentOrgId);
             document.getElementById('orgName').textContent = currentOrg.name;
         } catch (error) {
             console.error('Update settings error:', error);
-            alert('Ошибка: ' + error.message);
+            await showAlert('Ошибка: ' + error.message, 'error');
         }
     });
 }
 
-// ===== ДЕЙСТВИЯ С СОТРУДНИКАМИ =====
-
-/**
- * Открывает форму добавления сотрудника
- */
-function openAddEmployee() {
-    const name = prompt('Введите имя сотрудника:');
-    if (!name) return;
+async function openAddEmployee() {
+    const name = await showPrompt('Введите имя сотрудника:', '', 'Добавление сотрудника');
+    if (name === null) return;
+    if (!name.trim()) {
+        await showAlert('Имя обязательно', 'warning');
+        return;
+    }
     
-    const position = prompt('Введите должность:') || '';
-    const email = prompt('Введите email:') || '';
-    const phone = prompt('Введите телефон:') || '';
+    const position = await showPrompt('Введите должность:', '', 'Должность') || '';
+    const email = await showPrompt('Введите email:', '', 'Email') || '';
+    const phone = await showPrompt('Введите телефон:', '', 'Телефон') || '';
 
     const nameParts = name.trim().split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    db.createEmployee({
-        organization_id: currentOrgId,
-        first_name: firstName,
-        last_name: lastName,
-        position: position,
-        email: email,
-        phone: phone,
-        status: 'active'
-    }).then(() => {
-        alert('Сотрудник добавлен!');
+    try {
+        await db.createEmployee({
+            organization_id: currentOrgId,
+            first_name: firstName,
+            last_name: lastName,
+            position: position,
+            email: email,
+            phone: phone,
+            status: 'active'
+        });
+        await showToast('Сотрудник добавлен! ✅', 'success');
         loadEmployees();
-    }).catch(error => {
-        alert('Ошибка: ' + error.message);
-    });
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
 }
 
-/**
- * Удаляет сотрудника
- */
 async function deleteEmployee(id) {
-    if (!confirm('Вы уверены?')) return;
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этого сотрудника?', 'Подтверждение');
+    if (!confirmed) return;
     try {
         await db.deleteEmployee(id);
-        alert('Сотрудник удален!');
+        await showToast('Сотрудник удален', 'success');
         loadEmployees();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ДЕЙСТВИЯ С ОТДЕЛАМИ =====
-
-/**
- * Открывает форму добавления отдела
- */
-function openAddDepartment() {
-    const name = prompt('Введите название отдела:');
-    if (!name) return;
+async function openAddDepartment() {
+    const name = await showPrompt('Введите название отдела:', '', 'Добавление отдела');
+    if (name === null) return;
+    if (!name.trim()) {
+        await showAlert('Название обязательно', 'warning');
+        return;
+    }
     
-    const description = prompt('Введите описание:') || '';
+    const description = await showPrompt('Введите описание:', '', 'Описание') || '';
 
-    db.createDepartment({
-        organization_id: currentOrgId,
-        name: name,
-        description: description
-    }).then(() => {
-        alert('Отдел создан!');
+    try {
+        await db.createDepartment({
+            organization_id: currentOrgId,
+            name: name,
+            description: description
+        });
+        await showToast('Отдел создан! ✅', 'success');
         loadDepartments();
-    }).catch(error => {
-        alert('Ошибка: ' + error.message);
-    });
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
 }
 
-/**
- * Удаляет отдел
- */
 async function deleteDepartment(id) {
-    if (!confirm('Вы уверены?')) return;
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот отдел?', 'Подтверждение');
+    if (!confirmed) return;
     try {
         await db.deleteDepartment(id);
-        alert('Отдел удален!');
+        await showToast('Отдел удален', 'success');
         loadDepartments();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ДЕЙСТВИЯ С ДОКУМЕНТАМИ =====
+async function openAddDocument() {
+    const title = await showPrompt('Введите название документа:', '', 'Добавление документа');
+    if (title === null) return;
+    if (!title.trim()) {
+        await showAlert('Название обязательно', 'warning');
+        return;
+    }
 
-/**
- * Открывает форму добавления документа
- */
-function openAddDocument() {
-    const title = prompt('Введите название документа:');
-    if (!title) return;
+    const type = await showPrompt('Введите тип документа:', 'other', 'Тип') || 'other';
 
-    const type = prompt('Введите тип документа:') || 'other';
-
-    db.createDocument({
-        organization_id: currentOrgId,
-        title: title,
-        type: type,
-        status: 'draft'
-    }).then(() => {
-        alert('Документ создан!');
+    try {
+        await db.createDocument({
+            organization_id: currentOrgId,
+            title: title,
+            type: type,
+            status: 'draft'
+        });
+        await showToast('Документ создан! ✅', 'success');
         loadDocuments();
-    }).catch(error => {
-        alert('Ошибка: ' + error.message);
-    });
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
 }
 
-/**
- * Удаляет документ
- */
 async function deleteDocument(id) {
-    if (!confirm('Вы уверены?')) return;
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот документ?', 'Подтверждение');
+    if (!confirmed) return;
     try {
         await db.deleteDocument(id);
-        alert('Документ удален!');
+        await showToast('Документ удален', 'success');
         loadDocuments();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ДЕЙСТВИЯ С ТОВАРАМИ =====
+async function openAddProduct() {
+    const name = await showPrompt('Введите название товара:', '', 'Добавление товара');
+    if (name === null) return;
+    if (!name.trim()) {
+        await showAlert('Название обязательно', 'warning');
+        return;
+    }
 
-/**
- * Открывает форму добавления товара
- */
-function openAddProduct() {
-    const name = prompt('Введите название товара:');
-    if (!name) return;
+    const priceStr = await showPrompt('Введите цену:', '0', 'Цена');
+    const price = parseFloat(priceStr) || 0;
+    
+    const quantityStr = await showPrompt('Введите количество:', '0', 'Количество');
+    const quantity = parseInt(quantityStr) || 0;
 
-    const price = parseFloat(prompt('Введите цену:') || '0');
-    const quantity = parseInt(prompt('Введите количество:') || '0');
-
-    db.createProduct({
-        organization_id: currentOrgId,
-        name: name,
-        price: price,
-        quantity: quantity,
-        status: 'active'
-    }).then(() => {
-        alert('Товар добавлен!');
+    try {
+        await db.createProduct({
+            organization_id: currentOrgId,
+            name: name,
+            price: price,
+            quantity: quantity,
+            status: 'active'
+        });
+        await showToast('Товар добавлен! ✅', 'success');
         loadProducts();
-    }).catch(error => {
-        alert('Ошибка: ' + error.message);
-    });
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
 }
 
-/**
- * Удаляет товар
- */
 async function deleteProduct(id) {
-    if (!confirm('Вы уверены?')) return;
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот товар?', 'Подтверждение');
+    if (!confirmed) return;
     try {
         await db.deleteProduct(id);
-        alert('Товар удален!');
+        await showToast('Товар удален', 'success');
         loadProducts();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ДЕЙСТВИЯ С КНИГАМИ =====
+async function openAddBook() {
+    const title = await showPrompt('Введите название книги:', '', 'Добавление книги');
+    if (title === null) return;
+    if (!title.trim()) {
+        await showAlert('Название обязательно', 'warning');
+        return;
+    }
 
-/**
- * Открывает форму добавления книги
- */
-function openAddBook() {
-    const title = prompt('Введите название книги:');
-    if (!title) return;
+    const author = await showPrompt('Введите автора:', '', 'Автор') || '';
+    const isbn = await showPrompt('Введите ISBN:', '', 'ISBN') || '';
+    
+    const quantityStr = await showPrompt('Введите количество:', '1', 'Количество');
+    const quantity = parseInt(quantityStr) || 1;
 
-    const author = prompt('Введите автора:') || '';
-    const isbn = prompt('Введите ISBN:') || '';
-    const quantity = parseInt(prompt('Введите количество:') || '1');
-
-    db.createBook({
-        organization_id: currentOrgId,
-        title: title,
-        author: author,
-        isbn: isbn,
-        quantity: quantity,
-        available: quantity
-    }).then(() => {
-        alert('Книга добавлена!');
-        loadBooks();
-    }).catch(error => {
-        alert('Ошибка: ' + error.message);
-    });
-}
-
-/**
- * Удаляет книгу
- */
-async function deleteBook(id) {
-    if (!confirm('Вы уверены?')) return;
     try {
-        await db.deleteBook(id);
-        alert('Книга удалена!');
+        await db.createBook({
+            organization_id: currentOrgId,
+            title: title,
+            author: author,
+            isbn: isbn,
+            quantity: quantity,
+            available: quantity
+        });
+        await showToast('Книга добавлена! ✅', 'success');
         loadBooks();
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== УДАЛЕНИЕ ОРГАНИЗАЦИИ =====
+async function deleteBook(id) {
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить эту книгу?', 'Подтверждение');
+    if (!confirmed) return;
+    try {
+        await db.deleteBook(id);
+        await showToast('Книга удалена', 'success');
+        loadBooks();
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+}
 
-/**
- * Подтверждение удаления организации
- */
+async function openAddApplication() {
+    const title = await showPrompt('Введите заголовок заявления:', '', 'Создание заявления');
+    if (title === null) return;
+    if (!title.trim()) {
+        await showAlert('Заголовок обязателен', 'warning');
+        return;
+    }
+
+    const type = await showPrompt('Введите тип заявления:', 'request', 'Тип') || 'request';
+    const content = await showPrompt('Введите текст заявления:', '', 'Текст') || '';
+
+    try {
+        await db.createApplication({
+            organization_id: currentOrgId,
+            title: title,
+            type: type,
+            content: content,
+            status: 'new',
+            created_by: auth.getCurrentUser()?.id
+        });
+        await showToast('Заявление создано! ✅', 'success');
+        loadApplications();
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+}
+
+async function deleteApplication(id) {
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить это заявление?', 'Подтверждение');
+    if (!confirmed) return;
+    try {
+        await db.deleteApplication(id);
+        await showToast('Заявление удалено', 'success');
+        loadApplications();
+    } catch (error) {
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+}
+
 async function deleteOrgConfirm() {
-    if (!confirm('Вы уверены, что хотите удалить организацию? Это действие необратимо!')) return;
-    if (!confirm('Все данные будут потеряны. Продолжить?')) return;
+    const confirmed1 = await showConfirm('Вы уверены, что хотите удалить организацию? Это действие необратимо!', '⚠️ Внимание');
+    if (!confirmed1) return;
+    
+    const confirmed2 = await showConfirm('Все данные будут потеряны. Продолжить?', 'Последнее предупреждение');
+    if (!confirmed2) return;
 
     try {
         await db.deleteOrganization(currentOrgId);
-        alert('Организация удалена!');
+        await showToast('Организация удалена', 'success');
         window.location.href = '/dashboard.html';
     } catch (error) {
-        alert('Ошибка: ' + error.message);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
-
-/**
- * Словарь типов организаций (глобальный)
- */
-const typeLabels = {
-    'shop': 'Магазин',
-    'library': 'Библиотека',
-    'company': 'Компания',
-    'school': 'Школа',
-    'clinic': 'Клиника',
-    'other': 'Другое'
-};
-
-// Запуск
 (async function init() {
     const isAuth = await auth.requireAuth();
     if (!isAuth) return;
 
     await loadOrganization();
-
-    // Обработка навигации для мобильных устройств
     console.log('✅ Organization dashboard loaded');
 })();
