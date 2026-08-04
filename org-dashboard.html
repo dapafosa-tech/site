@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Организация — OrgSpace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background: var(--gray-50);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100%;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            padding: 1.5rem;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar .logo i {
+            color: var(--primary);
+        }
+
+        .sidebar .logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar .org-info {
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-sm);
+            margin-bottom: 2rem;
+        }
+
+        .sidebar .org-info .org-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .sidebar .org-info .org-type {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .sidebar .nav-menu {
+            list-style: none;
+        }
+
+        .sidebar .nav-menu li {
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar .nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .sidebar .nav-menu a:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+        }
+
+        .sidebar .nav-menu a.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .sidebar .nav-menu a i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--gray-500);
+        }
+
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .section-content {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Боковое меню -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="fas fa-cubes"></i>
+            <span>OrgSpace</span>
+        </div>
+
+        <div class="org-info" id="orgInfo">
+            <div class="org-name" id="orgName">Загрузка...</div>
+            <div class="org-type" id="orgType">---</div>
+        </div>
+
+        <ul class="nav-menu">
+            <li><a href="/dashboard.html"><i class="fas fa-arrow-left"></i> Назад</a></li>
+            <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Обзор</a></li>
+            <li><a onclick="loadSection('employees')"><i class="fas fa-users"></i> Сотрудники</a></li>
+            <li><a onclick="loadSection('departments')"><i class="fas fa-sitemap"></i> Отделы</a></li>
+            <li><a onclick="loadSection('documents')"><i class="fas fa-file-alt"></i> Документы</a></li>
+            <li id="productsNav" style="display:none;"><a onclick="loadSection('products')"><i class="fas fa-box"></i> Товары</a></li>
+            <li id="booksNav" style="display:none;"><a onclick="loadSection('books')"><i class="fas fa-book"></i> Книги</a></li>
+            <li><a onclick="loadSection('applications')"><i class="fas fa-inbox"></i> Заявления</a></li>
+            <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Настройки</a></li>
+        </ul>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <a href="/dashboard.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> К моим организациям
+        </a>
+
+        <div class="page-header">
+            <div>
+                <h1 id="pageTitle">Обзор</h1>
+                <p id="pageSubtitle">Управление организацией</p>
+            </div>
+        </div>
+
+        <div id="sectionContent" class="section-content">
+            <!-- Контент загружается динамически -->
+            <div class="text-center text-muted">Загрузка...</div>
+        </div>
+    </main>
+
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/org-dashboard.js"></script>
+</body>
+</html>

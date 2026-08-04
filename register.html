@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация — OrgSpace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-xl);
+            padding: 3rem;
+            max-width: 440px;
+            width: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .register-container .logo {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            color: var(--gray-800);
+        }
+
+        .register-container .logo i {
+            color: var(--primary);
+            margin-right: 0.5rem;
+        }
+
+        .register-container .logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .register-container h2 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .register-container p.subtitle {
+            text-align: center;
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--gray-500);
+        }
+
+        .login-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .password-toggle .toggle-btn {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .register-container {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo">
+            <i class="fas fa-cubes"></i>
+            <span>OrgSpace</span>
+        </div>
+
+        <h2>Создать аккаунт</h2>
+        <p class="subtitle">Начните управлять своей организацией</p>
+
+        <div id="alert" class="alert alert-danger"></div>
+
+        <form id="registerForm" autocomplete="off">
+            <div class="form-group">
+                <label class="form-label" for="fullName">Полное имя</label>
+                <input type="text" id="fullName" class="form-control" placeholder="Иван Иванов" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Пароль</label>
+                <div class="password-toggle">
+                    <input type="password" id="password" class="form-control" placeholder="Минимум 6 символов" required minlength="6">
+                    <button type="button" class="toggle-btn" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <small style="color: var(--gray-500); font-size: 0.85rem;">Пароль должен содержать минимум 6 символов</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="confirmPassword">Подтвердите пароль</label>
+                <div class="password-toggle">
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="Повторите пароль" required>
+                    <button type="button" class="toggle-btn" onclick="toggleConfirmPassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--gray-600); cursor: pointer;">
+                    <input type="checkbox" id="terms" required>
+                    Я согласен с <a href="#" style="color: var(--primary); text-decoration: none;">условиями использования</a>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                <i class="fas fa-user-plus"></i> Создать аккаунт
+            </button>
+        </form>
+
+        <p class="login-link">
+            Уже есть аккаунт? <a href="/login.html">Войти</a>
+        </p>
+    </div>
+
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.querySelector('#password').parentElement.querySelector('.toggle-btn i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function toggleConfirmPassword() {
+            const input = document.getElementById('confirmPassword');
+            const icon = document.querySelector('#confirmPassword').parentElement.querySelector('.toggle-btn i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const terms = document.getElementById('terms').checked;
+            const alert = document.getElementById('alert');
+
+            alert.classList.remove('show');
+            alert.style.display = 'none';
+
+            // Проверки
+            if (password !== confirmPassword) {
+                alert.textContent = 'Пароли не совпадают!';
+                alert.classList.add('show');
+                alert.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                alert.textContent = 'Пароль должен содержать минимум 6 символов!';
+                alert.classList.add('show');
+                alert.style.display = 'block';
+                return;
+            }
+
+            if (!terms) {
+                alert.textContent = 'Пожалуйста, примите условия использования!';
+                alert.classList.add('show');
+                alert.style.display = 'block';
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+
+            const result = await auth.registerUser(email, password, fullName);
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+
+            if (!result.success) {
+                alert.textContent = result.error;
+                alert.classList.add('show');
+                alert.style.display = 'block';
+                return;
+            }
+
+            alert.className = 'alert alert-success show';
+            alert.textContent = 'Аккаунт создан! Перенаправление...';
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                window.location.href = '/dashboard.html';
+            }, 1500);
+        });
+
+        (async () => {
+            const isAuth = await auth.checkAuth();
+            if (isAuth) {
+                window.location.href = '/dashboard.html';
+            }
+        })();
+    </script>
+</body>
+</html>

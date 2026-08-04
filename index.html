@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrgSpace — цифровая платформа для организаций</title>
+    
+    <!-- Подключаем шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        /* ===== СБРОС И БАЗОВЫЕ НАСТРОЙКИ ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+
+        /* ===== ШАПКА / НАВИГАЦИЯ ===== */
+        .navbar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 0 2rem;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .navbar .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #2d3748;
+            text-decoration: none;
+        }
+
+        .navbar .logo i {
+            color: #4f46e5;
+            font-size: 1.8rem;
+        }
+
+        .navbar .logo span {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #4a5568;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+        }
+
+        .nav-links a:hover {
+            color: #4f46e5;
+            background: rgba(79, 70, 229, 0.08);
+        }
+
+        .nav-links .btn-primary {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 0.6rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .nav-links .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+            background: linear-gradient(135deg, #4338ca, #6d28d9);
+        }
+
+        .nav-links .btn-outline {
+            border: 2px solid #e2e8f0;
+            padding: 0.6rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links .btn-outline:hover {
+            border-color: #4f46e5;
+            color: #4f46e5;
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background: #2d3748;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+
+        /* ===== ГЛАВНЫЙ ГЕРОЙ ===== */
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            min-height: calc(100vh - 70px);
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #1a202c, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content h1 .highlight {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-bottom: 2rem;
+            max-width: 500px;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-buttons .btn-hero-primary {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 0.9rem 2.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero-buttons .btn-hero-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        }
+
+        .hero-buttons .btn-hero-secondary {
+            background: white;
+            color: #1a202c;
+            padding: 0.9rem 2.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero-buttons .btn-hero-secondary:hover {
+            border-color: #4f46e5;
+            color: #4f46e5;
+            transform: translateY(-3px);
+        }
+
+        /* ===== ИЛЛЮСТРАЦИЯ / ВИЗУАЛ ===== */
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero-visual .floating-cards {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1;
+        }
+
+        .hero-visual .card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            position: absolute;
+            animation: float 6s ease-in-out infinite;
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px);
+            min-width: 150px;
+        }
+
+        .hero-visual .card:nth-child(1) {
+            top: 0%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .hero-visual .card:nth-child(2) {
+            top: 35%;
+            right: 5%;
+            animation-delay: 2s;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+
+        .hero-visual .card:nth-child(3) {
+            bottom: 5%;
+            left: 5%;
+            animation-delay: 4s;
+        }
+
+        .hero-visual .card i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #4f46e5;
+        }
+
+        .hero-visual .card:nth-child(2) i {
+            color: white;
+        }
+
+        .hero-visual .card h3 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .hero-visual .card p {
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .hero-visual .card:nth-child(2) p {
+            color: rgba(255,255,255,0.8);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* ===== ФУТЕР ===== */
+        .footer {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            color: #4a5568;
+        }
+
+        .footer a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* ===== АДАПТИВНОСТЬ ===== */
+        @media (max-width: 968px) {
+            .hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+                padding: 2rem 1.5rem;
+            }
+
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-content p {
+                margin: 0 auto 2rem;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background: rgba(255,255,255,0.98);
+                backdrop-filter: blur(10px);
+                padding: 2rem;
+                gap: 1rem;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .hero-visual .floating-cards {
+                max-width: 300px;
+            }
+
+            .hero-visual .card {
+                padding: 1rem;
+                min-width: 100px;
+            }
+
+            .hero-visual .card i {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+
+            .navbar {
+                padding: 0 1rem;
+            }
+
+            .hero-buttons .btn-hero-primary,
+            .hero-buttons .btn-hero-secondary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- ===== НАВИГАЦИЯ ===== -->
+    <nav class="navbar">
+        <a href="#" class="logo">
+            <i class="fas fa-cubes"></i>
+            <span>OrgSpace</span>
+        </a>
+
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#features">Возможности</a></li>
+            <li><a href="#types">Типы организаций</a></li>
+            <li><a href="#pricing">Тарифы</a></li>
+            <li><a href="#" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Войти</a></li>
+            <li><a href="#" class="btn-primary"><i class="fas fa-rocket"></i> Начать</a></li>
+        </ul>
+
+        <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+
+    <!-- ===== ГЕРОЙ ===== -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>
+                Создай цифровую систему<br>
+                для <span class="highlight">своей организации</span>
+            </h1>
+            <p>
+                Готовая платформа для управления сотрудниками, документами, 
+                складами, клиентами и всеми процессами. Без сложных настроек — 
+                просто выбери тип организации.
+            </p>
+            <div class="hero-buttons">
+                <a href="#" class="btn-hero-primary">
+                    <i class="fas fa-plus-circle"></i> Создать организацию
+                </a>
+                <a href="#" class="btn-hero-secondary">
+                    <i class="fas fa-play-circle"></i> Демо
+                </a>
+            </div>
+
+            <div style="margin-top: 2.5rem; display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-check-circle" style="color: #4f46e5;"></i>
+                    <span style="font-weight: 500;">Бесплатный старт</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-check-circle" style="color: #4f46e5;"></i>
+                    <span style="font-weight: 500;">Готовые модули</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-check-circle" style="color: #4f46e5;"></i>
+                    <span style="font-weight: 500;">Без кода</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="floating-cards">
+                <div class="card">
+                    <i class="fas fa-store"></i>
+                    <h3>Магазин</h3>
+                    <p>Товары, склад, продажи</p>
+                </div>
+                <div class="card">
+                    <i class="fas fa-book"></i>
+                    <h3>Библиотека</h3>
+                    <p>Книги, читатели, выдача</p>
+                </div>
+                <div class="card">
+                    <i class="fas fa-users"></i>
+                    <h3>Компания</h3>
+                    <p>Сотрудники, отделы, проекты</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== ФУТЕР ===== -->
+    <footer class="footer">
+        <p>
+            <i class="fas fa-cubes" style="color: #4f46e5;"></i> 
+            <strong>OrgSpace</strong> — универсальная цифровая платформа для организаций
+        </p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+            © 2026 · <a href="#">Политика конфиденциальности</a> · 
+            <a href="#">Пользовательское соглашение</a>
+        </p>
+    </footer>
+
+    <!-- ===== СКРИПТЫ ===== -->
+    <script>
+        // ===== МОБИЛЬНОЕ МЕНЮ =====
+        function toggleMenu() {
+            const nav = document.getElementById('navLinks');
+            nav.classList.toggle('active');
+        }
+
+        // Закрываем меню при клике на ссылку
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('navLinks').classList.remove('active');
+            });
+        });
+
+        // ===== ПОДКЛЮЧЕНИЕ К SUPABASE =====
+        // Используем твои данные
+        const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+
+        // Функция для проверки подключения к Supabase
+        async function testSupabaseConnection() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Supabase подключена успешно!');
+                } else {
+                    console.warn('⚠️ Ошибка подключения к Supabase:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+            }
+        }
+
+        // Вызываем при загрузке
+        testSupabaseConnection();
+
+        // ===== КНОПКИ ВВЕРХУ (добавляем интерактив) =====
+        document.querySelectorAll('.nav-links .btn-primary, .btn-hero-primary').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('🚀 Отлично! Здесь будет создание организации.\nПока мы настраиваем этот функционал.');
+            });
+        });
+
+        document.querySelectorAll('.btn-hero-secondary, .nav-links .btn-outline').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('👋 Демо-режим скоро будет доступен!\nА пока — зарегистрируйся и попробуй создать организацию.');
+            });
+        });
+
+        console.log('🚀 OrgSpace загружена!');
+        console.log('🔗 Supabase URL:', SUPABASE_URL);
+        console.log('🗝️ API Key:', SUPABASE_ANON_KEY ? '✓ Установлен' : '✗ Отсутствует');
+
+        // ===== СЧЕТЧИК ДЛЯ ПРИМЕРА =====
+        // Показывает, что страница живая
+        const heroBtn = document.querySelector('.btn-hero-primary');
+        let clickCount = 0;
+        heroBtn.addEventListener('click', () => {
+            clickCount++;
+            if (clickCount > 2) {
+                heroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+                setTimeout(() => {
+                    heroBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Создать организацию';
+                    clickCount = 0;
+                }, 2000);
+            }
+        });
+    </script>
+
+</body>
+</html>
