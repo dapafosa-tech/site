@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - UI КОМПОНЕНТЫ (кастомные модалки)
+// TYPEBIZ - UI КОМПОНЕНТЫ
 // ============================================
 
 function showToast(message, type = 'info', duration = 3000) {
@@ -44,7 +44,6 @@ function showAlert(message, type = 'info', title = '') {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay active';
-        overlay.id = 'customAlert';
 
         const icons = {
             success: 'fa-check-circle',
@@ -81,7 +80,6 @@ function showAlert(message, type = 'info', title = '') {
             resolve(true);
         });
 
-        // Закрытие по клику вне модалки
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.remove();
@@ -89,17 +87,6 @@ function showAlert(message, type = 'info', title = '') {
             }
         });
 
-        // Закрытие по Escape
-        const escHandler = (e) => {
-            if (e.key === 'Escape') {
-                overlay.remove();
-                resolve(true);
-                document.removeEventListener('keydown', escHandler);
-            }
-        };
-        document.addEventListener('keydown', escHandler);
-        
-        // Фокус на кнопку OK
         setTimeout(() => okBtn.focus(), 100);
     });
 }
@@ -108,7 +95,6 @@ function showConfirm(message, title = 'Подтверждение', confirmText 
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay active';
-        overlay.id = 'customConfirm';
 
         overlay.innerHTML = `
             <div class="modal-box">
@@ -118,25 +104,20 @@ function showConfirm(message, title = 'Подтверждение', confirmText 
                 <h3>${title}</h3>
                 <p>${message}</p>
                 <div class="modal-buttons">
-                    <button class="btn btn-secondary" data-result="false" id="confirmCancel">${cancelText}</button>
-                    <button class="btn btn-primary" data-result="true" id="confirmOk">${confirmText}</button>
+                    <button class="btn btn-secondary" data-result="false">${cancelText}</button>
+                    <button class="btn btn-primary" data-result="true">${confirmText}</button>
                 </div>
             </div>
         `;
 
         document.body.appendChild(overlay);
 
-        const cancelBtn = overlay.querySelector('#confirmCancel');
-        const okBtn = overlay.querySelector('#confirmOk');
-
-        cancelBtn.addEventListener('click', () => {
-            overlay.remove();
-            resolve(false);
-        });
-
-        okBtn.addEventListener('click', () => {
-            overlay.remove();
-            resolve(true);
+        overlay.querySelectorAll('.modal-buttons .btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const result = btn.dataset.result === 'true';
+                overlay.remove();
+                resolve(result);
+            });
         });
 
         overlay.addEventListener('click', (e) => {
@@ -145,19 +126,6 @@ function showConfirm(message, title = 'Подтверждение', confirmText 
                 resolve(false);
             }
         });
-
-        // Escape = отмена
-        const escHandler = (e) => {
-            if (e.key === 'Escape') {
-                overlay.remove();
-                resolve(false);
-                document.removeEventListener('keydown', escHandler);
-            }
-        };
-        document.addEventListener('keydown', escHandler);
-
-        // Фокус на кнопку OK
-        setTimeout(() => okBtn.focus(), 100);
     });
 }
 
@@ -165,7 +133,6 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay active';
-        overlay.id = 'customPrompt';
 
         overlay.innerHTML = `
             <div class="modal-box">
@@ -178,8 +145,8 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
                     <input type="text" class="form-control" id="promptInput" value="${defaultValue}" autofocus>
                 </div>
                 <div class="modal-buttons">
-                    <button class="btn btn-secondary" data-result="cancel" id="promptCancel">Отмена</button>
-                    <button class="btn btn-primary" data-result="ok" id="promptOk">OK</button>
+                    <button class="btn btn-secondary" data-result="cancel">Отмена</button>
+                    <button class="btn btn-primary" data-result="ok">OK</button>
                 </div>
             </div>
         `;
@@ -187,45 +154,39 @@ function showPrompt(message, defaultValue = '', title = 'Введите знач
         document.body.appendChild(overlay);
 
         const input = overlay.querySelector('#promptInput');
-        const cancelBtn = overlay.querySelector('#promptCancel');
-        const okBtn = overlay.querySelector('#promptOk');
-
         input.focus();
         input.select();
 
-        const resolveWith = (value) => {
-            overlay.remove();
-            resolve(value);
-        };
-
-        cancelBtn.addEventListener('click', () => {
-            resolveWith(null);
-        });
-
-        okBtn.addEventListener('click', () => {
-            resolveWith(input.value);
+        overlay.querySelectorAll('.modal-buttons .btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const result = btn.dataset.result === 'ok' ? input.value : null;
+                overlay.remove();
+                resolve(result);
+            });
         });
 
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                resolveWith(input.value);
+                overlay.remove();
+                resolve(input.value);
             } else if (e.key === 'Escape') {
-                resolveWith(null);
+                overlay.remove();
+                resolve(null);
             }
         });
 
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
-                resolveWith(null);
+                overlay.remove();
+                resolve(null);
             }
         });
     });
 }
 
-// Переопределяем глобальные функции
-window.alert = showAlert;
-window.confirm = showConfirm;
-window.prompt = showPrompt;
 window.showToast = showToast;
+window.showAlert = showAlert;
+window.showConfirm = showConfirm;
+window.showPrompt = showPrompt;
 
 console.log('✅ UI module loaded');
