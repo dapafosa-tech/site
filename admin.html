@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель — OrgSpace</title>
+    <title>Админ-панель — Typebiz</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
@@ -33,6 +33,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            text-decoration: none;
         }
 
         .sidebar .logo i {
@@ -43,26 +44,6 @@
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar .user-info {
-            padding: 1rem;
-            background: var(--gray-50);
-            border-radius: var(--radius-sm);
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .sidebar .user-info .name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .sidebar .user-info .email {
-            font-size: 0.8rem;
-            color: var(--gray-500);
         }
 
         .sidebar .nav-menu {
@@ -200,21 +181,13 @@
 </head>
 <body>
     <aside class="sidebar">
-        <div class="logo">
+        <a href="/dashboard" class="logo">
             <i class="fas fa-cubes"></i>
-            <span>OrgSpace</span>
-        </div>
-
-        <div class="user-info" id="userInfo">
-            <div class="avatar avatar-sm" id="userAvatar">A</div>
-            <div>
-                <div class="name" id="userName">Администратор</div>
-                <div class="email" id="userEmail">admin@orgspace.com</div>
-            </div>
-        </div>
+            <span>Typebiz</span>
+        </a>
 
         <ul class="nav-menu">
-            <li><a href="/dashboard.html"><i class="fas fa-arrow-left"></i> Назад в дашборд</a></li>
+            <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад в дашборд</a></li>
             <li><a href="#" class="active"><i class="fas fa-crown"></i> Админ-панель</a></li>
             <li><a href="#" onclick="loadSection('users')"><i class="fas fa-users"></i> Пользователи</a></li>
             <li><a href="#" onclick="loadSection('orgs')"><i class="fas fa-building"></i> Организации</a></li>
