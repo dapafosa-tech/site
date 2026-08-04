@@ -2,31 +2,20 @@
 // ORGSPACE - АВТОРИЗАЦИЯ
 // ============================================
 
-// Конфигурация Supabase
 const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
-// Текущий пользователь
 let currentUser = null;
 
-// ===== РЕГИСТРАЦИЯ =====
-
-/**
- * Регистрация нового пользователя
- */
 async function registerUser(email, password, fullName) {
     try {
-        // 1. Регистрируем в Supabase Auth
         const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                email,
-                password
-            })
+            body: JSON.stringify({ email, password })
         });
 
         const data = await response.json();
@@ -35,7 +24,6 @@ async function registerUser(email, password, fullName) {
             throw new Error(data.message || 'Ошибка регистрации');
         }
 
-        // 2. Создаем профиль пользователя
         if (data.user) {
             await db.createUserProfile({
                 auth_id: data.user.id,
@@ -45,7 +33,6 @@ async function registerUser(email, password, fullName) {
             });
         }
 
-        // 3. Сохраняем сессию
         if (data.session) {
             localStorage.setItem('supabase_session', JSON.stringify(data.session));
             currentUser = data.user;
@@ -58,11 +45,6 @@ async function registerUser(email, password, fullName) {
     }
 }
 
-// ===== ВХОД =====
-
-/**
- * Вход пользователя
- */
 async function loginUser(email, password) {
     try {
         const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -71,10 +53,7 @@ async function loginUser(email, password) {
                 'apikey': SUPABASE_ANON_KEY,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                email,
-                password
-            })
+            body: JSON.stringify({ email, password })
         });
 
         const data = await response.json();
@@ -83,12 +62,10 @@ async function loginUser(email, password) {
             throw new Error(data.message || 'Ошибка входа');
         }
 
-        // Сохраняем сессию
         if (data.session) {
             localStorage.setItem('supabase_session', JSON.stringify(data.session));
             currentUser = data.user;
             
-            // Получаем профиль
             const profile = await db.getUserProfile(data.user.id);
             if (profile) {
                 currentUser.profile = profile;
@@ -102,20 +79,18 @@ async function loginUser(email, password) {
     }
 }
 
-// ===== ВЫХОД =====
-
-/**
- * Выход пользователя
- */
 async function logoutUser() {
     try {
-        await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${getSession()?.access_token}`
-            }
-        });
+        const session = getSession();
+        if (session) {
+            await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+        }
     } catch (error) {
         console.error('Logout error:', error);
     }
@@ -125,11 +100,6 @@ async function logoutUser() {
     window.location.href = '/login.html';
 }
 
-// ===== ПРОВЕРКА СЕССИИ =====
-
-/**
- * Получает текущую сессию
- */
 function getSession() {
     try {
         const session = localStorage.getItem('supabase_session');
@@ -139,17 +109,11 @@ function getSession() {
     }
 }
 
-/**
- * Проверяет, авторизован ли пользователь
- */
 async function checkAuth() {
     const session = getSession();
-    if (!session) {
-        return false;
-    }
+    if (!session) return false;
 
     try {
-        // Проверяем валидность токена
         const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -165,7 +129,6 @@ async function checkAuth() {
         const user = await response.json();
         currentUser = user;
         
-        // Получаем профиль
         const profile = await db.getUserProfile(user.id);
         if (profile) {
             currentUser.profile = profile;
@@ -178,9 +141,6 @@ async function checkAuth() {
     }
 }
 
-/**
- * Защищает страницу (редирект на логин если не авторизован)
- */
 async function requireAuth() {
     const isAuth = await checkAuth();
     if (!isAuth) {
@@ -190,21 +150,14 @@ async function requireAuth() {
     return true;
 }
 
-/**
- * Получает текущего пользователя
- */
 function getCurrentUser() {
     return currentUser;
 }
 
-/**
- * Проверяет, является ли пользователь администратором
- */
 function isAdmin() {
     return currentUser?.profile?.role === 'admin';
 }
 
-// Экспортируем для использования
 window.auth = {
     registerUser,
     loginUser,
