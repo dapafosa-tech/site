@@ -8,8 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background: var(--gray-50);
+            font-family: 'Inter', sans-serif;
         }
 
         .sidebar {
@@ -54,6 +61,27 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+        }
+
+        .sidebar .user-info .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar .user-info .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .sidebar .user-info .name {
@@ -435,6 +463,29 @@
                 align-items: stretch;
             }
         }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
     </style>
 </head>
 <body>
@@ -445,7 +496,7 @@
         </a>
 
         <div class="user-info">
-            <div class="avatar avatar-sm" id="userAvatar">U</div>
+            <div class="avatar" id="userAvatar">U</div>
             <div>
                 <div class="name" id="userName">Загрузка...</div>
                 <div class="email" id="userEmail">---</div>
@@ -545,6 +596,40 @@
                         <option value="event">🎉 Ивент</option>
                         <option value="charity">❤️ Благотворительность</option>
                         <option value="government">🏛️ Государственная</option>
+                        <option value="gamedev">🎮 GameDev</option>
+                        <option value="indie">🚀 Инди-разработка</option>
+                        <option value="publishing">📰 Издательство</option>
+                        <option value="animation">🎬 Анимация</option>
+                        <option value="vr">🥽 VR/AR</option>
+                        <option value="esports">🏆 Киберспорт</option>
+                        <option value="streaming">📡 Стриминг</option>
+                        <option value="podcast">🎙️ Подкаст</option>
+                        <option value="blogging">📝 Блоггинг</option>
+                        <option value="social">📱 Соцсети</option>
+                        <option value="startup">💡 Стартап</option>
+                        <option value="agency">📢 Агентство</option>
+                        <option value="consulting">🤝 Консалтинг</option>
+                        <option value="freelance">👔 Фриланс</option>
+                        <option value="remote">🌍 Удалённая работа</option>
+                        <option value="coworking">🏢 Коворкинг</option>
+                        <option value="incubator">🌱 Инкубатор</option>
+                        <option value="accelerator">🚀 Акселератор</option>
+                        <option value="venture">📊 Венчур</option>
+                        <option value="nonprofit">❤️ Некоммерческая</option>
+                        <option value="community">👥 Сообщество</option>
+                        <option value="religious">⛪ Религиозная</option>
+                        <option value="cultural">🏛️ Культурная</option>
+                        <option value="research">🔬 Исследования</option>
+                        <option value="science">⚛️ Наука</option>
+                        <option value="space">🚀 Космос</option>
+                        <option value="robotics">🤖 Робототехника</option>
+                        <option value="ai">🧠 ИИ</option>
+                        <option value="blockchain">⛓️ Блокчейн</option>
+                        <option value="crypto">🪙 Криптовалюта</option>
+                        <option value="defi">📈 DeFi</option>
+                        <option value="nft">🖼️ NFT</option>
+                        <option value="metaverse">🌐 Метавселенная</option>
+                        <option value="web3">🌍 Web3</option>
                         <option value="other">📋 Другое</option>
                     </select>
                 </div>
@@ -584,11 +669,12 @@
     </div>
 
     <script src="/js/db.js"></script>
+    <script src="/js/storage.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
         // ============================================
-        // TYPEBIZ - ДАШБОРД
+        // TYPEBIZ - ДАШБОРД (ПОЛНАЯ ВЕРСИЯ)
         // ============================================
 
         function logoutUser() {
@@ -621,8 +707,15 @@
 
             document.getElementById('userName').textContent = user.full_name || 'Пользователь';
             document.getElementById('userEmail').textContent = user.email;
-            document.getElementById('userAvatar').textContent = (user.full_name || 'U')[0].toUpperCase();
-            
+
+            // Аватарка
+            const avatarEl = document.getElementById('userAvatar');
+            if (user.avatar_url) {
+                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="Avatar">`;
+            } else {
+                avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
+            }
+
             if (user.role === 'admin') {
                 document.getElementById('adminLink').style.display = 'block';
             }
@@ -632,7 +725,7 @@
 
         async function loadOrganizations() {
             try {
-                const orgs = await db.getUserOrganizations();
+                const orgs = await db.getUserAllOrganizations();
                 const grid = document.getElementById('orgGrid');
                 const emptyState = document.getElementById('emptyState');
 
@@ -679,6 +772,40 @@
                     'event': { icon: 'fa-calendar-check', class: 'other' },
                     'charity': { icon: 'fa-hand-holding-heart', class: 'other' },
                     'government': { icon: 'fa-landmark', class: 'other' },
+                    'gamedev': { icon: 'fa-gamepad', class: 'other' },
+                    'indie': { icon: 'fa-rocket', class: 'other' },
+                    'publishing': { icon: 'fa-newspaper', class: 'other' },
+                    'animation': { icon: 'fa-film', class: 'other' },
+                    'vr': { icon: 'fa-vr-cardboard', class: 'other' },
+                    'esports': { icon: 'fa-trophy', class: 'other' },
+                    'streaming': { icon: 'fa-broadcast', class: 'other' },
+                    'podcast': { icon: 'fa-microphone', class: 'other' },
+                    'blogging': { icon: 'fa-blog', class: 'other' },
+                    'social': { icon: 'fa-share-alt', class: 'other' },
+                    'startup': { icon: 'fa-lightbulb', class: 'other' },
+                    'agency': { icon: 'fa-ad', class: 'other' },
+                    'consulting': { icon: 'fa-handshake', class: 'other' },
+                    'freelance': { icon: 'fa-user-tie', class: 'other' },
+                    'remote': { icon: 'fa-globe', class: 'other' },
+                    'coworking': { icon: 'fa-building', class: 'other' },
+                    'incubator': { icon: 'fa-seedling', class: 'other' },
+                    'accelerator': { icon: 'fa-rocket', class: 'other' },
+                    'venture': { icon: 'fa-chart-pie', class: 'other' },
+                    'nonprofit': { icon: 'fa-heart', class: 'other' },
+                    'community': { icon: 'fa-users', class: 'other' },
+                    'religious': { icon: 'fa-church', class: 'other' },
+                    'cultural': { icon: 'fa-landmark', class: 'other' },
+                    'research': { icon: 'fa-flask', class: 'other' },
+                    'science': { icon: 'fa-atom', class: 'other' },
+                    'space': { icon: 'fa-rocket', class: 'other' },
+                    'robotics': { icon: 'fa-robot', class: 'other' },
+                    'ai': { icon: 'fa-brain', class: 'other' },
+                    'blockchain': { icon: 'fa-link', class: 'other' },
+                    'crypto': { icon: 'fa-coins', class: 'other' },
+                    'defi': { icon: 'fa-chart-line', class: 'other' },
+                    'nft': { icon: 'fa-image', class: 'other' },
+                    'metaverse': { icon: 'fa-vr-cardboard', class: 'other' },
+                    'web3': { icon: 'fa-globe', class: 'other' },
                     'other': { icon: 'fa-cubes', class: 'other' }
                 };
 
@@ -716,6 +843,40 @@
                     'event': 'Ивент',
                     'charity': 'Благотворительность',
                     'government': 'Государственная',
+                    'gamedev': 'GameDev',
+                    'indie': 'Инди-разработка',
+                    'publishing': 'Издательство',
+                    'animation': 'Анимация',
+                    'vr': 'VR/AR',
+                    'esports': 'Киберспорт',
+                    'streaming': 'Стриминг',
+                    'podcast': 'Подкаст',
+                    'blogging': 'Блоггинг',
+                    'social': 'Соцсети',
+                    'startup': 'Стартап',
+                    'agency': 'Агентство',
+                    'consulting': 'Консалтинг',
+                    'freelance': 'Фриланс',
+                    'remote': 'Удалённая работа',
+                    'coworking': 'Коворкинг',
+                    'incubator': 'Инкубатор',
+                    'accelerator': 'Акселератор',
+                    'venture': 'Венчур',
+                    'nonprofit': 'Некоммерческая',
+                    'community': 'Сообщество',
+                    'religious': 'Религиозная',
+                    'cultural': 'Культурная',
+                    'research': 'Исследования',
+                    'science': 'Наука',
+                    'space': 'Космос',
+                    'robotics': 'Робототехника',
+                    'ai': 'ИИ',
+                    'blockchain': 'Блокчейн',
+                    'crypto': 'Криптовалюта',
+                    'defi': 'DeFi',
+                    'nft': 'NFT',
+                    'metaverse': 'Метавселенная',
+                    'web3': 'Web3',
                     'other': 'Другое'
                 };
 
