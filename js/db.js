@@ -5,7 +5,6 @@
 const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
-// ===== ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (ДУБЛИРУЕМ ЗДЕСЬ) =====
 function getCurrentUser() {
     try {
         const userData = localStorage.getItem('userData');
@@ -18,7 +17,6 @@ function getCurrentUser() {
     }
 }
 
-// ===== БАЗОВЫЙ ЗАПРОС =====
 async function supabaseQuery(endpoint, options = {}) {
     const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
     const headers = {
@@ -34,12 +32,40 @@ async function supabaseQuery(endpoint, options = {}) {
             headers
         });
 
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`HTTP ${response.status}: ${error}`);
+        // Если статус 204 (No Content) или 201 (Created) без тела
+        if (response.status === 204) {
+            return [];
         }
 
-        return await response.json();
+        // Если статус не OK
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        // Пытаемся прочитать ответ
+        const text = await response.text();
+        
+        // Если ответ пустой
+        if (!text || text.trim() === '') {
+            return [];
+        }
+
+        // Парсим JSON
+        try {
+            return JSON.parse(text);
+        } catch (parseError) {
+            // Если не JSON, но похоже на массив
+            if (text.trim().startsWith('[') || text.trim().startsWith('{')) {
+                try {
+                    return eval('(' + text + ')');
+                } catch {
+                    return [];
+                }
+            }
+            return [];
+        }
+
     } catch (error) {
         console.error('Supabase query error:', error);
         throw error;
@@ -51,13 +77,22 @@ async function createOrganization(data) {
     const user = getCurrentUser();
     if (!user) throw new Error('Не авторизован');
     
+    const orgData = {
+        name: data.name,
+        type: data.type,
+        description: data.description || '',
+        created_by: user.id,
+        is_active: true,
+        settings: data.settings || {},
+        created_at: new Date().toISOString()
+    };
+
     return supabaseQuery('organizations', {
         method: 'POST',
-        body: JSON.stringify({
-            ...data,
-            created_by: user.id,
-            created_at: new Date().toISOString()
-        })
+        body: JSON.stringify(orgData),
+        headers: {
+            'Prefer': 'return=representation'  // 👈 ЭТО ГЛАВНОЕ!
+        }
     });
 }
 
@@ -65,7 +100,13 @@ async function getUserOrganizations() {
     const user = getCurrentUser();
     if (!user) throw new Error('Не авторизован');
     
-    return supabaseQuery(`organizations?created_by=eq.${user.id}`);
+    try {
+        const result = await supabaseQuery(`organizations?created_by=eq.${user.id}`);
+        return result || [];
+    } catch (error) {
+        console.error('Load orgs error:', error);
+        return [];
+    }
 }
 
 async function getOrganization(id) {
@@ -98,7 +139,10 @@ async function updateUser(id, data) {
 async function createEmployee(data) {
     return supabaseQuery('employees', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -116,7 +160,10 @@ async function deleteEmployee(id) {
 async function createDepartment(data) {
     return supabaseQuery('departments', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -134,7 +181,10 @@ async function deleteDepartment(id) {
 async function createDocument(data) {
     return supabaseQuery('documents', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -152,7 +202,10 @@ async function deleteDocument(id) {
 async function createProduct(data) {
     return supabaseQuery('products', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -170,7 +223,10 @@ async function deleteProduct(id) {
 async function createBook(data) {
     return supabaseQuery('books', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -188,7 +244,10 @@ async function deleteBook(id) {
 async function createApplication(data) {
     return supabaseQuery('applications', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -196,11 +255,21 @@ async function getOrganizationApplications(orgId) {
     return supabaseQuery(`applications?organization_id=eq.${orgId}`);
 }
 
+async function updateApplication(id, data) {
+    return supabaseQuery(`applications?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    });
+}
+
 // ===== ЛОГИ =====
 async function logActivity(data) {
     return supabaseQuery('activity_logs', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Prefer': 'return=representation'
+        }
     });
 }
 
@@ -230,6 +299,7 @@ window.db = {
     deleteBook,
     createApplication,
     getOrganizationApplications,
+    updateApplication,
     logActivity
 };
 
