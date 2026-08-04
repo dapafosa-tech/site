@@ -12,7 +12,6 @@
             background: var(--gray-50);
             padding: 2rem;
         }
-
         .settings-container {
             max-width: 600px;
             margin: 0 auto;
@@ -21,37 +20,29 @@
             padding: 2rem;
             box-shadow: var(--shadow);
         }
-
         .settings-container .header {
             display: flex;
             align-items: center;
             gap: 1rem;
             margin-bottom: 2rem;
         }
-
         .settings-container .header .back {
             color: var(--primary);
             text-decoration: none;
         }
-
         .settings-container .header h1 {
             font-size: 1.5rem;
         }
-
         .settings-container .danger-zone {
             margin-top: 2rem;
             padding-top: 2rem;
             border-top: 2px solid var(--danger);
         }
-
         .settings-container .danger-zone h3 {
             color: var(--danger);
         }
-
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
+            body { padding: 1rem; }
         }
     </style>
 </head>
@@ -71,7 +62,7 @@
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="email" required>
             </div>
-            <button type="submit" class="btn btn-primary" id="saveBtn">
+            <button type="submit" class="btn btn-primary">
                 <i class="fas fa-save"></i> Сохранить
             </button>
         </form>
@@ -89,16 +80,14 @@
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
-        let currentUser = null;
-
         (async function() {
             const isAuth = await auth.requireAuth();
             if (!isAuth) return;
 
-            currentUser = auth.getCurrentUser();
-            if (currentUser) {
-                document.getElementById('fullName').value = currentUser.full_name || '';
-                document.getElementById('email').value = currentUser.email;
+            const user = auth.getCurrentUser();
+            if (user) {
+                document.getElementById('fullName').value = user.full_name || '';
+                document.getElementById('email').value = user.email;
             }
 
             // Сохранение
@@ -109,47 +98,35 @@
                 const email = document.getElementById('email').value.trim();
 
                 try {
-                    await db.updateUser(currentUser.id, {
+                    await db.updateUser(user.id, {
                         full_name: fullName,
                         email: email
                     });
                     
-                    currentUser.full_name = fullName;
-                    currentUser.email = email;
-                    localStorage.setItem('userData', JSON.stringify(currentUser));
+                    user.full_name = fullName;
+                    user.email = email;
+                    localStorage.setItem('userData', JSON.stringify(user));
                     
-                    await showToast('Настройки сохранены!', 'success');
+                    alert('Настройки сохранены!');
                 } catch (error) {
-                    await showAlert('Ошибка: ' + error.message, 'error');
+                    alert('Ошибка: ' + error.message);
                 }
             });
 
             // Удаление аккаунта
             document.getElementById('deleteBtn').addEventListener('click', async function() {
-                const confirmed = await showConfirm(
-                    'Вы уверены, что хотите удалить аккаунт? Это действие необратимо!',
-                    'Удаление аккаунта'
-                );
-                
-                if (!confirmed) return;
-                
-                const confirmed2 = await showConfirm(
-                    'Все ваши данные будут потеряны. Продолжить?',
-                    'Последнее предупреждение'
-                );
-                
-                if (!confirmed2) return;
+                if (!confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо!')) return;
+                if (!confirm('Все ваши данные будут потеряны. Продолжить?')) return;
 
                 try {
-                    const user = auth.getCurrentUser();
                     await db.deleteUser(user.id);
                     localStorage.removeItem('userData');
-                    await showToast('Аккаунт удален', 'success');
+                    alert('Аккаунт удален');
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 1500);
                 } catch (error) {
-                    await showAlert('Ошибка: ' + error.message, 'error');
+                    alert('Ошибка: ' + error.message);
                 }
             });
         })();
