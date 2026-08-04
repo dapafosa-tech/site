@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ
+// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ (ИСПРАВЛЕННЫЙ)
 // ============================================
 
 let currentOrgId = null;
@@ -71,7 +71,15 @@ async function loadOrganization() {
     }
 
     currentOrgId = orgId;
-    currentOrg = await db.getOrganization(orgId);
+    
+    try {
+        currentOrg = await db.getOrganization(orgId);
+    } catch (error) {
+        console.error('Load org error:', error);
+        await showAlert('Ошибка загрузки организации', 'error');
+        window.location.href = '/dashboard';
+        return;
+    }
 
     if (!currentOrg) {
         await showAlert('Организация не найдена', 'error');
@@ -89,8 +97,8 @@ async function loadOrganization() {
 function loadSection(section) {
     document.querySelectorAll('.nav-menu a').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-menu a').forEach(el => {
-        if (el.textContent.trim().toLowerCase() === section ||
-            el.getAttribute('onclick')?.includes(section)) {
+        const onclick = el.getAttribute('onclick') || '';
+        if (onclick.includes(section)) {
             el.classList.add('active');
         }
     });
@@ -132,7 +140,7 @@ async function loadOverview() {
                     <div class="stat-label">Ожидают заявки</div>
                 </div>
                 <div class="stat-card" style="border-color: var(--secondary);">
-                    <div class="stat-value">${currentOrg.join_code || '---'}</div>
+                    <div class="stat-value" style="font-family:monospace;font-size:1.5rem;letter-spacing:3px;">${currentOrg.join_code || '---'}</div>
                     <div class="stat-label">Код вступления</div>
                 </div>
             </div>
@@ -189,29 +197,33 @@ async function loadMembers() {
 
         if (members && members.length > 0) {
             for (const member of members) {
-                const user = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
-                const userName = user && user.length > 0 ? user[0].full_name || user[0].email : 'Неизвестно';
-                const rank = ranks?.find(r => r.id === member.rank_id);
+                try {
+                    const user = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
+                    const userName = user && user.length > 0 ? (user[0].full_name || user[0].email) : 'Неизвестно';
+                    const rank = ranks?.find(r => r.id === member.rank_id);
 
-                const isLeader = currentOrg.leader_id === member.user_id;
+                    const isLeader = currentOrg.leader_id === member.user_id;
 
-                html += `
-                    <tr>
-                        <td><strong>${userName} ${isLeader ? '👑' : ''}</strong></td>
-                        <td>${rank ? `<span style="color:${rank.color}">${rank.name}</span>` : 'Без должности'}</td>
-                        <td>${new Date(member.joined_at).toLocaleDateString('ru-RU')}</td>
-                        <td>
-                            ${!isLeader && currentOrg.leader_id === currentUser?.id ? `
-                                <button class="btn btn-sm btn-outline" onclick="openAssignRank('${member.id}', '${userName}')">
-                                    <i class="fas fa-crown"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="removeMember('${member.id}')">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            ` : ''}
-                        </td>
-                    </tr>
-                `;
+                    html += `
+                        <tr>
+                            <td><strong>${userName} ${isLeader ? '👑' : ''}</strong></td>
+                            <td>${rank ? `<span style="color:${rank.color}">${rank.name}</span>` : 'Без должности'}</td>
+                            <td>${new Date(member.joined_at).toLocaleDateString('ru-RU')}</td>
+                            <td>
+                                ${!isLeader && currentOrg.leader_id === currentUser?.id ? `
+                                    <button class="btn btn-sm btn-outline" onclick="openAssignRank('${member.id}', '${userName}')">
+                                        <i class="fas fa-crown"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="removeMember('${member.id}')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                } catch (e) {
+                    console.error('Error loading user:', e);
+                }
             }
         } else {
             html += `<tr><td colspan="4" class="text-center text-muted">Нет участников</td></tr>`;
@@ -261,31 +273,35 @@ async function loadRequests() {
 
         if (requests && requests.length > 0) {
             for (const req of requests) {
-                const user = await db.supabaseQuery(`users?id=eq.${req.user_id}`);
-                const userName = user && user.length > 0 ? user[0].full_name || user[0].email : 'Неизвестно';
+                try {
+                    const user = await db.supabaseQuery(`users?id=eq.${req.user_id}`);
+                    const userName = user && user.length > 0 ? (user[0].full_name || user[0].email) : 'Неизвестно';
 
-                const isPending = req.status === 'pending';
-                const isLeader = currentOrg.leader_id === currentUser?.id;
+                    const isPending = req.status === 'pending';
+                    const isLeader = currentOrg.leader_id === currentUser?.id;
 
-                html += `
-                    <tr>
-                        <td><strong>${userName}</strong></td>
-                        <td>${req.message || 'Без сообщения'}</td>
-                        <td><span class="badge badge-${req.status}">${statusLabels[req.status] || req.status}</span></td>
-                        <td>${new Date(req.created_at).toLocaleDateString('ru-RU')}</td>
-                        <td>
-                            ${isPending && isLeader ? `
-                                <button class="btn btn-sm btn-success" onclick="handleRequest('${req.id}', 'approved')">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="handleRequest('${req.id}', 'rejected')">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            ` : ''}
-                            ${!isPending ? '—' : ''}
-                        </td>
-                    </tr>
-                `;
+                    html += `
+                        <tr>
+                            <td><strong>${userName}</strong></td>
+                            <td>${req.message || 'Без сообщения'}</td>
+                            <td><span class="badge ${req.status === 'pending' ? 'badge-warning' : req.status === 'approved' ? 'badge-success' : 'badge-danger'}">${statusLabels[req.status] || req.status}</span></td>
+                            <td>${new Date(req.created_at).toLocaleDateString('ru-RU')}</td>
+                            <td>
+                                ${isPending && isLeader ? `
+                                    <button class="btn btn-sm btn-success" onclick="handleRequest('${req.id}', 'approved')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="handleRequest('${req.id}', 'rejected')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                ` : ''}
+                                ${!isPending ? '—' : ''}
+                            </td>
+                        </tr>
+                    `;
+                } catch (e) {
+                    console.error('Error loading user:', e);
+                }
             }
         } else {
             html += `<tr><td colspan="5" class="text-center text-muted">Нет заявок</td></tr>`;
@@ -308,7 +324,7 @@ async function loadRequests() {
 // ===== ОБРАБОТКА ЗАЯВКИ =====
 async function handleRequest(requestId, status) {
     try {
-        const result = await db.updateJoinRequest(requestId, status);
+        await db.updateJoinRequest(requestId, status);
 
         if (status === 'approved') {
             const request = await db.supabaseQuery(`join_requests?id=eq.${requestId}`);
@@ -369,7 +385,6 @@ async function loadRanks() {
                             <tr>
                                 <th>Название</th>
                                 <th>Цвет</th>
-                                <th>Права</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
@@ -378,14 +393,12 @@ async function loadRanks() {
 
         if (ranks && ranks.length > 0) {
             for (const rank of ranks) {
-                const permissions = Object.keys(rank.permissions || {}).join(', ') || 'Нет';
                 const isDefault = ['Основатель', 'Администратор', 'Модератор', 'Участник'].includes(rank.name);
 
                 html += `
                     <tr>
                         <td><strong>${rank.name}</strong></td>
                         <td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${rank.color};"></span> ${rank.color}</td>
-                        <td>${permissions}</td>
                         <td>
                             ${!isDefault && currentOrg.leader_id === currentUser?.id ? `
                                 <button class="btn btn-sm btn-danger" onclick="deleteRank('${rank.id}')">
@@ -397,7 +410,7 @@ async function loadRanks() {
                 `;
             }
         } else {
-            html += `<tr><td colspan="4" class="text-center text-muted">Нет должностей</td></tr>`;
+            html += `<tr><td colspan="3" class="text-center text-muted">Нет должностей</td></tr>`;
         }
 
         html += `
@@ -424,11 +437,6 @@ function openCreateRank(editData = null) {
         document.getElementById('rankEditId').value = editData.id;
         document.getElementById('rankName').value = editData.name;
         document.getElementById('rankColor').value = editData.color;
-
-        const permissions = editData.permissions || {};
-        document.querySelectorAll('.rank-permission').forEach(cb => {
-            cb.checked = permissions[cb.value] === true;
-        });
     } else {
         document.getElementById('rankModalTitle').textContent = 'Создать должность';
         document.getElementById('rankSubmitText').textContent = 'Создать';
@@ -436,9 +444,8 @@ function openCreateRank(editData = null) {
         document.getElementById('rankName').value = '';
         document.getElementById('rankColor').value = '#4f46e5';
 
-        document.querySelectorAll('.rank-permission').forEach(cb => cb.checked = false);
         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-        document.querySelector('.color-option').classList.add('selected');
+        document.querySelector('.color-option')?.classList.add('selected');
     }
 }
 
@@ -449,20 +456,20 @@ document.getElementById('rankForm')?.addEventListener('submit', async (e) => {
     const name = document.getElementById('rankName').value.trim();
     const color = document.getElementById('rankColor').value;
 
-    const permissions = {};
-    document.querySelectorAll('.rank-permission:checked').forEach(cb => {
-        permissions[cb.value] = true;
-    });
+    if (!name) {
+        await showAlert('Введите название должности', 'warning');
+        return;
+    }
 
     try {
         if (editId) {
             await db.supabaseQuery(`org_ranks?id=eq.${editId}`, {
                 method: 'PATCH',
-                body: JSON.stringify({ name, color, permissions })
+                body: JSON.stringify({ name, color })
             });
             await showToast('Должность обновлена!', 'success');
         } else {
-            await db.createRank(currentOrgId, { name, color, permissions });
+            await db.createRank(currentOrgId, { name, color, permissions: {} });
             await showToast('Должность создана!', 'success');
         }
 
@@ -494,20 +501,25 @@ async function openAssignRank(memberId, userName) {
     document.getElementById('assignMemberId').value = memberId;
     document.getElementById('assignUserName').value = userName;
 
-    const ranks = await db.getOrganizationRanks(currentOrgId);
-    const select = document.getElementById('assignRankSelect');
-    select.innerHTML = '<option value="">Выберите должность...</option>';
+    try {
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const select = document.getElementById('assignRankSelect');
+        select.innerHTML = '<option value="">Выберите должность...</option>';
 
-    if (ranks) {
-        ranks.forEach(rank => {
-            const option = document.createElement('option');
-            option.value = rank.id;
-            option.textContent = rank.name;
-            select.appendChild(option);
-        });
+        if (ranks && ranks.length > 0) {
+            ranks.forEach(rank => {
+                const option = document.createElement('option');
+                option.value = rank.id;
+                option.textContent = rank.name;
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('assignRankModal').classList.add('active');
+    } catch (error) {
+        console.error('Load ranks for assign error:', error);
+        await showAlert('Ошибка загрузки должностей', 'error');
     }
-
-    document.getElementById('assignRankModal').classList.add('active');
 }
 
 document.getElementById('assignRankForm')?.addEventListener('submit', async (e) => {
@@ -664,9 +676,11 @@ async function loadSettings() {
                     <label class="form-label">Код вступления</label>
                     <div style="display:flex;gap:0.5rem;">
                         <input type="text" class="form-control" id="settingsCode" value="${currentOrg?.join_code || ''}" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;" readonly>
-                        <button type="button" class="btn btn-outline" onclick="regenerateCode()">
-                            <i class="fas fa-sync"></i>
-                        </button>
+                        ${currentOrg.leader_id === currentUser?.id ? `
+                            <button type="button" class="btn btn-outline" onclick="regenerateCode()">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
                 ${currentOrg.leader_id === currentUser?.id ? `
