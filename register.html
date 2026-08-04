@@ -8,7 +8,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -133,72 +140,9 @@
             cursor: not-allowed;
         }
 
-        #debugLog {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: #1a202c;
-            color: #68d391;
-            border-radius: var(--radius-sm);
-            font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        #debugLog.show {
-            display: block;
-        }
-
-        .timer-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .btn-block {
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(4px);
-            z-index: 99999;
-            align-items: center;
             justify-content: center;
-        }
-
-        .timer-overlay.active {
-            display: flex;
-        }
-
-        .timer-box {
-            background: white;
-            border-radius: var(--radius);
-            padding: 3rem;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .timer-box .timer-icon {
-            font-size: 4rem;
-            color: var(--warning);
-            margin-bottom: 1rem;
-        }
-
-        .timer-box h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .timer-box p {
-            color: var(--gray-600);
-            margin-bottom: 1.5rem;
-        }
-
-        .timer-box .countdown {
-            font-size: 3rem;
-            font-weight: 800;
-            color: var(--primary);
         }
 
         @media (max-width: 480px) {
@@ -233,7 +177,7 @@
                 <label class="form-label" for="password">Пароль</label>
                 <div class="password-toggle">
                     <input type="password" id="password" class="form-control" placeholder="Минимум 6 символов" required minlength="6">
-                    <button type="button" class="toggle-btn" onclick="togglePassword('password')" aria-label="Показать/скрыть пароль">
+                    <button type="button" class="toggle-btn" onclick="togglePassword('password')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
@@ -244,7 +188,7 @@
                 <label class="form-label" for="confirmPassword">Подтвердите пароль</label>
                 <div class="password-toggle">
                     <input type="password" id="confirmPassword" class="form-control" placeholder="Повторите пароль" required>
-                    <button type="button" class="toggle-btn" onclick="togglePassword('confirmPassword')" aria-label="Показать/скрыть пароль">
+                    <button type="button" class="toggle-btn" onclick="togglePassword('confirmPassword')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
@@ -255,7 +199,6 @@
                     <input type="checkbox" id="terms" required>
                     <span>
                         Я согласен с <a href="/terms.html" target="_blank">условиями использования</a>
-                        и <a href="/privacy.html" target="_blank">политикой конфиденциальности</a>
                     </span>
                 </label>
             </div>
@@ -268,49 +211,17 @@
         <p class="login-link">
             Уже есть аккаунт? <a href="/login.html">Войти</a>
         </p>
-
-        <div id="debugLog"></div>
-    </div>
-
-    <!-- Таймер ожидания -->
-    <div class="timer-overlay" id="timerOverlay">
-        <div class="timer-box">
-            <div class="timer-icon">
-                <i class="fas fa-clock"></i>
-            </div>
-            <h3>Подождите немного</h3>
-            <p>Из-за защиты от спама, повторить попытку можно через:</p>
-            <div class="countdown" id="countdown">41</div>
-            <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--gray-400);">
-                <i class="fas fa-info-circle"></i> Попробуйте использовать другой email или подождите
-            </p>
-        </div>
     </div>
 
     <script>
         // ============================================
-        // TYPEBIZ - РЕГИСТРАЦИЯ (С ОБРАБОТКОЙ RATE LIMIT)
+        // TYPEBIZ - АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ
         // ============================================
 
         const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
-        let debugLog = document.getElementById('debugLog');
-        let timerOverlay = document.getElementById('timerOverlay');
-        let countdownEl = document.getElementById('countdown');
-        let countdownInterval = null;
-
-        function logDebug(message, data = null) {
-            debugLog.classList.add('show');
-            const timestamp = new Date().toLocaleTimeString();
-            let line = `[${timestamp}] ${message}`;
-            if (data) {
-                line += '\n' + JSON.stringify(data, null, 2);
-            }
-            debugLog.textContent += line + '\n---\n';
-            debugLog.scrollTop = debugLog.scrollHeight;
-            console.log(message, data || '');
-        }
+        // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
@@ -324,273 +235,7 @@
             }
         }
 
-        function showCountdown(seconds) {
-            timerOverlay.classList.add('active');
-            let remaining = seconds;
-            countdownEl.textContent = remaining;
-            
-            if (countdownInterval) clearInterval(countdownInterval);
-            
-            countdownInterval = setInterval(() => {
-                remaining--;
-                countdownEl.textContent = remaining;
-                if (remaining <= 0) {
-                    clearInterval(countdownInterval);
-                    timerOverlay.classList.remove('active');
-                }
-            }, 1000);
-        }
-
-        // Валидация пароля
-        document.getElementById('password').addEventListener('input', function() {
-            const confirmInput = document.getElementById('confirmPassword');
-            if (confirmInput.value && confirmInput.value !== this.value) {
-                confirmInput.style.borderColor = 'var(--danger)';
-            } else if (confirmInput.value) {
-                confirmInput.style.borderColor = 'var(--success)';
-            }
-        });
-
-        document.getElementById('confirmPassword').addEventListener('input', function() {
-            const passwordInput = document.getElementById('password');
-            if (this.value && this.value !== passwordInput.value) {
-                this.style.borderColor = 'var(--danger)';
-            } else if (this.value) {
-                this.style.borderColor = 'var(--success)';
-            } else {
-                this.style.borderColor = '';
-            }
-        });
-
-        // ===== ОСНОВНАЯ ФУНКЦИЯ РЕГИСТРАЦИИ =====
-
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            logDebug('🚀 Начало регистрации');
-
-            const fullName = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const terms = document.getElementById('terms').checked;
-            const submitBtn = document.getElementById('registerBtn');
-
-            logDebug('📝 Данные формы:', { fullName, email, password: '***', confirmPassword: '***', terms });
-
-            // Валидация
-            if (!fullName) {
-                logDebug('❌ Ошибка: пустое имя');
-                await showAlert('Пожалуйста, введите ваше имя', 'warning');
-                return;
-            }
-
-            if (!email) {
-                logDebug('❌ Ошибка: пустой email');
-                await showAlert('Пожалуйста, введите email', 'warning');
-                return;
-            }
-
-            if (!email.includes('@')) {
-                logDebug('❌ Ошибка: неверный email');
-                await showAlert('Введите корректный email', 'warning');
-                return;
-            }
-
-            if (password.length < 6) {
-                logDebug('❌ Ошибка: короткий пароль');
-                await showAlert('Пароль должен содержать минимум 6 символов', 'warning');
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                logDebug('❌ Ошибка: пароли не совпадают');
-                await showAlert('Пароли не совпадают!', 'error');
-                return;
-            }
-
-            if (!terms) {
-                logDebug('❌ Ошибка: не приняты условия');
-                await showAlert('Пожалуйста, примите условия использования', 'warning');
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
-
-            try {
-                // ===== ШАГ 1: Регистрация в Supabase Auth =====
-                logDebug('📡 Шаг 1: Регистрация в Supabase Auth');
-
-                const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                logDebug(`📡 Auth ответ: статус ${authResponse.status}`);
-
-                const authData = await authResponse.json();
-                logDebug('📡 Auth данные:', authData);
-
-                // ===== ОБРАБОТКА RATE LIMIT =====
-                if (authResponse.status === 429 || (authData.msg && authData.msg.includes('only request this after'))) {
-                    logDebug('⚠️ Rate limit: нужно подождать');
-                    
-                    // Парсим время ожидания из сообщения
-                    const match = authData.msg?.match(/(\d+)\s*seconds?/);
-                    let waitSeconds = 41;
-                    if (match) {
-                        waitSeconds = parseInt(match[1]) + 1;
-                    }
-                    
-                    logDebug(`⏳ Ожидание ${waitSeconds} секунд`);
-                    
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
-                    
-                    // Показываем таймер
-                    showCountdown(waitSeconds);
-                    
-                    await showAlert(
-                        `Слишком много попыток. Подождите ${waitSeconds} секунд и попробуйте снова. 
-                        Или используйте другой email.`,
-                        'warning',
-                        'Подождите!'
-                    );
-                    return;
-                }
-
-                if (!authResponse.ok) {
-                    throw new Error(authData.message || authData.msg || 'Ошибка регистрации в Auth');
-                }
-
-                // Получаем ID пользователя
-                const userId = authData.id || authData.user?.id;
-                
-                if (!userId) {
-                    logDebug('❌ Нет ID пользователя в ответе');
-                    throw new Error('Пользователь не создан в Auth');
-                }
-
-                logDebug(`✅ Пользователь создан в Auth: ${userId}`);
-
-                // ===== ШАГ 2: Создание профиля в таблице users =====
-                logDebug('📡 Шаг 2: Создание профиля в таблице users');
-
-                const profileData = {
-                    auth_id: userId,
-                    email: authData.email || email,
-                    full_name: fullName || 'Пользователь',
-                    role: 'user',
-                    is_active: true
-                };
-
-                logDebug('📝 Профиль:', profileData);
-
-                const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(profileData)
-                });
-
-                logDebug(`📡 Профиль ответ: статус ${profileResponse.status}`);
-
-                if (!profileResponse.ok) {
-                    const errorText = await profileResponse.text();
-                    logDebug('❌ Ошибка создания профиля:', errorText);
-                    
-                    // Если профиль уже существует — обновляем
-                    if (profileResponse.status === 409) {
-                        logDebug('⚠️ Профиль уже существует, обновляем');
-                        const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?auth_id=eq.${userId}`, {
-                            method: 'PATCH',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ 
-                                full_name: fullName,
-                                email: email,
-                                updated_at: new Date().toISOString()
-                            })
-                        });
-                        
-                        if (!updateResponse.ok) {
-                            throw new Error('Не удалось обновить профиль');
-                        }
-                        logDebug('✅ Профиль обновлен');
-                    } else {
-                        throw new Error(`Не удалось создать профиль: ${errorText}`);
-                    }
-                } else {
-                    const profileResult = await profileResponse.json();
-                    logDebug('✅ Профиль создан:', profileResult);
-                }
-
-                // ===== ШАГ 3: Сохранение сессии =====
-                if (authData.session) {
-                    logDebug('📡 Шаг 3: Сохранение сессии');
-                    localStorage.setItem('supabase_session', JSON.stringify(authData.session));
-                    logDebug('✅ Сессия сохранена');
-                } else {
-                    logDebug('⚠️ Сессия не получена, пробуем войти автоматически');
-                    
-                    try {
-                        const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ email, password })
-                        });
-                        
-                        if (loginResponse.ok) {
-                            const loginData = await loginResponse.json();
-                            if (loginData.session) {
-                                localStorage.setItem('supabase_session', JSON.stringify(loginData.session));
-                                logDebug('✅ Сессия получена через вход');
-                            }
-                        }
-                    } catch (loginError) {
-                        logDebug('⚠️ Не удалось автоматически войти:', loginError.message);
-                    }
-                }
-
-                // ===== УСПЕХ =====
-                logDebug('🎉 РЕГИСТРАЦИЯ УСПЕШНА!');
-
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
-
-                await showToast('Аккаунт создан! Добро пожаловать в Typebiz! 🎉', 'success');
-                
-                setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 1500);
-
-            } catch (error) {
-                logDebug('❌ КРИТИЧЕСКАЯ ОШИБКА:', error.message);
-                console.error('Полная ошибка:', error);
-
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
-
-                await showAlert('Ошибка: ' + error.message, 'error');
-            }
-        });
-
-        // ===== UI ФУНКЦИИ =====
+        // ===== UI УВЕДОМЛЕНИЯ =====
 
         function showToast(message, type = 'info', duration = 3000) {
             const container = document.getElementById('toastContainer') || createToastContainer();
@@ -681,6 +326,168 @@
             });
         }
 
+        // ===== АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ =====
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const terms = document.getElementById('terms').checked;
+            const submitBtn = document.getElementById('registerBtn');
+
+            // Валидация
+            if (!fullName) {
+                await showAlert('Введите ваше имя', 'warning');
+                return;
+            }
+
+            if (!email) {
+                await showAlert('Введите email', 'warning');
+                return;
+            }
+
+            if (password.length < 6) {
+                await showAlert('Пароль должен быть минимум 6 символов', 'warning');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                await showAlert('Пароли не совпадают!', 'error');
+                return;
+            }
+
+            if (!terms) {
+                await showAlert('Примите условия использования', 'warning');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+
+            try {
+                // ===== ШАГ 1: РЕГИСТРАЦИЯ В SUPABASE AUTH =====
+                console.log('📡 Регистрация в Auth...');
+                
+                const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email, 
+                        password,
+                        data: { full_name: fullName }
+                    })
+                });
+
+                const authData = await authResponse.json();
+                console.log('📡 Auth ответ:', authData);
+
+                // Проверяем rate limit
+                if (authResponse.status === 429) {
+                    const match = authData.msg?.match(/(\d+)\s*seconds?/);
+                    const wait = match ? parseInt(match[1]) : 30;
+                    
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+                    
+                    await showAlert(
+                        `Подождите ${wait} секунд. Supabase блокирует частые запросы.`,
+                        'warning',
+                        'Слишком много попыток'
+                    );
+                    return;
+                }
+
+                if (!authResponse.ok) {
+                    throw new Error(authData.message || authData.msg || 'Ошибка регистрации');
+                }
+
+                // Получаем ID пользователя
+                const userId = authData.id || authData.user?.id;
+                if (!userId) {
+                    throw new Error('Не удалось получить ID пользователя');
+                }
+
+                console.log('✅ Пользователь создан:', userId);
+
+                // ===== ШАГ 2: СОЗДАНИЕ ПРОФИЛЯ =====
+                console.log('📡 Создание профиля...');
+
+                const profileData = {
+                    auth_id: userId,
+                    email: email,
+                    full_name: fullName,
+                    role: 'user',
+                    is_active: true
+                };
+
+                const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (!profileResponse.ok && profileResponse.status !== 409) {
+                    const errorText = await profileResponse.text();
+                    console.error('Ошибка профиля:', errorText);
+                    throw new Error('Не удалось создать профиль');
+                }
+
+                console.log('✅ Профиль создан');
+
+                // ===== ШАГ 3: СОХРАНЕНИЕ СЕССИИ =====
+                if (authData.session) {
+                    localStorage.setItem('supabase_session', JSON.stringify(authData.session));
+                    console.log('✅ Сессия сохранена');
+                } else {
+                    // Пробуем войти автоматически
+                    console.log('📡 Автоматический вход...');
+                    const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    
+                    if (loginResponse.ok) {
+                        const loginData = await loginResponse.json();
+                        if (loginData.session) {
+                            localStorage.setItem('supabase_session', JSON.stringify(loginData.session));
+                            console.log('✅ Сессия получена через вход');
+                        }
+                    }
+                }
+
+                // ===== УСПЕХ =====
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+
+                await showToast('Аккаунт создан! 🎉', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/dashboard.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+                await showAlert(error.message, 'error');
+            }
+        });
+
         // Проверка авторизации
         (async () => {
             try {
@@ -701,8 +508,6 @@
                 console.log('Не авторизован');
             }
         })();
-
-        logDebug('🔧 Страница загружена, ждем действий');
     </script>
 </body>
 </html>
