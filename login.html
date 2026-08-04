@@ -125,23 +125,9 @@
             cursor: not-allowed;
         }
 
-        #debugLog {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: #1a202c;
-            color: #68d391;
-            border-radius: var(--radius-sm);
-            font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
-            max-height: 150px;
-            overflow-y: auto;
-            display: none;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        #debugLog.show {
-            display: block;
+        .btn-block {
+            width: 100%;
+            justify-content: center;
         }
 
         @media (max-width: 480px) {
@@ -171,7 +157,7 @@
                 <label class="form-label" for="password">Пароль</label>
                 <div class="password-toggle">
                     <input type="password" id="password" class="form-control" placeholder="Введите пароль" required>
-                    <button type="button" class="toggle-btn" onclick="togglePassword()" aria-label="Показать/скрыть пароль">
+                    <button type="button" class="toggle-btn" onclick="togglePassword()">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
@@ -181,7 +167,7 @@
                 <label>
                     <input type="checkbox" id="remember"> Запомнить меня
                 </label>
-                <a href="/forgot-password.html">Забыли пароль?</a>
+                <a href="#">Забыли пароль?</a>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
@@ -192,27 +178,15 @@
         <p class="register-link">
             Нет аккаунта? <a href="/register.html">Зарегистрироваться</a>
         </p>
-
-        <div id="debugLog"></div>
     </div>
 
     <script>
+        // ============================================
+        // TYPEBIZ - ВХОД
+        // ============================================
+
         const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
-
-        let debugLog = document.getElementById('debugLog');
-
-        function logDebug(message, data = null) {
-            debugLog.classList.add('show');
-            const timestamp = new Date().toLocaleTimeString();
-            let line = `[${timestamp}] ${message}`;
-            if (data) {
-                line += '\n' + JSON.stringify(data, null, 2);
-            }
-            debugLog.textContent += line + '\n---\n';
-            debugLog.scrollTop = debugLog.scrollHeight;
-            console.log(message, data || '');
-        }
 
         function togglePassword() {
             const input = document.getElementById('password');
@@ -226,69 +200,7 @@
             }
         }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            logDebug('🚀 Начало входа');
-
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const submitBtn = document.getElementById('loginBtn');
-
-            logDebug('📝 Данные:', { email, password: '***' });
-
-            if (!email || !password) {
-                logDebug('❌ Ошибка: пустые поля');
-                await showAlert('Пожалуйста, заполните все поля', 'warning');
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
-
-            try {
-                logDebug('📡 Отправка запроса в Supabase Auth');
-
-                const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                logDebug(`📡 Ответ: статус ${response.status}`);
-
-                const data = await response.json();
-                logDebug('📡 Данные ответа:', data);
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Ошибка входа');
-                }
-
-                if (data.session) {
-                    logDebug('✅ Сессия получена, сохраняем');
-                    localStorage.setItem('supabase_session', JSON.stringify(data.session));
-                }
-
-                logDebug('🎉 Вход успешен!');
-
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-
-                await showToast('Добро пожаловать в Typebiz!', 'success');
-                window.location.href = '/dashboard.html';
-
-            } catch (error) {
-                logDebug('❌ Ошибка:', error.message);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
-                await showAlert(error.message, 'error');
-            }
-        });
-
-        // ===== UI ФУНКЦИИ =====
+        // ===== UI УВЕДОМЛЕНИЯ =====
 
         function showToast(message, type = 'info', duration = 3000) {
             const container = document.getElementById('toastContainer') || createToastContainer();
@@ -379,6 +291,57 @@
             });
         }
 
+        // ===== ВХОД =====
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('loginBtn');
+
+            if (!email || !password) {
+                await showAlert('Заполните все поля', 'warning');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Ошибка входа');
+                }
+
+                if (data.session) {
+                    localStorage.setItem('supabase_session', JSON.stringify(data.session));
+                    await showToast('Добро пожаловать!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard.html';
+                    }, 1000);
+                } else {
+                    throw new Error('Сессия не получена');
+                }
+
+            } catch (error) {
+                await showAlert(error.message, 'error');
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
+        });
+
         // Проверка авторизации
         (async () => {
             try {
@@ -399,8 +362,6 @@
                 console.log('Не авторизован');
             }
         })();
-
-        logDebug('🔧 Страница входа загружена');
     </script>
 </body>
 </html>
