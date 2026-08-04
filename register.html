@@ -198,7 +198,8 @@
                 <label class="terms-check">
                     <input type="checkbox" id="terms" required>
                     <span>
-                        Я согласен с <a href="/terms.html" target="_blank">условиями использования</a>
+                        Я согласен с <a href="/terms" target="_blank">условиями использования</a>
+                        и <a href="/privacy" target="_blank">политикой конфиденциальности</a>
                     </span>
                 </label>
             </div>
@@ -209,20 +210,18 @@
         </form>
 
         <p class="login-link">
-            Уже есть аккаунт? <a href="/login.html">Войти</a>
+            Уже есть аккаунт? <a href="/login">Войти</a>
         </p>
     </div>
 
     <script>
         // ============================================
-        // TYPEBIZ - РЕГИСТРАЦИЯ БЕЗ AUTH
-        // ПРОСТО ВСТАВКА В ТАБЛИЦУ users
+        // TYPEBIZ - РЕГИСТРАЦИЯ
         // ============================================
 
         const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
-        // ===== ГЕНЕРАТОР UUID =====
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0,
@@ -230,8 +229,6 @@
                 return v.toString(16);
             });
         }
-
-        // ===== UI ФУНКЦИИ =====
 
         function showToast(message, type = 'info', duration = 3000) {
             const container = document.getElementById('toastContainer') || createToastContainer();
@@ -334,8 +331,6 @@
             }
         }
 
-        // ===== РЕГИСТРАЦИЯ =====
-
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -346,7 +341,6 @@
             const terms = document.getElementById('terms').checked;
             const submitBtn = document.getElementById('registerBtn');
 
-            // ===== ВАЛИДАЦИЯ =====
             if (!fullName) {
                 await showAlert('Введите ваше имя', 'warning');
                 return;
@@ -376,7 +370,6 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
 
             try {
-                // ===== ПРОВЕРКА: ЕСТЬ ЛИ ТАКОЙ EMAIL =====
                 const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}`, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -394,7 +387,6 @@
                     }
                 }
 
-                // ===== СОЗДАЁМ ПОЛЬЗОВАТЕЛЯ =====
                 const userId = generateUUID();
                 
                 const userData = {
@@ -402,12 +394,11 @@
                     auth_id: userId,
                     email: email,
                     full_name: fullName,
+                    password: password,
                     role: 'user',
                     is_active: true,
                     created_at: new Date().toISOString()
                 };
-
-                console.log('📡 Создаём пользователя:', userData);
 
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
                     method: 'POST',
@@ -427,10 +418,9 @@
                 }
 
                 const result = await response.json();
-                console.log('✅ Пользователь создан:', result);
+                const user = result[0] || result;
 
-                // ===== СОХРАНЯЕМ В LOCALSTORAGE =====
-                localStorage.setItem('userData', JSON.stringify(result[0] || result));
+                localStorage.setItem('userData', JSON.stringify(user));
                 localStorage.setItem('isGuest', 'false');
 
                 submitBtn.disabled = false;
@@ -439,18 +429,17 @@
                 await showToast('Аккаунт создан! 🎉', 'success');
                 
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/dashboard';
                 }, 1500);
 
             } catch (error) {
-                console.error('❌ Ошибка:', error);
+                console.error('Registration error:', error);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
                 await showAlert(error.message, 'error');
             }
         });
 
-        // ===== ПРОВЕРКА: УЖЕ ЗАЛОГИНЕН =====
         (async () => {
             try {
                 const userData = localStorage.getItem('userData');
@@ -466,7 +455,7 @@
                     if (response.ok) {
                         const data = await response.json();
                         if (data && data.length > 0) {
-                            window.location.href = '/dashboard.html';
+                            window.location.href = '/dashboard';
                         }
                     }
                 }
