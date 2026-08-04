@@ -110,6 +110,7 @@
 
         .sidebar .nav-menu .logout-btn a {
             color: var(--danger);
+            cursor: pointer;
         }
 
         .sidebar .nav-menu .logout-btn a:hover {
@@ -334,7 +335,7 @@
             <span>Typebiz</span>
         </a>
 
-        <div class="user-info">
+        <div class="user-info" id="userInfo">
             <div class="avatar avatar-sm" id="userAvatar">U</div>
             <div>
                 <div class="name" id="userName">Загрузка...</div>
@@ -347,7 +348,7 @@
             <li id="adminLink" style="display: none;"><a href="/admin"><i class="fas fa-crown"></i> Админ-панель</a></li>
             <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
             <li><a href="/settings"><i class="fas fa-cog"></i> Настройки</a></li>
-            <li class="logout-btn"><a href="#" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
+            <li class="logout-btn"><a id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
         </ul>
     </aside>
 
@@ -357,7 +358,7 @@
                 <h1>Мои организации</h1>
                 <p>Управляйте своими организациями и создавайте новые</p>
             </div>
-            <button class="btn btn-primary" onclick="openCreateOrg()">
+            <button class="btn btn-primary" id="createOrgBtn">
                 <i class="fas fa-plus"></i> Создать организацию
             </button>
         </div>
@@ -367,7 +368,7 @@
                 <i class="fas fa-building"></i>
                 <h3>У вас пока нет организаций</h3>
                 <p>Создайте свою первую организацию и начните управлять бизнесом</p>
-                <button class="btn btn-primary" onclick="openCreateOrg()">
+                <button class="btn btn-primary" id="emptyCreateBtn">
                     <i class="fas fa-plus"></i> Создать организацию
                 </button>
             </div>
@@ -379,7 +380,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Создать организацию</h2>
-                <button class="modal-close" onclick="closeModal('createOrgModal')">&times;</button>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
             </div>
             <form id="createOrgForm">
                 <div class="form-group">
@@ -402,7 +403,7 @@
                     <label class="form-label">Описание (необязательно)</label>
                     <textarea class="form-control" id="orgDesc" rows="3" placeholder="Краткое описание организации"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">
+                <button type="submit" class="btn btn-primary btn-block" id="submitOrgBtn">
                     <i class="fas fa-rocket"></i> Создать организацию
                 </button>
             </form>
@@ -412,6 +413,187 @@
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
-    <script src="/js/dashboard.js"></script>
+    <script>
+        // ============================================
+        // TYPEBIZ - ДАШБОРД (ВСЁ В ОДНОМ ФАЙЛЕ)
+        // ============================================
+
+        let currentUser = null;
+        let organizations = [];
+
+        // ===== ЗАГРУЗКА ДАННЫХ =====
+        async function loadDashboard() {
+            currentUser = auth.getCurrentUser();
+            if (!currentUser) return;
+
+            await loadOrganizations();
+            
+            document.getElementById('userName').textContent = currentUser.full_name || 'Пользователь';
+            document.getElementById('userEmail').textContent = currentUser.email;
+            document.getElementById('userAvatar').textContent = (currentUser.full_name || 'U')[0].toUpperCase();
+            
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminLink').style.display = 'block';
+            }
+        }
+
+        async function loadOrganizations() {
+            try {
+                organizations = await db.getUserOrganizations();
+                const grid = document.getElementById('orgGrid');
+                const emptyState = document.getElementById('emptyState');
+
+                grid.innerHTML = '';
+
+                if (!organizations || organizations.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                const iconMap = {
+                    'shop': { icon: 'fa-store', class: 'shop' },
+                    'library': { icon: 'fa-book', class: 'library' },
+                    'company': { icon: 'fa-building', class: 'company' },
+                    'school': { icon: 'fa-graduation-cap', class: 'other' },
+                    'clinic': { icon: 'fa-heartbeat', class: 'other' },
+                    'other': { icon: 'fa-cubes', class: 'other' }
+                };
+
+                const typeLabels = {
+                    'shop': 'Магазин',
+                    'library': 'Библиотека',
+                    'company': 'Компания',
+                    'school': 'Школа',
+                    'clinic': 'Клиника',
+                    'other': 'Другое'
+                };
+
+                organizations.forEach(org => {
+                    const iconData = iconMap[org.type] || iconMap['other'];
+                    const card = document.createElement('div');
+                    card.className = 'org-card';
+                    card.innerHTML = `
+                        <div class="org-icon ${iconData.class}">
+                            <i class="fas ${iconData.icon}"></i>
+                        </div>
+                        <h3>${org.name}</h3>
+                        <p>${org.description || 'Нет описания'}</p>
+                        <span class="org-type">${typeLabels[org.type] || org.type}</span>
+                    `;
+                    card.addEventListener('click', () => {
+                        window.location.href = `/org?id=${org.id}`;
+                    });
+                    grid.appendChild(card);
+                });
+
+                const createCard = document.createElement('div');
+                createCard.className = 'org-card create-org-card';
+                createCard.innerHTML = `
+                    <i class="fas fa-plus-circle"></i>
+                    <h4>Создать организацию</h4>
+                `;
+                createCard.addEventListener('click', openCreateOrg);
+                grid.appendChild(createCard);
+
+            } catch (error) {
+                console.error('Load organizations error:', error);
+                await showAlert('Ошибка загрузки организаций: ' + error.message, 'error');
+            }
+        }
+
+        // ===== МОДАЛКА =====
+        function openCreateOrg() {
+            document.getElementById('createOrgModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('createOrgModal').classList.remove('active');
+        }
+
+        // ===== СОЗДАНИЕ ОРГАНИЗАЦИИ =====
+        document.getElementById('createOrgForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('orgName').value.trim();
+            const type = document.getElementById('orgType').value;
+            const description = document.getElementById('orgDesc').value.trim();
+
+            if (!name) {
+                await showAlert('Введите название организации', 'warning');
+                return;
+            }
+
+            if (!type) {
+                await showAlert('Выберите тип организации', 'warning');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitOrgBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+
+            try {
+                const result = await db.createOrganization({
+                    name,
+                    type,
+                    description: description || '',
+                    is_active: true,
+                    settings: {}
+                });
+
+                console.log('✅ Организация создана:', result);
+
+                await showToast('Организация создана! 🎉', 'success');
+                closeModal();
+                document.getElementById('createOrgForm').reset();
+                await loadOrganizations();
+
+            } catch (error) {
+                console.error('❌ Create organization error:', error);
+                await showAlert('Ошибка: ' + error.message, 'error');
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
+        });
+
+        // ===== ВЫХОД =====
+        function handleLogout() {
+            auth.logoutUser();
+        }
+
+        // ===== НАЗНАЧАЕМ КНОПКИ =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Кнопка "Создать организацию" в хедере
+            document.getElementById('createOrgBtn').addEventListener('click', openCreateOrg);
+            
+            // Кнопка "Создать организацию" в пустом состоянии
+            document.getElementById('emptyCreateBtn').addEventListener('click', openCreateOrg);
+            
+            // Кнопка закрытия модалки
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            
+            // Кнопка "Выйти"
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            
+            // Закрытие модалки по клику вне
+            document.getElementById('createOrgModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        });
+
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        (async function init() {
+            const isAuth = await auth.requireAuth();
+            if (!isAuth) return;
+
+            await loadDashboard();
+            console.log('✅ Dashboard loaded');
+        })();
+    </script>
 </body>
 </html>
