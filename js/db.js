@@ -5,6 +5,19 @@
 const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 
+// ===== ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (ДУБЛИРУЕМ ЗДЕСЬ) =====
+function getCurrentUser() {
+    try {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            return JSON.parse(userData);
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 // ===== БАЗОВЫЙ ЗАПРОС =====
 async function supabaseQuery(endpoint, options = {}) {
     const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
@@ -35,7 +48,7 @@ async function supabaseQuery(endpoint, options = {}) {
 
 // ===== ОРГАНИЗАЦИИ =====
 async function createOrganization(data) {
-    const user = auth.getCurrentUser();
+    const user = getCurrentUser();
     if (!user) throw new Error('Не авторизован');
     
     return supabaseQuery('organizations', {
@@ -49,7 +62,7 @@ async function createOrganization(data) {
 }
 
 async function getUserOrganizations() {
-    const user = auth.getCurrentUser();
+    const user = getCurrentUser();
     if (!user) throw new Error('Не авторизован');
     
     return supabaseQuery(`organizations?created_by=eq.${user.id}`);
