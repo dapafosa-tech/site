@@ -73,14 +73,6 @@
             text-decoration: underline;
         }
 
-        .alert {
-            display: none;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
         .password-toggle {
             position: relative;
         }
@@ -112,8 +104,6 @@
 
         <h2>Создать аккаунт</h2>
         <p class="subtitle">Начните управлять своей организацией</p>
-
-        <div id="alert" class="alert alert-danger"></div>
 
         <form id="registerForm" autocomplete="off">
             <div class="form-group">
@@ -166,6 +156,7 @@
 
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
     <script>
         function togglePassword() {
             const input = document.getElementById('password');
@@ -199,30 +190,19 @@
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const terms = document.getElementById('terms').checked;
-            const alert = document.getElementById('alert');
 
-            alert.classList.remove('show');
-            alert.style.display = 'none';
-
-            // Проверки
             if (password !== confirmPassword) {
-                alert.textContent = 'Пароли не совпадают!';
-                alert.classList.add('show');
-                alert.style.display = 'block';
+                await showAlert('Пароли не совпадают!', 'error');
                 return;
             }
 
             if (password.length < 6) {
-                alert.textContent = 'Пароль должен содержать минимум 6 символов!';
-                alert.classList.add('show');
-                alert.style.display = 'block';
+                await showAlert('Пароль должен содержать минимум 6 символов!', 'error');
                 return;
             }
 
             if (!terms) {
-                alert.textContent = 'Пожалуйста, примите условия использования!';
-                alert.classList.add('show');
-                alert.style.display = 'block';
+                await showAlert('Пожалуйста, примите условия использования!', 'warning');
                 return;
             }
 
@@ -236,16 +216,11 @@
             submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
 
             if (!result.success) {
-                alert.textContent = result.error;
-                alert.classList.add('show');
-                alert.style.display = 'block';
+                await showAlert(result.error, 'error');
                 return;
             }
 
-            alert.className = 'alert alert-success show';
-            alert.textContent = 'Аккаунт создан! Перенаправление...';
-            alert.style.display = 'block';
-
+            await showToast('Аккаунт создан! Перенаправление...', 'success');
             setTimeout(() => {
                 window.location.href = '/dashboard.html';
             }, 1500);
