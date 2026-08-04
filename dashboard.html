@@ -83,6 +83,7 @@
             text-decoration: none;
             transition: all 0.3s ease;
             font-weight: 500;
+            cursor: pointer;
         }
 
         .sidebar .nav-menu a:hover {
@@ -125,6 +126,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .page-header h1 {
@@ -258,14 +261,53 @@
             margin: 0 auto 1.5rem;
         }
 
-        .badge-admin {
-            background: var(--danger);
-            color: white;
-            font-size: 0.6rem;
-            padding: 0.15rem 0.5rem;
-            border-radius: 9999px;
-            margin-left: 0.5rem;
-            vertical-align: middle;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--gray-700);
         }
 
         @media (max-width: 768px) {
@@ -285,7 +327,6 @@
     </style>
 </head>
 <body>
-    <!-- Боковое меню -->
     <aside class="sidebar">
         <div class="logo">
             <i class="fas fa-cubes"></i>
@@ -309,7 +350,6 @@
         </ul>
     </aside>
 
-    <!-- Основной контент -->
     <main class="main-content">
         <div class="page-header">
             <div>
@@ -334,7 +374,6 @@
         </div>
     </main>
 
-    <!-- Модалка создания организации -->
     <div class="modal" id="createOrgModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -371,6 +410,7 @@
 
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
     <script src="/js/dashboard.js"></script>
 </body>
 </html>
