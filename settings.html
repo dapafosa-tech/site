@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки — Typebiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background: var(--gray-50);
+            padding: 2rem;
+        }
+
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .settings-container .header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .settings-container .header .back {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .settings-container .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .settings-container .danger-zone {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--danger);
+        }
+
+        .settings-container .danger-zone h3 {
+            color: var(--danger);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="header">
+            <a href="/dashboard" class="back"><i class="fas fa-arrow-left"></i></a>
+            <h1>Настройки</h1>
+        </div>
+
+        <form id="settingsForm">
+            <div class="form-group">
+                <label class="form-label">Имя</label>
+                <input type="text" class="form-control" id="fullName" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Сохранить
+            </button>
+        </form>
+
+        <div class="danger-zone">
+            <h3><i class="fas fa-exclamation-triangle"></i> Опасная зона</h3>
+            <p style="color: var(--gray-500); margin-bottom: 1rem;">Удаление аккаунта приведет к потере всех данных</p>
+            <button class="btn btn-danger" onclick="deleteAccount()">
+                <i class="fas fa-trash"></i> Удалить аккаунт
+            </button>
+        </div>
+    </div>
+
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
+    <script>
+        (async function() {
+            const isAuth = await auth.requireAuth();
+            if (!isAuth) return;
+
+            const user = auth.getCurrentUser();
+            if (user) {
+                document.getElementById('fullName').value = user.full_name || '';
+                document.getElementById('email').value = user.email;
+            }
+
+            document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const fullName = document.getElementById('fullName').value.trim();
+                const email = document.getElementById('email').value.trim();
+
+                try {
+                    await db.updateUser(user.id, {
+                        full_name: fullName,
+                        email: email
+                    });
+                    
+                    user.full_name = fullName;
+                    user.email = email;
+                    localStorage.setItem('userData', JSON.stringify(user));
+                    
+                    await showToast('Настройки сохранены!', 'success');
+                } catch (error) {
+                    await showAlert('Ошибка: ' + error.message, 'error');
+                }
+            });
+        })();
+
+        async function deleteAccount() {
+            const confirmed = await showConfirm(
+                'Вы уверены, что хотите удалить аккаунт? Это действие необратимо!',
+                'Удаление аккаунта'
+            );
+            
+            if (!confirmed) return;
+            
+            const confirmed2 = await showConfirm(
+                'Все ваши данные будут потеряны. Продолжить?',
+                'Последнее предупреждение'
+            );
+            
+            if (!confirmed2) return;
+
+            try {
+                const user = auth.getCurrentUser();
+                await db.supabaseQuery(`users?id=eq.${user.id}`, {
+                    method: 'DELETE'
+                });
+                localStorage.removeItem('userData');
+                await showToast('Аккаунт удален', 'success');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
+            } catch (error) {
+                await showAlert('Ошибка: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
