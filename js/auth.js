@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АВТОРИЗАЦИЯ (исправленная)
+// TYPEBIZ - ПОЛНАЯ СИСТЕМА АВТОРИЗАЦИИ
 // ============================================
 
 const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
@@ -7,40 +7,133 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 let currentUser = null;
 
-async function registerUser(email, password, fullName) {
+// ===== ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ =====
+function getCurrentUser() {
     try {
-        // 1. Регистрируем в Supabase Auth
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-            method: 'POST',
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            return JSON.parse(userData);
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+// ===== ПРОВЕРКА АВТОРИЗАЦИИ =====
+async function checkAuth() {
+    const user = getCurrentUser();
+    if (!user) return false;
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}`, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
         });
 
+        if (!response.ok) return false;
+        
         const data = await response.json();
+        if (!data || data.length === 0) return false;
+        
+        currentUser = data[0];
+        localStorage.setItem('userData', JSON.stringify(currentUser));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// ===== ЗАЩИТА СТРАНИЦ =====
+async function requireAuth() {
+    const isAuth = await checkAuth();
+    if (!isAuth) {
+        window.location.href = '/login';
+        return false;
+    }
+    return true;
+}
+
+// ===== ПРОВЕРКА АДМИНА =====
+async function requireAdmin() {
+    const isAuth = await checkAuth();
+    if (!isAuth) {
+        window.location.href = '/login';
+        return false;
+    }
+    
+    const user = getCurrentUser();
+    if (user?.role !== 'admin') {
+        await showAlert('Доступ запрещен. Требуются права администратора.', 'error');
+        window.location.href = '/dashboard';
+        return false;
+    }
+    return true;
+}
+
+// ===== ВЫХОД =====
+async function logoutUser() {
+    localStorage.removeItem('userData');
+    localStorage.removeItem('isGuest');
+    currentUser = null;
+    window.location.href = '/login';
+}
+
+// ===== ВХОД =====
+async function loginUser(email, password) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
 
         if (!response.ok) {
-            throw new Error(data.message || 'Ошибка регистрации');
+            throw new Error('Ошибка при поиске пользователя');
         }
 
-        if (!data.user) {
-            throw new Error('Пользователь не создан');
+        const users = await response.json();
+        
+        if (!users || users.length === 0) {
+            throw new Error('Пользователь не найден');
         }
 
-        // 2. Создаем профиль пользователя
-        const profileData = {
-            auth_id: data.user.id,
-            email: data.user.email,
-            full_name: fullName || 'Пользователь',
+        const user = users[0];
+
+        if (user.password && user.password !== password) {
+            throw new Error('Неверный пароль');
+        }
+
+        localStorage.setItem('userData', JSON.stringify(user));
+        localStorage.setItem('isGuest', 'false');
+        currentUser = user;
+
+        return { success: true, user };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// ===== РЕГИСТРАЦИЯ =====
+async function registerUser(email, password, fullName) {
+    try {
+        const userId = generateUUID();
+        
+        const userData = {
+            id: userId,
+            auth_id: userId,
+            email: email,
+            full_name: fullName,
+            password: password,
             role: 'user',
-            is_active: true
+            is_active: true,
+            created_at: new Date().toISOString()
         };
 
-        console.log('Создаем профиль:', profileData);
-
-        const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -48,198 +141,55 @@ async function registerUser(email, password, fullName) {
                 'Content-Type': 'application/json',
                 'Prefer': 'return=representation'
             },
-            body: JSON.stringify(profileData)
-        });
-
-        if (!profileResponse.ok) {
-            const errorText = await profileResponse.text();
-            console.error('Ошибка создания профиля:', errorText);
-            throw new Error('Не удалось создать профиль: ' + errorText);
-        }
-
-        const profileResult = await profileResponse.json();
-        console.log('Профиль создан:', profileResult);
-
-        // 3. Сохраняем сессию
-        if (data.session) {
-            localStorage.setItem('supabase_session', JSON.stringify(data.session));
-            currentUser = data.user;
-            currentUser.profile = profileResult[0] || profileResult;
-        }
-
-        return { success: true, user: data.user, profile: profileResult[0] || profileResult };
-    } catch (error) {
-        console.error('Registration error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async function loginUser(email, password) {
-    try {
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Ошибка входа');
-        }
-
-        if (data.session) {
-            localStorage.setItem('supabase_session', JSON.stringify(data.session));
-            currentUser = data.user;
-            
-            // Получаем профиль
-            const profile = await getUserProfile(data.user.id);
-            if (profile) {
-                currentUser.profile = profile;
-            }
-        }
-
-        return { success: true, user: data.user };
-    } catch (error) {
-        console.error('Login error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async function getUserProfile(authId) {
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?auth_id=eq.${authId}`, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
-
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data[0] || null;
-    } catch (error) {
-        console.error('Get profile error:', error);
-        return null;
-    }
-}
-
-async function logoutUser() {
-    try {
-        const session = getSession();
-        if (session) {
-            await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
-                method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${session.access_token}`
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Logout error:', error);
-    }
-
-    localStorage.removeItem('supabase_session');
-    currentUser = null;
-    window.location.href = '/login.html';
-}
-
-function getSession() {
-    try {
-        const session = localStorage.getItem('supabase_session');
-        return session ? JSON.parse(session) : null;
-    } catch {
-        return null;
-    }
-}
-
-async function checkAuth() {
-    const session = getSession();
-    if (!session) return false;
-
-    try {
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${session.access_token}`
-            }
+            body: JSON.stringify(userData)
         });
 
         if (!response.ok) {
-            localStorage.removeItem('supabase_session');
-            return false;
+            const errorText = await response.text();
+            if (errorText.includes('duplicate key') || errorText.includes('already exists')) {
+                throw new Error('Пользователь с таким email уже существует');
+            }
+            throw new Error('Ошибка при создании аккаунта');
         }
 
-        const user = await response.json();
-        currentUser = user;
+        const result = await response.json();
+        const user = result[0] || result;
         
-        const profile = await getUserProfile(user.id);
-        if (profile) {
-            currentUser.profile = profile;
-        }
+        localStorage.setItem('userData', JSON.stringify(user));
+        localStorage.setItem('isGuest', 'false');
+        currentUser = user;
 
-        return true;
+        return { success: true, user };
     } catch (error) {
-        console.error('Auth check error:', error);
-        return false;
+        return { success: false, error: error.message };
     }
 }
 
-async function requireAuth() {
-    const isAuth = await checkAuth();
-    if (!isAuth) {
-        window.location.href = '/login.html';
-        return false;
-    }
-    return true;
-}
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 
-function getCurrentUser() {
-    return currentUser;
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0,
+            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }
 
 function isAdmin() {
-    return currentUser?.profile?.role === 'admin';
+    const user = getCurrentUser();
+    return user?.role === 'admin';
 }
 
-async function resetPassword(email) {
-    try {
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email })
-        });
-
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || 'Ошибка сброса пароля');
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error('Reset password error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
+// ===== ЭКСПОРТ =====
 window.auth = {
-    registerUser,
-    loginUser,
-    logoutUser,
+    getCurrentUser,
     checkAuth,
     requireAuth,
-    getCurrentUser,
-    getSession,
-    isAdmin,
-    resetPassword,
-    getUserProfile
+    requireAdmin,
+    logoutUser,
+    loginUser,
+    registerUser,
+    isAdmin
 };
 
 console.log('✅ Auth module loaded');
