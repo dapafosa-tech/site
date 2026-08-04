@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ (ИСПРАВЛЕННАЯ)
+// TYPEBIZ - РАБОТА С БАЗОЙ ДАННЫХ (ПОЛНАЯ)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -116,6 +116,25 @@ async function getUserOrganizations() {
     }
 }
 
+async function getUserAllOrganizations() {
+    const user = getCurrentUser();
+    if (!user) throw new Error('Не авторизован');
+    
+    try {
+        const members = await supabaseQuery(`org_members?user_id=eq.${user.id}`);
+        if (!members || members.length === 0) return [];
+        
+        const orgIds = members.map(m => m.organization_id).join(',');
+        if (!orgIds) return [];
+        
+        const orgs = await supabaseQuery(`organizations?id=in.(${orgIds})`);
+        return orgs || [];
+    } catch (error) {
+        console.error('Load all orgs error:', error);
+        return [];
+    }
+}
+
 async function getOrganization(id) {
     const result = await supabaseQuery(`organizations?id=eq.${id}`);
     return result[0] || null;
@@ -152,9 +171,10 @@ async function getOrganizationByJoinCode(code) {
 // ===== РАНГИ =====
 async function createDefaultRanks(orgId) {
     const ranks = [
-        { name: 'Основатель', color: '#ef4444', permissions: { all: true } },
-        { name: 'Администратор', color: '#f59e0b', permissions: { manage: true } },
-        { name: 'Модератор', color: '#3b82f6', permissions: { moderate: true } },
+        { name: 'Основатель', color: '#ef4444', permissions: { all: true, manage_members: true, manage_ranks: true, manage_departments: true, manage_settings: true, manage_requests: true, delete_org: true } },
+        { name: 'Администратор', color: '#f59e0b', permissions: { manage_members: true, manage_ranks: true, manage_departments: true, manage_settings: true, manage_requests: true } },
+        { name: 'Модератор', color: '#3b82f6', permissions: { manage_members: true, manage_requests: true } },
+        { name: 'Старший участник', color: '#8b5cf6', permissions: { invite_members: true, create_departments: true } },
         { name: 'Участник', color: '#10b981', permissions: { view: true } }
     ];
 
@@ -458,6 +478,7 @@ window.db = {
     supabaseQuery,
     createOrganization,
     getUserOrganizations,
+    getUserAllOrganizations,
     getOrganization,
     updateOrganization,
     deleteOrganization,
