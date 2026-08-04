@@ -1,9 +1,10 @@
 // ============================================
-// ORGSPACE - ДАШБОРД ОРГАНИЗАЦИИ
+// TYPEBIZ - ДАШБОРД ОРГАНИЗАЦИИ
 // ============================================
 
 let currentOrgId = null;
 let currentOrg = null;
+let currentUser = null;
 
 const typeLabels = {
     'shop': 'Магазин',
@@ -11,8 +12,51 @@ const typeLabels = {
     'company': 'Компания',
     'school': 'Школа',
     'clinic': 'Клиника',
+    'restaurant': 'Ресторан',
+    'cafe': 'Кафе',
+    'hotel': 'Отель',
+    'gym': 'Спортзал',
+    'beauty': 'Салон красоты',
+    'auto': 'Автосервис',
+    'realty': 'Недвижимость',
+    'it': 'IT-компания',
+    'marketing': 'Маркетинг',
+    'legal': 'Юридическая',
+    'finance': 'Финансы',
+    'education': 'Образование',
+    'medical': 'Медицина',
+    'sport': 'Спорт',
+    'art': 'Искусство',
+    'music': 'Музыка',
+    'photo': 'Фото',
+    'video': 'Видео',
+    'construction': 'Строительство',
+    'repair': 'Ремонт',
+    'cleaning': 'Клининг',
+    'delivery': 'Доставка',
+    'logistics': 'Логистика',
+    'agriculture': 'Сельское хозяйство',
+    'tourism': 'Туризм',
+    'event': 'Ивент',
+    'charity': 'Благотворительность',
+    'government': 'Государственная',
     'other': 'Другое'
 };
+
+const statusLabels = {
+    'pending': '⏳ Ожидает',
+    'approved': '✅ Одобрено',
+    'rejected': '❌ Отклонено'
+};
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+async function init() {
+    const isAuth = await auth.requireAuth();
+    if (!isAuth) return;
+
+    currentUser = auth.getCurrentUser();
+    await loadOrganization();
+}
 
 function getOrgIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -22,7 +66,7 @@ function getOrgIdFromUrl() {
 async function loadOrganization() {
     const orgId = getOrgIdFromUrl();
     if (!orgId) {
-        window.location.href = '/dashboard.html';
+        window.location.href = '/dashboard';
         return;
     }
 
@@ -31,19 +75,13 @@ async function loadOrganization() {
 
     if (!currentOrg) {
         await showAlert('Организация не найдена', 'error');
-        window.location.href = '/dashboard.html';
+        window.location.href = '/dashboard';
         return;
     }
 
     document.getElementById('orgName').textContent = currentOrg.name;
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
-
-    if (currentOrg.type === 'shop') {
-        document.getElementById('productsNav').style.display = 'block';
-    }
-    if (currentOrg.type === 'library') {
-        document.getElementById('booksNav').style.display = 'block';
-    }
+    document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
 
     loadSection('overview');
 }
@@ -51,52 +89,51 @@ async function loadOrganization() {
 function loadSection(section) {
     document.querySelectorAll('.nav-menu a').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-menu a').forEach(el => {
-        if (el.textContent.trim().toLowerCase() === section || 
+        if (el.textContent.trim().toLowerCase() === section ||
             el.getAttribute('onclick')?.includes(section)) {
             el.classList.add('active');
         }
     });
 
-    switch(section) {
+    switch (section) {
         case 'overview': loadOverview(); break;
-        case 'employees': loadEmployees(); break;
+        case 'members': loadMembers(); break;
+        case 'requests': loadRequests(); break;
+        case 'ranks': loadRanks(); break;
         case 'departments': loadDepartments(); break;
-        case 'documents': loadDocuments(); break;
-        case 'products': loadProducts(); break;
-        case 'books': loadBooks(); break;
-        case 'applications': loadApplications(); break;
         case 'settings': loadSettings(); break;
         default: loadOverview();
     }
 }
 
+// ===== ОБЗОР =====
 async function loadOverview() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Обзор';
     document.getElementById('pageSubtitle').textContent = `Управление организацией "${currentOrg?.name}"`;
 
     try {
-        const employees = await db.getOrganizationEmployees(currentOrgId);
-        const departments = await db.getOrganizationDepartments(currentOrgId);
-        const documents = await db.getOrganizationDocuments(currentOrgId);
+        const members = await db.getOrganizationMembers(currentOrgId);
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const requests = await db.getJoinRequests(currentOrgId);
 
         container.innerHTML = `
             <div class="grid-4">
                 <div class="stat-card">
-                    <div class="stat-value">${employees?.length || 0}</div>
-                    <div class="stat-label">Сотрудников</div>
+                    <div class="stat-value">${members?.length || 0}</div>
+                    <div class="stat-label">Участников</div>
                 </div>
                 <div class="stat-card" style="border-color: var(--success);">
-                    <div class="stat-value">${departments?.length || 0}</div>
-                    <div class="stat-label">Отделов</div>
+                    <div class="stat-value">${ranks?.length || 0}</div>
+                    <div class="stat-label">Должностей</div>
                 </div>
                 <div class="stat-card" style="border-color: var(--warning);">
-                    <div class="stat-value">${documents?.length || 0}</div>
-                    <div class="stat-label">Документов</div>
+                    <div class="stat-value">${requests?.filter(r => r.status === 'pending').length || 0}</div>
+                    <div class="stat-label">Ожидают заявки</div>
                 </div>
                 <div class="stat-card" style="border-color: var(--secondary);">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Активностей</div>
+                    <div class="stat-value">${currentOrg.join_code || '---'}</div>
+                    <div class="stat-label">Код вступления</div>
                 </div>
             </div>
             <div class="card mt-3">
@@ -110,9 +147,8 @@ async function loadOverview() {
                         <p><strong>Описание:</strong> ${currentOrg?.description || 'Нет описания'}</p>
                     </div>
                     <div>
-                        <p><strong>Статус:</strong> <span class="badge ${currentOrg?.is_active ? 'badge-success' : 'badge-danger'}">${currentOrg?.is_active ? 'Активна' : 'Неактивна'}</span></p>
+                        <p><strong>Код вступления:</strong> <span style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;background:var(--gray-100);padding:0.2rem 0.8rem;border-radius:var(--radius-sm);">${currentOrg?.join_code || '---'}</span></p>
                         <p><strong>Создана:</strong> ${new Date(currentOrg?.created_at).toLocaleDateString('ru-RU')}</p>
-                        <p><strong>ID:</strong> <span style="font-size: 0.8rem; color: var(--gray-500);">${currentOrgId}</span></p>
                     </div>
                 </div>
             </div>
@@ -123,60 +159,62 @@ async function loadOverview() {
     }
 }
 
-async function loadEmployees() {
+// ===== УЧАСТНИКИ =====
+async function loadMembers() {
     const container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Сотрудники';
-    document.getElementById('pageSubtitle').textContent = 'Управление персоналом';
+    document.getElementById('pageTitle').textContent = 'Участники';
+    document.getElementById('pageSubtitle').textContent = 'Управление участниками организации';
 
     try {
-        const employees = await db.getOrganizationEmployees(currentOrgId);
+        const members = await db.getOrganizationMembers(currentOrgId);
+        const ranks = await db.getOrganizationRanks(currentOrgId);
 
         let html = `
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Список сотрудников</h3>
-                    <button class="btn btn-primary btn-sm" onclick="openAddEmployee()">
-                        <i class="fas fa-plus"></i> Добавить
-                    </button>
+                    <h3 class="card-title">Список участников (${members?.length || 0})</h3>
                 </div>
-                <div style="overflow-x: auto;">
+                <div style="overflow-x:auto;">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Имя</th>
+                                <th>Пользователь</th>
                                 <th>Должность</th>
-                                <th>Email</th>
-                                <th>Телефон</th>
-                                <th>Статус</th>
+                                <th>Дата вступления</th>
                                 <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
         `;
 
-        if (employees && employees.length > 0) {
-            employees.forEach(emp => {
-                const fullName = [emp.first_name, emp.last_name, emp.middle_name].filter(Boolean).join(' ');
+        if (members && members.length > 0) {
+            for (const member of members) {
+                const user = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
+                const userName = user && user.length > 0 ? user[0].full_name || user[0].email : 'Неизвестно';
+                const rank = ranks?.find(r => r.id === member.rank_id);
+
+                const isLeader = currentOrg.leader_id === member.user_id;
+
                 html += `
                     <tr>
-                        <td><strong>${fullName}</strong></td>
-                        <td>${emp.position || '-'}</td>
-                        <td>${emp.email || '-'}</td>
-                        <td>${emp.phone || '-'}</td>
-                        <td><span class="badge ${emp.status === 'active' ? 'badge-success' : 'badge-danger'}">${emp.status === 'active' ? 'Активен' : 'Неактивен'}</span></td>
+                        <td><strong>${userName} ${isLeader ? '👑' : ''}</strong></td>
+                        <td>${rank ? `<span style="color:${rank.color}">${rank.name}</span>` : 'Без должности'}</td>
+                        <td>${new Date(member.joined_at).toLocaleDateString('ru-RU')}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline" onclick="editEmployee('${emp.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${emp.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            ${!isLeader && currentOrg.leader_id === currentUser?.id ? `
+                                <button class="btn btn-sm btn-outline" onclick="openAssignRank('${member.id}', '${userName}')">
+                                    <i class="fas fa-crown"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="removeMember('${member.id}')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            ` : ''}
                         </td>
                     </tr>
                 `;
-            });
+            }
         } else {
-            html += `<tr><td colspan="6" class="text-center text-muted">Нет сотрудников</td></tr>`;
+            html += `<tr><td colspan="4" class="text-center text-muted">Нет участников</td></tr>`;
         }
 
         html += `
@@ -188,28 +226,332 @@ async function loadEmployees() {
 
         container.innerHTML = html;
     } catch (error) {
-        console.error('Load employees error:', error);
+        console.error('Load members error:', error);
         container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
     }
 }
 
-async function loadDepartments() {
+// ===== ЗАЯВКИ =====
+async function loadRequests() {
     const container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Отделы';
-    document.getElementById('pageSubtitle').textContent = 'Структура организации';
+    document.getElementById('pageTitle').textContent = 'Заявки на вступление';
+    document.getElementById('pageSubtitle').textContent = 'Управление заявками';
 
     try {
-        const departments = await db.getOrganizationDepartments(currentOrgId);
+        const requests = await db.getJoinRequests(currentOrgId);
 
         let html = `
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Список отделов</h3>
-                    <button class="btn btn-primary btn-sm" onclick="openAddDepartment()">
-                        <i class="fas fa-plus"></i> Добавить
-                    </button>
+                    <h3 class="card-title">Заявки (${requests?.length || 0})</h3>
                 </div>
-                <div style="overflow-x: auto;">
+                <div style="overflow-x:auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Сообщение</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        if (requests && requests.length > 0) {
+            for (const req of requests) {
+                const user = await db.supabaseQuery(`users?id=eq.${req.user_id}`);
+                const userName = user && user.length > 0 ? user[0].full_name || user[0].email : 'Неизвестно';
+
+                const isPending = req.status === 'pending';
+                const isLeader = currentOrg.leader_id === currentUser?.id;
+
+                html += `
+                    <tr>
+                        <td><strong>${userName}</strong></td>
+                        <td>${req.message || 'Без сообщения'}</td>
+                        <td><span class="badge badge-${req.status}">${statusLabels[req.status] || req.status}</span></td>
+                        <td>${new Date(req.created_at).toLocaleDateString('ru-RU')}</td>
+                        <td>
+                            ${isPending && isLeader ? `
+                                <button class="btn btn-sm btn-success" onclick="handleRequest('${req.id}', 'approved')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="handleRequest('${req.id}', 'rejected')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            ` : ''}
+                            ${!isPending ? '—' : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+        } else {
+            html += `<tr><td colspan="5" class="text-center text-muted">Нет заявок</td></tr>`;
+        }
+
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Load requests error:', error);
+        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+    }
+}
+
+// ===== ОБРАБОТКА ЗАЯВКИ =====
+async function handleRequest(requestId, status) {
+    try {
+        const result = await db.updateJoinRequest(requestId, status);
+
+        if (status === 'approved') {
+            const request = await db.supabaseQuery(`join_requests?id=eq.${requestId}`);
+            if (request && request.length > 0) {
+                await db.addMemberToOrganization(request[0].organization_id, request[0].user_id);
+                await showToast('Заявка одобрена! Пользователь добавлен.', 'success');
+            }
+        } else {
+            await showToast('Заявка отклонена.', 'warning');
+        }
+
+        loadRequests();
+        loadOverview();
+    } catch (error) {
+        console.error('Handle request error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+}
+
+// ===== УДАЛЕНИЕ УЧАСТНИКА =====
+async function removeMember(memberId) {
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этого участника?', 'Подтверждение');
+    if (!confirmed) return;
+
+    try {
+        await db.removeMemberFromOrganization(memberId);
+        await showToast('Участник удален', 'success');
+        loadMembers();
+        loadOverview();
+    } catch (error) {
+        console.error('Remove member error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+}
+
+// ===== ДОЛЖНОСТИ =====
+async function loadRanks() {
+    const container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Должности';
+    document.getElementById('pageSubtitle').textContent = 'Управление должностями в организации';
+
+    try {
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+
+        let html = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Должности (${ranks?.length || 0})</h3>
+                    ${currentOrg.leader_id === currentUser?.id ? `
+                        <button class="btn btn-primary btn-sm" onclick="openCreateRank()">
+                            <i class="fas fa-plus"></i> Создать должность
+                        </button>
+                    ` : ''}
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Цвет</th>
+                                <th>Права</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        if (ranks && ranks.length > 0) {
+            for (const rank of ranks) {
+                const permissions = Object.keys(rank.permissions || {}).join(', ') || 'Нет';
+                const isDefault = ['Основатель', 'Администратор', 'Модератор', 'Участник'].includes(rank.name);
+
+                html += `
+                    <tr>
+                        <td><strong>${rank.name}</strong></td>
+                        <td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${rank.color};"></span> ${rank.color}</td>
+                        <td>${permissions}</td>
+                        <td>
+                            ${!isDefault && currentOrg.leader_id === currentUser?.id ? `
+                                <button class="btn btn-sm btn-danger" onclick="deleteRank('${rank.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : '—'}
+                        </td>
+                    </tr>
+                `;
+            }
+        } else {
+            html += `<tr><td colspan="4" class="text-center text-muted">Нет должностей</td></tr>`;
+        }
+
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Load ranks error:', error);
+        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+    }
+}
+
+// ===== СОЗДАНИЕ ДОЛЖНОСТИ =====
+function openCreateRank(editData = null) {
+    document.getElementById('rankModal').classList.add('active');
+
+    if (editData) {
+        document.getElementById('rankModalTitle').textContent = 'Редактировать должность';
+        document.getElementById('rankSubmitText').textContent = 'Сохранить';
+        document.getElementById('rankEditId').value = editData.id;
+        document.getElementById('rankName').value = editData.name;
+        document.getElementById('rankColor').value = editData.color;
+
+        const permissions = editData.permissions || {};
+        document.querySelectorAll('.rank-permission').forEach(cb => {
+            cb.checked = permissions[cb.value] === true;
+        });
+    } else {
+        document.getElementById('rankModalTitle').textContent = 'Создать должность';
+        document.getElementById('rankSubmitText').textContent = 'Создать';
+        document.getElementById('rankEditId').value = '';
+        document.getElementById('rankName').value = '';
+        document.getElementById('rankColor').value = '#4f46e5';
+
+        document.querySelectorAll('.rank-permission').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+        document.querySelector('.color-option').classList.add('selected');
+    }
+}
+
+document.getElementById('rankForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const editId = document.getElementById('rankEditId').value;
+    const name = document.getElementById('rankName').value.trim();
+    const color = document.getElementById('rankColor').value;
+
+    const permissions = {};
+    document.querySelectorAll('.rank-permission:checked').forEach(cb => {
+        permissions[cb.value] = true;
+    });
+
+    try {
+        if (editId) {
+            await db.supabaseQuery(`org_ranks?id=eq.${editId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ name, color, permissions })
+            });
+            await showToast('Должность обновлена!', 'success');
+        } else {
+            await db.createRank(currentOrgId, { name, color, permissions });
+            await showToast('Должность создана!', 'success');
+        }
+
+        closeModal('rankModal');
+        loadRanks();
+    } catch (error) {
+        console.error('Save rank error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+});
+
+// ===== УДАЛЕНИЕ ДОЛЖНОСТИ =====
+async function deleteRank(rankId) {
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить эту должность?', 'Подтверждение');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteRank(rankId);
+        await showToast('Должность удалена', 'success');
+        loadRanks();
+    } catch (error) {
+        console.error('Delete rank error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+}
+
+// ===== НАЗНАЧЕНИЕ ДОЛЖНОСТИ =====
+async function openAssignRank(memberId, userName) {
+    document.getElementById('assignMemberId').value = memberId;
+    document.getElementById('assignUserName').value = userName;
+
+    const ranks = await db.getOrganizationRanks(currentOrgId);
+    const select = document.getElementById('assignRankSelect');
+    select.innerHTML = '<option value="">Выберите должность...</option>';
+
+    if (ranks) {
+        ranks.forEach(rank => {
+            const option = document.createElement('option');
+            option.value = rank.id;
+            option.textContent = rank.name;
+            select.appendChild(option);
+        });
+    }
+
+    document.getElementById('assignRankModal').classList.add('active');
+}
+
+document.getElementById('assignRankForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const memberId = document.getElementById('assignMemberId').value;
+    const rankId = document.getElementById('assignRankSelect').value;
+
+    if (!rankId) {
+        await showAlert('Выберите должность', 'warning');
+        return;
+    }
+
+    try {
+        await db.updateMemberRank(memberId, rankId);
+        await showToast('Должность назначена!', 'success');
+        closeModal('assignRankModal');
+        loadMembers();
+    } catch (error) {
+        console.error('Assign rank error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+});
+
+// ===== ОТДЕЛЫ =====
+async function loadDepartments() {
+    const container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Отделы';
+    document.getElementById('pageSubtitle').textContent = 'Управление отделами организации';
+
+    try {
+        const depts = await db.getOrganizationDepartments(currentOrgId);
+
+        let html = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Отделы (${depts?.length || 0})</h3>
+                    ${currentOrg.leader_id === currentUser?.id ? `
+                        <button class="btn btn-primary btn-sm" onclick="openCreateDepartment()">
+                            <i class="fas fa-plus"></i> Создать отдел
+                        </button>
+                    ` : ''}
+                </div>
+                <div style="overflow-x:auto;">
                     <table class="table">
                         <thead>
                             <tr>
@@ -221,19 +563,18 @@ async function loadDepartments() {
                         <tbody>
         `;
 
-        if (departments && departments.length > 0) {
-            departments.forEach(dept => {
+        if (depts && depts.length > 0) {
+            depts.forEach(dept => {
                 html += `
                     <tr>
                         <td><strong>${dept.name}</strong></td>
-                        <td>${dept.description || '-'}</td>
+                        <td>${dept.description || '—'}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline" onclick="editDepartment('${dept.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteDepartment('${dept.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            ${currentOrg.leader_id === currentUser?.id ? `
+                                <button class="btn btn-sm btn-danger" onclick="deleteDepartment('${dept.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : '—'}
                         </td>
                     </tr>
                 `;
@@ -256,292 +597,52 @@ async function loadDepartments() {
     }
 }
 
-async function loadDocuments() {
-    const container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Документы';
-    document.getElementById('pageSubtitle').textContent = 'Управление документами';
+function openCreateDepartment() {
+    document.getElementById('departmentModal').classList.add('active');
+}
+
+document.getElementById('departmentForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('deptName').value.trim();
+    const description = document.getElementById('deptDesc').value.trim();
+
+    if (!name) {
+        await showAlert('Введите название отдела', 'warning');
+        return;
+    }
 
     try {
-        const documents = await db.getOrganizationDocuments(currentOrgId);
-
-        let html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Список документов</h3>
-                    <button class="btn btn-primary btn-sm" onclick="openAddDocument()">
-                        <i class="fas fa-plus"></i> Добавить
-                    </button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Название</th>
-                                <th>Тип</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        if (documents && documents.length > 0) {
-            documents.forEach(doc => {
-                html += `
-                    <tr>
-                        <td><strong>${doc.title}</strong></td>
-                        <td>${doc.type || 'Без типа'}</td>
-                        <td><span class="badge ${doc.status === 'active' ? 'badge-success' : 'badge-warning'}">${doc.status || 'draft'}</span></td>
-                        <td>
-                            ${doc.file_url ? `<a href="${doc.file_url}" target="_blank" class="btn btn-sm btn-outline"><i class="fas fa-download"></i></a>` : ''}
-                            <button class="btn btn-sm btn-outline" onclick="editDocument('${doc.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteDocument('${doc.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-        } else {
-            html += `<tr><td colspan="4" class="text-center text-muted">Нет документов</td></tr>`;
-        }
-
-        html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
+        await db.createDepartment({
+            organization_id: currentOrgId,
+            name: name,
+            description: description || ''
+        });
+        await showToast('Отдел создан!', 'success');
+        closeModal('departmentModal');
+        document.getElementById('departmentForm').reset();
+        loadDepartments();
     } catch (error) {
-        console.error('Load documents error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
+        console.error('Create department error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
+    }
+});
+
+async function deleteDepartment(deptId) {
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот отдел?', 'Подтверждение');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteDepartment(deptId);
+        await showToast('Отдел удален', 'success');
+        loadDepartments();
+    } catch (error) {
+        console.error('Delete department error:', error);
+        await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-async function loadProducts() {
-    const container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Товары';
-    document.getElementById('pageSubtitle').textContent = 'Управление товарами';
-
-    try {
-        const products = await db.getOrganizationProducts(currentOrgId);
-
-        let html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Список товаров</h3>
-                    <button class="btn btn-primary btn-sm" onclick="openAddProduct()">
-                        <i class="fas fa-plus"></i> Добавить
-                    </button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Название</th>
-                                <th>Артикул</th>
-                                <th>Цена</th>
-                                <th>Количество</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        if (products && products.length > 0) {
-            products.forEach(product => {
-                html += `
-                    <tr>
-                        <td><strong>${product.name}</strong></td>
-                        <td>${product.sku || '-'}</td>
-                        <td>${product.price ? product.price + ' ₽' : '-'}</td>
-                        <td>${product.quantity || 0}</td>
-                        <td><span class="badge ${product.status === 'active' ? 'badge-success' : 'badge-warning'}">${product.status || 'active'}</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline" onclick="editProduct('${product.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-        } else {
-            html += `<tr><td colspan="6" class="text-center text-muted">Нет товаров</td></tr>`;
-        }
-
-        html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Load products error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
-    }
-}
-
-async function loadBooks() {
-    const container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Книги';
-    document.getElementById('pageSubtitle').textContent = 'Библиотечный каталог';
-
-    try {
-        const books = await db.getOrganizationBooks(currentOrgId);
-
-        let html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Библиотечный каталог</h3>
-                    <button class="btn btn-primary btn-sm" onclick="openAddBook()">
-                        <i class="fas fa-plus"></i> Добавить
-                    </button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Название</th>
-                                <th>Автор</th>
-                                <th>ISBN</th>
-                                <th>Всего</th>
-                                <th>Доступно</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        if (books && books.length > 0) {
-            books.forEach(book => {
-                html += `
-                    <tr>
-                        <td><strong>${book.title}</strong></td>
-                        <td>${book.author || '-'}</td>
-                        <td>${book.isbn || '-'}</td>
-                        <td>${book.quantity || 0}</td>
-                        <td>${book.available || 0}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline" onclick="editBook('${book.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteBook('${book.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-        } else {
-            html += `<tr><td colspan="6" class="text-center text-muted">Нет книг</td></tr>`;
-        }
-
-        html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Load books error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
-    }
-}
-
-async function loadApplications() {
-    const container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Заявления';
-    document.getElementById('pageSubtitle').textContent = 'Внутренние обращения';
-
-    try {
-        const applications = await db.getOrganizationApplications(currentOrgId);
-
-        let html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Список заявлений</h3>
-                    <button class="btn btn-primary btn-sm" onclick="openAddApplication()">
-                        <i class="fas fa-plus"></i> Создать
-                    </button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Заголовок</th>
-                                <th>Тип</th>
-                                <th>Статус</th>
-                                <th>Дата</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        if (applications && applications.length > 0) {
-            const statusLabels = {
-                'new': 'Новое',
-                'in_progress': 'В работе',
-                'approved': 'Одобрено',
-                'rejected': 'Отклонено',
-                'closed': 'Закрыто'
-            };
-            const statusColors = {
-                'new': 'badge-primary',
-                'in_progress': 'badge-warning',
-                'approved': 'badge-success',
-                'rejected': 'badge-danger',
-                'closed': 'badge-secondary'
-            };
-
-            applications.forEach(app => {
-                html += `
-                    <tr>
-                        <td><strong>${app.title}</strong></td>
-                        <td>${app.type || 'Другое'}</td>
-                        <td><span class="badge ${statusColors[app.status] || 'badge-primary'}">${statusLabels[app.status] || app.status}</span></td>
-                        <td style="font-size: 0.85rem;">${new Date(app.created_at).toLocaleDateString('ru-RU')}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline" onclick="editApplication('${app.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteApplication('${app.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-        } else {
-            html += `<tr><td colspan="5" class="text-center text-muted">Нет заявлений</td></tr>`;
-        }
-
-        html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Load applications error:', error);
-        container.innerHTML = '<div class="alert alert-danger">Ошибка загрузки данных</div>';
-    }
-}
-
+// ===== НАСТРОЙКИ =====
 async function loadSettings() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Настройки';
@@ -560,27 +661,30 @@ async function loadSettings() {
                     <textarea class="form-control" id="settingsDesc" rows="3">${currentOrg?.description || ''}</textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Статус</label>
-                    <select class="form-control" id="settingsStatus">
-                        <option value="true" ${currentOrg?.is_active ? 'selected' : ''}>Активна</option>
-                        <option value="false" ${!currentOrg?.is_active ? 'selected' : ''}>Неактивна</option>
-                    </select>
+                    <label class="form-label">Код вступления</label>
+                    <div style="display:flex;gap:0.5rem;">
+                        <input type="text" class="form-control" id="settingsCode" value="${currentOrg?.join_code || ''}" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;" readonly>
+                        <button type="button" class="btn btn-outline" onclick="regenerateCode()">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Сохранить настройки
-                </button>
-                <button type="button" class="btn btn-danger" onclick="deleteOrgConfirm()" style="margin-left: 0.5rem;">
-                    <i class="fas fa-trash"></i> Удалить организацию
-                </button>
+                ${currentOrg.leader_id === currentUser?.id ? `
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Сохранить настройки
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="deleteOrganization()" style="margin-left:0.5rem;">
+                        <i class="fas fa-trash"></i> Удалить организацию
+                    </button>
+                ` : ''}
             </form>
         </div>
     `;
 
-    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('settingsName').value.trim();
         const description = document.getElementById('settingsDesc').value.trim();
-        const is_active = document.getElementById('settingsStatus').value === 'true';
 
         if (!name) {
             await showAlert('Название обязательно', 'warning');
@@ -588,17 +692,8 @@ async function loadSettings() {
         }
 
         try {
-            await db.updateOrganization(currentOrgId, { name, description, is_active });
-            await db.logActivity({
-                organization_id: currentOrgId,
-                user_id: auth.getCurrentUser()?.id,
-                action: 'update',
-                entity_type: 'organization',
-                entity_id: currentOrgId,
-                changes: { name, description, is_active }
-            });
-
-            await showToast('Настройки сохранены! ✅', 'success');
+            await db.updateOrganization(currentOrgId, { name, description });
+            await showToast('Настройки сохранены!', 'success');
             currentOrg = await db.getOrganization(currentOrgId);
             document.getElementById('orgName').textContent = currentOrg.name;
         } catch (error) {
@@ -608,264 +703,57 @@ async function loadSettings() {
     });
 }
 
-async function openAddEmployee() {
-    const name = await showPrompt('Введите имя сотрудника:', '', 'Добавление сотрудника');
-    if (name === null) return;
-    if (!name.trim()) {
-        await showAlert('Имя обязательно', 'warning');
-        return;
-    }
-    
-    const position = await showPrompt('Введите должность:', '', 'Должность') || '';
-    const email = await showPrompt('Введите email:', '', 'Email') || '';
-    const phone = await showPrompt('Введите телефон:', '', 'Телефон') || '';
-
-    const nameParts = name.trim().split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
-
-    try {
-        await db.createEmployee({
-            organization_id: currentOrgId,
-            first_name: firstName,
-            last_name: lastName,
-            position: position,
-            email: email,
-            phone: phone,
-            status: 'active'
-        });
-        await showToast('Сотрудник добавлен! ✅', 'success');
-        loadEmployees();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteEmployee(id) {
-    const confirmed = await showConfirm('Вы уверены, что хотите удалить этого сотрудника?', 'Подтверждение');
+async function regenerateCode() {
+    const confirmed = await showConfirm('Вы уверены, что хотите изменить код вступления?', 'Подтверждение');
     if (!confirmed) return;
+
     try {
-        await db.deleteEmployee(id);
-        await showToast('Сотрудник удален', 'success');
-        loadEmployees();
+        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        await db.updateOrganization(currentOrgId, { join_code: newCode });
+        await showToast('Код обновлен!', 'success');
+        currentOrg = await db.getOrganization(currentOrgId);
+        document.getElementById('settingsCode').value = currentOrg.join_code;
+        document.getElementById('joinCode').textContent = currentOrg.join_code;
     } catch (error) {
+        console.error('Regenerate code error:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-async function openAddDepartment() {
-    const name = await showPrompt('Введите название отдела:', '', 'Добавление отдела');
-    if (name === null) return;
-    if (!name.trim()) {
-        await showAlert('Название обязательно', 'warning');
-        return;
-    }
-    
-    const description = await showPrompt('Введите описание:', '', 'Описание') || '';
-
-    try {
-        await db.createDepartment({
-            organization_id: currentOrgId,
-            name: name,
-            description: description
-        });
-        await showToast('Отдел создан! ✅', 'success');
-        loadDepartments();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteDepartment(id) {
-    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот отдел?', 'Подтверждение');
+async function deleteOrganization() {
+    const confirmed = await showConfirm('Вы уверены, что хотите удалить организацию? Это действие необратимо!', '⚠️ Внимание');
     if (!confirmed) return;
-    try {
-        await db.deleteDepartment(id);
-        await showToast('Отдел удален', 'success');
-        loadDepartments();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function openAddDocument() {
-    const title = await showPrompt('Введите название документа:', '', 'Добавление документа');
-    if (title === null) return;
-    if (!title.trim()) {
-        await showAlert('Название обязательно', 'warning');
-        return;
-    }
-
-    const type = await showPrompt('Введите тип документа:', 'other', 'Тип') || 'other';
-
-    try {
-        await db.createDocument({
-            organization_id: currentOrgId,
-            title: title,
-            type: type,
-            status: 'draft'
-        });
-        await showToast('Документ создан! ✅', 'success');
-        loadDocuments();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteDocument(id) {
-    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот документ?', 'Подтверждение');
-    if (!confirmed) return;
-    try {
-        await db.deleteDocument(id);
-        await showToast('Документ удален', 'success');
-        loadDocuments();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function openAddProduct() {
-    const name = await showPrompt('Введите название товара:', '', 'Добавление товара');
-    if (name === null) return;
-    if (!name.trim()) {
-        await showAlert('Название обязательно', 'warning');
-        return;
-    }
-
-    const priceStr = await showPrompt('Введите цену:', '0', 'Цена');
-    const price = parseFloat(priceStr) || 0;
-    
-    const quantityStr = await showPrompt('Введите количество:', '0', 'Количество');
-    const quantity = parseInt(quantityStr) || 0;
-
-    try {
-        await db.createProduct({
-            organization_id: currentOrgId,
-            name: name,
-            price: price,
-            quantity: quantity,
-            status: 'active'
-        });
-        await showToast('Товар добавлен! ✅', 'success');
-        loadProducts();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteProduct(id) {
-    const confirmed = await showConfirm('Вы уверены, что хотите удалить этот товар?', 'Подтверждение');
-    if (!confirmed) return;
-    try {
-        await db.deleteProduct(id);
-        await showToast('Товар удален', 'success');
-        loadProducts();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function openAddBook() {
-    const title = await showPrompt('Введите название книги:', '', 'Добавление книги');
-    if (title === null) return;
-    if (!title.trim()) {
-        await showAlert('Название обязательно', 'warning');
-        return;
-    }
-
-    const author = await showPrompt('Введите автора:', '', 'Автор') || '';
-    const isbn = await showPrompt('Введите ISBN:', '', 'ISBN') || '';
-    
-    const quantityStr = await showPrompt('Введите количество:', '1', 'Количество');
-    const quantity = parseInt(quantityStr) || 1;
-
-    try {
-        await db.createBook({
-            organization_id: currentOrgId,
-            title: title,
-            author: author,
-            isbn: isbn,
-            quantity: quantity,
-            available: quantity
-        });
-        await showToast('Книга добавлена! ✅', 'success');
-        loadBooks();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteBook(id) {
-    const confirmed = await showConfirm('Вы уверены, что хотите удалить эту книгу?', 'Подтверждение');
-    if (!confirmed) return;
-    try {
-        await db.deleteBook(id);
-        await showToast('Книга удалена', 'success');
-        loadBooks();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function openAddApplication() {
-    const title = await showPrompt('Введите заголовок заявления:', '', 'Создание заявления');
-    if (title === null) return;
-    if (!title.trim()) {
-        await showAlert('Заголовок обязателен', 'warning');
-        return;
-    }
-
-    const type = await showPrompt('Введите тип заявления:', 'request', 'Тип') || 'request';
-    const content = await showPrompt('Введите текст заявления:', '', 'Текст') || '';
-
-    try {
-        await db.createApplication({
-            organization_id: currentOrgId,
-            title: title,
-            type: type,
-            content: content,
-            status: 'new',
-            created_by: auth.getCurrentUser()?.id
-        });
-        await showToast('Заявление создано! ✅', 'success');
-        loadApplications();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteApplication(id) {
-    const confirmed = await showConfirm('Вы уверены, что хотите удалить это заявление?', 'Подтверждение');
-    if (!confirmed) return;
-    try {
-        await db.deleteApplication(id);
-        await showToast('Заявление удалено', 'success');
-        loadApplications();
-    } catch (error) {
-        await showAlert('Ошибка: ' + error.message, 'error');
-    }
-}
-
-async function deleteOrgConfirm() {
-    const confirmed1 = await showConfirm('Вы уверены, что хотите удалить организацию? Это действие необратимо!', '⚠️ Внимание');
-    if (!confirmed1) return;
-    
-    const confirmed2 = await showConfirm('Все данные будут потеряны. Продолжить?', 'Последнее предупреждение');
-    if (!confirmed2) return;
 
     try {
         await db.deleteOrganization(currentOrgId);
         await showToast('Организация удалена', 'success');
-        window.location.href = '/dashboard.html';
+        window.location.href = '/dashboard';
     } catch (error) {
+        console.error('Delete organization error:', error);
         await showAlert('Ошибка: ' + error.message, 'error');
     }
 }
 
-(async function init() {
-    const isAuth = await auth.requireAuth();
-    if (!isAuth) return;
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
 
-    await loadOrganization();
-    console.log('✅ Organization dashboard loaded');
-})();
+function selectColor(el) {
+    document.querySelectorAll('.color-option').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('rankColor').value = el.style.backgroundColor;
+}
+
+// ===== ЗАКРЫТИЕ МОДАЛОК ПО КЛИКУ ВНЕ =====
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+});
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+init();
+console.log('✅ Organization dashboard loaded');
