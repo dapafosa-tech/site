@@ -145,6 +145,70 @@
             justify-content: center;
         }
 
+        /* Стили для аватарки */
+        .avatar-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .avatar-upload .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px dashed var(--gray-300);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .avatar-upload .avatar-preview:hover {
+            border-color: var(--primary);
+            background: var(--gray-100);
+        }
+
+        .avatar-upload .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-upload .avatar-preview .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.25rem;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .avatar-upload .avatar-preview:hover .overlay {
+            opacity: 1;
+        }
+
+        .avatar-upload .avatar-hint {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+        }
+
+        #avatarInput {
+            display: none;
+        }
+
         @media (max-width: 480px) {
             .register-container {
                 padding: 2rem 1.5rem;
@@ -163,6 +227,16 @@
         <p class="subtitle">Начните управлять своей организацией</p>
 
         <form id="registerForm" autocomplete="off" novalidate>
+            <!-- АВАТАРКА -->
+            <div class="avatar-upload">
+                <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarInput').click()">
+                    <i class="fas fa-user"></i>
+                    <div class="overlay">Изменить фото</div>
+                </div>
+                <input type="file" id="avatarInput" accept="image/*" onchange="previewAvatar(event)">
+                <span class="avatar-hint">Нажмите на аватар, чтобы загрузить фото</span>
+            </div>
+
             <div class="form-group">
                 <label class="form-label" for="fullName">Полное имя</label>
                 <input type="text" id="fullName" class="form-control" placeholder="Иван Иванов" required autofocus>
@@ -214,111 +288,35 @@
         </p>
     </div>
 
+    <script src="/js/db.js"></script>
+    <script src="/js/storage.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
     <script>
         // ============================================
-        // TYPEBIZ - РЕГИСТРАЦИЯ
+        // TYPEBIZ - РЕГИСТРАЦИЯ С АВАТАРКОЙ
         // ============================================
 
-        const SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
+        let selectedAvatarFile = null;
 
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0,
-                    v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
+        // ===== ПРЕВЬЮ АВАТАРКИ =====
+        function previewAvatar(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        function showToast(message, type = 'info', duration = 3000) {
-            const container = document.getElementById('toastContainer') || createToastContainer();
-            
-            const icons = {
-                success: 'fa-check-circle',
-                error: 'fa-exclamation-circle',
-                warning: 'fa-exclamation-triangle',
-                info: 'fa-info-circle'
-            };
-
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <span class="toast-icon ${type}">
-                    <i class="fas ${icons[type] || icons.info}"></i>
-                </span>
-                <span class="toast-message">${message}</span>
-                <button class="toast-close" onclick="this.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'slideOutRight 0.3s ease forwards';
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
-        }
-
-        function createToastContainer() {
-            const container = document.createElement('div');
-            container.id = 'toastContainer';
-            container.className = 'toast-container';
-            document.body.appendChild(container);
-            return container;
-        }
-
-        function showAlert(message, type = 'info', title = '') {
-            return new Promise((resolve) => {
-                const overlay = document.createElement('div');
-                overlay.className = 'modal-overlay active';
-
-                const icons = {
-                    success: 'fa-check-circle',
-                    error: 'fa-exclamation-circle',
-                    warning: 'fa-exclamation-triangle',
-                    info: 'fa-info-circle'
-                };
-
-                const titles = {
-                    success: 'Успешно!',
-                    error: 'Ошибка!',
-                    warning: 'Внимание!',
-                    info: 'Информация'
-                };
-
-                overlay.innerHTML = `
-                    <div class="modal-box">
-                        <div class="modal-icon ${type}">
-                            <i class="fas ${icons[type] || icons.info}"></i>
-                        </div>
-                        <h3>${title || titles[type] || 'Информация'}</h3>
-                        <p>${message}</p>
-                        <div class="modal-buttons">
-                            <button class="btn btn-primary" id="alertOkBtn">OK</button>
-                        </div>
-                    </div>
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('avatarPreview');
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Avatar">
+                    <div class="overlay">Изменить фото</div>
                 `;
-
-                document.body.appendChild(overlay);
-                
-                const okBtn = overlay.querySelector('#alertOkBtn');
-                okBtn.addEventListener('click', () => {
-                    overlay.remove();
-                    resolve(true);
-                });
-
-                overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay) {
-                        overlay.remove();
-                        resolve(true);
-                    }
-                });
-
-                setTimeout(() => okBtn.focus(), 100);
-            });
+                selectedAvatarFile = file;
+            };
+            reader.readAsDataURL(file);
         }
 
+        // ===== ПЕРЕКЛЮЧЕНИЕ ПАРОЛЯ =====
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             const icon = input.parentElement.querySelector('.toggle-btn i');
@@ -331,6 +329,28 @@
             }
         }
 
+        // ===== ВАЛИДАЦИЯ ПАРОЛЯ =====
+        document.getElementById('password').addEventListener('input', function() {
+            const confirmInput = document.getElementById('confirmPassword');
+            if (confirmInput.value && confirmInput.value !== this.value) {
+                confirmInput.style.borderColor = 'var(--danger)';
+            } else if (confirmInput.value) {
+                confirmInput.style.borderColor = 'var(--success)';
+            }
+        });
+
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const passwordInput = document.getElementById('password');
+            if (this.value && this.value !== passwordInput.value) {
+                this.style.borderColor = 'var(--danger)';
+            } else if (this.value) {
+                this.style.borderColor = 'var(--success)';
+            } else {
+                this.style.borderColor = '';
+            }
+        });
+
+        // ===== РЕГИСТРАЦИЯ =====
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -370,63 +390,28 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
 
             try {
-                const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}`, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
-
-                if (checkResponse.ok) {
-                    const existing = await checkResponse.json();
-                    if (existing && existing.length > 0) {
-                        await showAlert('Пользователь с таким email уже существует', 'warning');
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
-                        return;
-                    }
-                }
-
-                const userId = generateUUID();
+                // Регистрация
+                const result = await auth.registerUser(email, password, fullName);
                 
-                const userData = {
-                    id: userId,
-                    auth_id: userId,
-                    email: email,
-                    full_name: fullName,
-                    password: password,
-                    role: 'user',
-                    is_active: true,
-                    created_at: new Date().toISOString()
-                };
-
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(userData)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Ошибка:', errorText);
-                    throw new Error('Ошибка при создании аккаунта');
+                if (!result.success) {
+                    throw new Error(result.error);
                 }
 
-                const result = await response.json();
-                const user = result[0] || result;
-
-                localStorage.setItem('userData', JSON.stringify(user));
-                localStorage.setItem('isGuest', 'false');
+                // Загрузка аватарки если есть
+                if (selectedAvatarFile) {
+                    try {
+                        await storage.uploadAvatar(selectedAvatarFile);
+                        await showToast('Аватарка загружена!', 'success');
+                    } catch (avatarError) {
+                        console.warn('Avatar upload error:', avatarError);
+                        // Не критично, продолжаем
+                    }
+                }
 
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
 
-                await showToast('Аккаунт создан! 🎉', 'success');
+                await showToast('Аккаунт создан! Добро пожаловать в Typebiz! 🎉', 'success');
                 
                 setTimeout(() => {
                     window.location.href = '/dashboard';
@@ -436,10 +421,11 @@
                 console.error('Registration error:', error);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
-                await showAlert(error.message, 'error');
+                await showAlert('Ошибка: ' + error.message, 'error');
             }
         });
 
+        // Проверка авторизации
         (async () => {
             try {
                 const userData = localStorage.getItem('userData');
