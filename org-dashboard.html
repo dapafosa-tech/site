@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Организация — OrgSpace</title>
+    <title>Организация — Typebiz</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
@@ -33,12 +33,10 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            text-decoration: none;
         }
 
-        .sidebar .logo i {
-            color: var(--primary);
-        }
-
+        .sidebar .logo i { color: var(--primary); }
         .sidebar .logo span {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
@@ -62,14 +60,18 @@
             color: var(--gray-500);
         }
 
+        .sidebar .org-info .org-code {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+            font-family: monospace;
+        }
+
         .sidebar .nav-menu {
             list-style: none;
         }
 
-        .sidebar .nav-menu li {
-            margin-bottom: 0.25rem;
-        }
-
+        .sidebar .nav-menu li { margin-bottom: 0.25rem; }
         .sidebar .nav-menu a {
             display: flex;
             align-items: center;
@@ -83,20 +85,9 @@
             cursor: pointer;
         }
 
-        .sidebar .nav-menu a:hover {
-            background: var(--gray-50);
-            color: var(--primary);
-        }
-
-        .sidebar .nav-menu a.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .sidebar .nav-menu a i {
-            width: 20px;
-            text-align: center;
-        }
+        .sidebar .nav-menu a:hover { background: var(--gray-50); color: var(--primary); }
+        .sidebar .nav-menu a.active { background: var(--primary); color: white; }
+        .sidebar .nav-menu a i { width: 20px; text-align: center; }
 
         .main-content {
             margin-left: 260px;
@@ -109,16 +100,12 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
-        .page-header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .page-header p {
-            color: var(--gray-500);
-        }
+        .page-header h1 { font-size: 2rem; font-weight: 700; }
+        .page-header p { color: var(--gray-500); }
 
         .back-link {
             color: var(--primary);
@@ -129,57 +116,143 @@
             margin-bottom: 1rem;
         }
 
-        .back-link:hover {
-            text-decoration: underline;
+        .back-link:hover { text-decoration: underline; }
+
+        .section-content { animation: fadeIn 0.3s ease; }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
         }
 
-        .section-content {
-            animation: fadeIn 0.3s ease;
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
         }
+
+        .stat-card .stat-label {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #d1fae5; color: #065f46; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: var(--gray-300);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            color: var(--gray-500);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .modal-close:hover { color: var(--gray-700); }
+
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .color-picker .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .color-picker .color-option:hover { transform: scale(1.1); }
+        .color-picker .color-option.selected { border-color: var(--primary); }
 
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
-
-            .page-header h1 {
-                font-size: 1.5rem;
-            }
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 1rem; }
+            .page-header h1 { font-size: 1.5rem; }
         }
     </style>
 </head>
 <body>
     <aside class="sidebar">
-        <div class="logo">
+        <a href="/dashboard" class="logo">
             <i class="fas fa-cubes"></i>
-            <span>OrgSpace</span>
-        </div>
+            <span>Typebiz</span>
+        </a>
 
         <div class="org-info" id="orgInfo">
             <div class="org-name" id="orgName">Загрузка...</div>
             <div class="org-type" id="orgType">---</div>
+            <div class="org-code" id="orgCode"><i class="fas fa-key"></i> Код: <span id="joinCode">---</span></div>
         </div>
 
         <ul class="nav-menu">
-            <li><a href="/dashboard.html"><i class="fas fa-arrow-left"></i> Назад</a></li>
+            <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад</a></li>
             <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Обзор</a></li>
-            <li><a onclick="loadSection('employees')"><i class="fas fa-users"></i> Сотрудники</a></li>
+            <li><a onclick="loadSection('members')"><i class="fas fa-users"></i> Участники</a></li>
+            <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
+            <li><a onclick="loadSection('ranks')"><i class="fas fa-crown"></i> Должности</a></li>
             <li><a onclick="loadSection('departments')"><i class="fas fa-sitemap"></i> Отделы</a></li>
-            <li><a onclick="loadSection('documents')"><i class="fas fa-file-alt"></i> Документы</a></li>
-            <li id="productsNav" style="display:none;"><a onclick="loadSection('products')"><i class="fas fa-box"></i> Товары</a></li>
-            <li id="booksNav" style="display:none;"><a onclick="loadSection('books')"><i class="fas fa-book"></i> Книги</a></li>
-            <li><a onclick="loadSection('applications')"><i class="fas fa-inbox"></i> Заявления</a></li>
             <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Настройки</a></li>
         </ul>
     </aside>
 
     <main class="main-content">
-        <a href="/dashboard.html" class="back-link">
+        <a href="/dashboard" class="back-link">
             <i class="fas fa-arrow-left"></i> К моим организациям
         </a>
 
@@ -194,6 +267,106 @@
             <div class="text-center text-muted">Загрузка...</div>
         </div>
     </main>
+
+    <!-- Модалка создания должности -->
+    <div class="modal" id="rankModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="rankModalTitle">Создать должность</h2>
+                <button class="modal-close" onclick="closeModal('rankModal')">&times;</button>
+            </div>
+            <form id="rankForm">
+                <input type="hidden" id="rankEditId">
+                <div class="form-group">
+                    <label class="form-label">Название должности</label>
+                    <input type="text" class="form-control" id="rankName" placeholder="Например: Менеджер" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Цвет</label>
+                    <div class="color-picker" id="colorPicker">
+                        <div class="color-option selected" style="background:#4f46e5" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#ef4444" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#f59e0b" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#10b981" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#3b82f6" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#8b5cf6" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#ec4899" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#14b8a6" onclick="selectColor(this)"></div>
+                    </div>
+                    <input type="hidden" id="rankColor" value="#4f46e5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Права</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+                            <input type="checkbox" class="rank-permission" value="all"> Всё
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+                            <input type="checkbox" class="rank-permission" value="manage"> Управление
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+                            <input type="checkbox" class="rank-permission" value="moderate"> Модерация
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+                            <input type="checkbox" class="rank-permission" value="view"> Просмотр
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-save"></i> <span id="rankSubmitText">Создать</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка создания отдела -->
+    <div class="modal" id="departmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать отдел</h2>
+                <button class="modal-close" onclick="closeModal('departmentModal')">&times;</button>
+            </div>
+            <form id="departmentForm">
+                <div class="form-group">
+                    <label class="form-label">Название отдела</label>
+                    <input type="text" class="form-control" id="deptName" placeholder="Например: Отдел продаж" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-control" id="deptDesc" rows="3" placeholder="Описание отдела"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-save"></i> Создать отдел
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка назначения должности -->
+    <div class="modal" id="assignRankModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Назначить должность</h2>
+                <button class="modal-close" onclick="closeModal('assignRankModal')">&times;</button>
+            </div>
+            <form id="assignRankForm">
+                <input type="hidden" id="assignMemberId">
+                <div class="form-group">
+                    <label class="form-label">Пользователь</label>
+                    <input type="text" class="form-control" id="assignUserName" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Должность</label>
+                    <select class="form-control" id="assignRankSelect" required>
+                        <option value="">Выберите должность...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-save"></i> Назначить
+                </button>
+            </form>
+        </div>
+    </div>
 
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
