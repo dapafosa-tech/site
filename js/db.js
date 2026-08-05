@@ -27,7 +27,6 @@ function generateUUID() {
     });
 }
 
-// ===== НОВИЙ ФОРМАТ КОДУ ВСТУПУ =====
 function generateJoinCode() {
     const chars = 'abcdefghijklmnopqrstuvwxyz';
     let parts = [];
@@ -115,6 +114,8 @@ async function createOrganization(data) {
         created_at: new Date().toISOString()
     };
 
+    console.log('📝 Створення організації:', orgData);
+
     const result = await supabaseQuery('organizations', {
         method: 'POST',
         body: JSON.stringify(orgData),
@@ -122,6 +123,8 @@ async function createOrganization(data) {
             'Prefer': 'return=representation'
         }
     });
+
+    console.log('✅ Результат:', result);
 
     if (result && result.length > 0) {
         const orgId = result[0].id;
@@ -165,7 +168,9 @@ async function getUserAllOrganizations() {
 }
 
 async function getOrganization(id) {
+    console.log('📡 Завантаження організації:', id);
     const result = await supabaseQuery(`organizations?id=eq.${id}`);
+    console.log('✅ Організація:', result);
     return result[0] || null;
 }
 
@@ -187,7 +192,7 @@ async function getOrganizationByJoinCode(code) {
     return result[0] || null;
 }
 
-// ===== РАНГИ (З ПРАВАМИ) =====
+// ===== РАНГИ =====
 async function createDefaultRanks(orgId) {
     const ranks = [
         { 
@@ -323,7 +328,7 @@ async function removeMemberFromOrganization(memberId) {
     });
 }
 
-// ===== ЗАЯВКИ НА ВСТУП =====
+// ===== ЗАЯВКИ =====
 async function createJoinRequest(orgId, userId, message = '') {
     return supabaseQuery('join_requests', {
         method: 'POST',
