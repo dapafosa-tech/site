@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АВТОРИЗАЦИЯ
+// TYPEBIZ - АВТОРИЗАЦІЯ
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -65,7 +65,7 @@ async function requireAdmin() {
     
     const user = getCurrentUser();
     if (user?.role !== 'admin') {
-        await showAlert('Доступ запрещен. Требуются права администратора.', 'error');
+        await showAlert('Доступ заборонено. Потрібні права адміністратора.', 'error');
         window.location.href = '/dashboard';
         return false;
     }
@@ -89,19 +89,19 @@ async function loginUser(email, password) {
         });
 
         if (!response.ok) {
-            throw new Error('Ошибка при поиске пользователя');
+            throw new Error('Помилка під час пошуку користувача');
         }
 
         const users = await response.json();
         
         if (!users || users.length === 0) {
-            throw new Error('Пользователь не найден');
+            throw new Error('Користувача не знайдено');
         }
 
         const user = users[0];
 
         if (user.password && user.password !== password) {
-            throw new Error('Неверный пароль');
+            throw new Error('Невірний пароль');
         }
 
         localStorage.setItem('userData', JSON.stringify(user));
@@ -116,7 +116,8 @@ async function loginUser(email, password) {
 
 async function registerUser(email, password, fullName) {
     try {
-        const userId = generateUUID();
+        // Використовуємо generateUUID з db.js
+        const userId = window.db ? window.db.generateUUID() : generateUUIDFallback();
         
         const userData = {
             id: userId,
@@ -143,9 +144,9 @@ async function registerUser(email, password, fullName) {
         if (!response.ok) {
             const errorText = await response.text();
             if (errorText.includes('duplicate key') || errorText.includes('already exists')) {
-                throw new Error('Пользователь с таким email уже существует');
+                throw new Error('Користувач з таким email вже існує');
             }
-            throw new Error('Ошибка при создании аккаунта');
+            throw new Error('Помилка при створенні акаунта');
         }
 
         const result = await response.json();
@@ -161,7 +162,7 @@ async function registerUser(email, password, fullName) {
     }
 }
 
-function generateUUID() {
+function generateUUIDFallback() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0,
             v = c == 'x' ? r : (r & 0x3 | 0x8);
