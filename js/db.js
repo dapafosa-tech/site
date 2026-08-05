@@ -40,7 +40,8 @@ function generateJoinCode() {
     return parts.join('-');
 }
 
-async function supabaseQuery(endpoint, options = {}) {
+async function supabaseQuery(endpoint, options) {
+    if (options === undefined) options = {};
     var url = SUPABASE_URL + '/rest/v1/' + endpoint;
     var headers = {
         'apikey': SUPABASE_ANON_KEY,
@@ -192,12 +193,15 @@ async function getOrganizationByJoinCode(code) {
     return result[0] || null;
 }
 
-// ===== РАНГИ =====
+// ===== РАНГИ (ТІЛЬКИ ДИРЕКТОР) =====
 async function createDefaultRanks(orgId) {
-    var ranks = [
-        { 
-            name: 'Директор', 
-            color: '#ef4444', 
+    await supabaseQuery('org_ranks', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: orgId,
+            name: 'Директор',
+            color: '#ef4444',
             permissions: { 
                 all: true,
                 manage_members: true,
@@ -208,60 +212,9 @@ async function createDefaultRanks(orgId) {
                 manage_vacations: true,
                 manage_chat: true,
                 delete_org: true
-            } 
-        },
-        { 
-            name: 'Адміністратор', 
-            color: '#f59e0b', 
-            permissions: { 
-                manage_members: true,
-                manage_ranks: true,
-                manage_departments: true,
-                manage_settings: true,
-                manage_requests: true,
-                manage_vacations: true,
-                manage_chat: true
-            } 
-        },
-        { 
-            name: 'Менеджер', 
-            color: '#3b82f6', 
-            permissions: { 
-                manage_members: true,
-                manage_requests: true,
-                manage_vacations: true,
-                manage_chat: true
-            } 
-        },
-        { 
-            name: 'Старший учасник', 
-            color: '#8b5cf6', 
-            permissions: { 
-                manage_chat: true
-            } 
-        },
-        { 
-            name: 'Учасник', 
-            color: '#10b981', 
-            permissions: { 
-                view: true
-            } 
-        }
-    ];
-
-    for (var i = 0; i < ranks.length; i++) {
-        var rank = ranks[i];
-        await supabaseQuery('org_ranks', {
-            method: 'POST',
-            body: JSON.stringify({
-                id: generateUUID(),
-                organization_id: orgId,
-                name: rank.name,
-                color: rank.color,
-                permissions: rank.permissions
-            })
-        });
-    }
+            }
+        })
+    });
 }
 
 async function getOrganizationRanks(orgId) {
@@ -276,7 +229,8 @@ async function createRank(orgId, data) {
             organization_id: orgId,
             name: data.name,
             color: data.color,
-            permissions: data.permissions || {}
+            permissions: data.permissions || {},
+            order: data.order || 0
         }),
         headers: {
             'Prefer': 'return=representation'
