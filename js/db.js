@@ -9,7 +9,7 @@ if (typeof SUPABASE_URL === 'undefined') {
 
 function getCurrentUser() {
     try {
-        const userData = localStorage.getItem('userData');
+        var userData = localStorage.getItem('userData');
         if (userData) {
             return JSON.parse(userData);
         }
@@ -21,18 +21,18 @@ function getCurrentUser() {
 
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0,
-            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        var r = Math.random() * 16 | 0;
+        var v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
 }
 
 function generateJoinCode() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    let parts = [];
-    for (let i = 0; i < 4; i++) {
-        let part = '';
-        for (let j = 0; j < 4; j++) {
+    var chars = 'abcdefghijklmnopqrstuvwxyz';
+    var parts = [];
+    for (var i = 0; i < 4; i++) {
+        var part = '';
+        for (var j = 0; j < 4; j++) {
             part += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         parts.push(part);
@@ -41,18 +41,24 @@ function generateJoinCode() {
 }
 
 async function supabaseQuery(endpoint, options = {}) {
-    const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-    const headers = {
+    var url = SUPABASE_URL + '/rest/v1/' + endpoint;
+    var headers = {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        ...options.headers
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
     };
+    
+    if (options.headers) {
+        for (var key in options.headers) {
+            headers[key] = options.headers[key];
+        }
+    }
 
     try {
-        const response = await fetch(url, {
-            ...options,
-            headers
+        var response = await fetch(url, {
+            method: options.method || 'GET',
+            headers: headers,
+            body: options.body || null
         });
 
         if (response.status === 204) {
@@ -60,11 +66,11 @@ async function supabaseQuery(endpoint, options = {}) {
         }
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
+            var errorText = await response.text();
+            throw new Error('HTTP ' + response.status + ': ' + errorText);
         }
 
-        const text = await response.text();
+        var text = await response.text();
         if (!text || text.trim() === '') {
             return [];
         }
@@ -90,18 +96,18 @@ async function supabaseQuery(endpoint, options = {}) {
 
 // ===== ОРГАНІЗАЦІЇ =====
 async function createOrganization(data) {
-    const user = getCurrentUser();
+    var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
-    const orgs = await getUserOrganizations();
-    const leaderOrgs = orgs.filter(o => o.leader_id === user.id);
+    var orgs = await getUserOrganizations();
+    var leaderOrgs = orgs.filter(function(o) { return o.leader_id === user.id; });
     if (leaderOrgs.length >= 2) {
         throw new Error('Ви можете бути лідером максимум у 2 організаціях');
     }
     
-    const joinCode = generateJoinCode();
+    var joinCode = generateJoinCode();
     
-    const orgData = {
+    var orgData = {
         id: generateUUID(),
         name: data.name,
         type: data.type,
@@ -114,9 +120,7 @@ async function createOrganization(data) {
         created_at: new Date().toISOString()
     };
 
-    console.log('📝 Створення організації:', orgData);
-
-    const result = await supabaseQuery('organizations', {
+    var result = await supabaseQuery('organizations', {
         method: 'POST',
         body: JSON.stringify(orgData),
         headers: {
@@ -124,10 +128,8 @@ async function createOrganization(data) {
         }
     });
 
-    console.log('✅ Результат:', result);
-
     if (result && result.length > 0) {
-        const orgId = result[0].id;
+        var orgId = result[0].id;
         await createDefaultRanks(orgId);
         await addMemberToOrganization(orgId, user.id, null);
     }
@@ -136,11 +138,11 @@ async function createOrganization(data) {
 }
 
 async function getUserOrganizations() {
-    const user = getCurrentUser();
+    var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
     try {
-        const orgs = await supabaseQuery(`organizations?created_by=eq.${user.id}`);
+        var orgs = await supabaseQuery('organizations?created_by=eq.' + user.id);
         return orgs || [];
     } catch (error) {
         console.error('Load orgs error:', error);
@@ -149,17 +151,17 @@ async function getUserOrganizations() {
 }
 
 async function getUserAllOrganizations() {
-    const user = getCurrentUser();
+    var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
     try {
-        const members = await supabaseQuery(`org_members?user_id=eq.${user.id}`);
+        var members = await supabaseQuery('org_members?user_id=eq.' + user.id);
         if (!members || members.length === 0) return [];
         
-        const orgIds = members.map(m => m.organization_id).join(',');
+        var orgIds = members.map(function(m) { return m.organization_id; }).join(',');
         if (!orgIds) return [];
         
-        const orgs = await supabaseQuery(`organizations?id=in.(${orgIds})`);
+        var orgs = await supabaseQuery('organizations?id=in.(' + orgIds + ')');
         return orgs || [];
     } catch (error) {
         console.error('Load all orgs error:', error);
@@ -168,33 +170,31 @@ async function getUserAllOrganizations() {
 }
 
 async function getOrganization(id) {
-    console.log('📡 Завантаження організації:', id);
-    const result = await supabaseQuery(`organizations?id=eq.${id}`);
-    console.log('✅ Організація:', result);
+    var result = await supabaseQuery('organizations?id=eq.' + id);
     return result[0] || null;
 }
 
 async function updateOrganization(id, data) {
-    return supabaseQuery(`organizations?id=eq.${id}`, {
+    return supabaseQuery('organizations?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
 
 async function deleteOrganization(id) {
-    return supabaseQuery(`organizations?id=eq.${id}`, {
+    return supabaseQuery('organizations?id=eq.' + id, {
         method: 'DELETE'
     });
 }
 
 async function getOrganizationByJoinCode(code) {
-    const result = await supabaseQuery(`organizations?join_code=eq.${code}`);
+    var result = await supabaseQuery('organizations?join_code=eq.' + code);
     return result[0] || null;
 }
 
 // ===== РАНГИ =====
 async function createDefaultRanks(orgId) {
-    const ranks = [
+    var ranks = [
         { 
             name: 'Директор', 
             color: '#ef4444', 
@@ -249,7 +249,8 @@ async function createDefaultRanks(orgId) {
         }
     ];
 
-    for (const rank of ranks) {
+    for (var i = 0; i < ranks.length; i++) {
+        var rank = ranks[i];
         await supabaseQuery('org_ranks', {
             method: 'POST',
             body: JSON.stringify({
@@ -264,7 +265,7 @@ async function createDefaultRanks(orgId) {
 }
 
 async function getOrganizationRanks(orgId) {
-    return supabaseQuery(`org_ranks?organization_id=eq.${orgId}`);
+    return supabaseQuery('org_ranks?organization_id=eq.' + orgId);
 }
 
 async function createRank(orgId, data) {
@@ -284,20 +285,21 @@ async function createRank(orgId, data) {
 }
 
 async function updateRank(id, data) {
-    return supabaseQuery(`org_ranks?id=eq.${id}`, {
+    return supabaseQuery('org_ranks?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
 
 async function deleteRank(id) {
-    return supabaseQuery(`org_ranks?id=eq.${id}`, {
+    return supabaseQuery('org_ranks?id=eq.' + id, {
         method: 'DELETE'
     });
 }
 
 // ===== УЧАСНИКИ =====
-async function addMemberToOrganization(orgId, userId, rankId = null) {
+async function addMemberToOrganization(orgId, userId, rankId) {
+    if (rankId === undefined) rankId = null;
     return supabaseQuery('org_members', {
         method: 'POST',
         body: JSON.stringify({
@@ -312,24 +314,25 @@ async function addMemberToOrganization(orgId, userId, rankId = null) {
 }
 
 async function getOrganizationMembers(orgId) {
-    return supabaseQuery(`org_members?organization_id=eq.${orgId}`);
+    return supabaseQuery('org_members?organization_id=eq.' + orgId);
 }
 
 async function updateMemberRank(memberId, rankId) {
-    return supabaseQuery(`org_members?id=eq.${memberId}`, {
+    return supabaseQuery('org_members?id=eq.' + memberId, {
         method: 'PATCH',
         body: JSON.stringify({ rank_id: rankId })
     });
 }
 
 async function removeMemberFromOrganization(memberId) {
-    return supabaseQuery(`org_members?id=eq.${memberId}`, {
+    return supabaseQuery('org_members?id=eq.' + memberId, {
         method: 'DELETE'
     });
 }
 
 // ===== ЗАЯВКИ =====
-async function createJoinRequest(orgId, userId, message = '') {
+async function createJoinRequest(orgId, userId, message) {
+    if (message === undefined) message = '';
     return supabaseQuery('join_requests', {
         method: 'POST',
         body: JSON.stringify({
@@ -346,12 +349,13 @@ async function createJoinRequest(orgId, userId, message = '') {
     });
 }
 
-async function getJoinRequests(orgId, status = 'pending') {
-    return supabaseQuery(`join_requests?organization_id=eq.${orgId}&status=eq.${status}`);
+async function getJoinRequests(orgId, status) {
+    if (status === undefined) status = 'pending';
+    return supabaseQuery('join_requests?organization_id=eq.' + orgId + '&status=eq.' + status);
 }
 
 async function updateJoinRequest(requestId, status) {
-    return supabaseQuery(`join_requests?id=eq.${requestId}`, {
+    return supabaseQuery('join_requests?id=eq.' + requestId, {
         method: 'PATCH',
         body: JSON.stringify({ 
             status: status,
@@ -366,7 +370,18 @@ async function createEmployee(data) {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
-            ...data
+            organization_id: data.organization_id,
+            user_id: data.user_id || null,
+            first_name: data.first_name || '',
+            last_name: data.last_name || '',
+            middle_name: data.middle_name || '',
+            position: data.position || '',
+            department_id: data.department_id || null,
+            email: data.email || '',
+            phone: data.phone || '',
+            hire_date: data.hire_date || null,
+            salary: data.salary || 0,
+            status: data.status || 'active'
         }),
         headers: {
             'Prefer': 'return=representation'
@@ -375,18 +390,18 @@ async function createEmployee(data) {
 }
 
 async function getOrganizationEmployees(orgId) {
-    return supabaseQuery(`employees?organization_id=eq.${orgId}`);
+    return supabaseQuery('employees?organization_id=eq.' + orgId);
 }
 
 async function updateEmployee(id, data) {
-    return supabaseQuery(`employees?id=eq.${id}`, {
+    return supabaseQuery('employees?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
 
 async function deleteEmployee(id) {
-    return supabaseQuery(`employees?id=eq.${id}`, {
+    return supabaseQuery('employees?id=eq.' + id, {
         method: 'DELETE'
     });
 }
@@ -397,7 +412,9 @@ async function createDepartment(data) {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
-            ...data
+            organization_id: data.organization_id,
+            name: data.name,
+            description: data.description || ''
         }),
         headers: {
             'Prefer': 'return=representation'
@@ -406,43 +423,44 @@ async function createDepartment(data) {
 }
 
 async function getOrganizationDepartments(orgId) {
-    return supabaseQuery(`departments?organization_id=eq.${orgId}`);
+    return supabaseQuery('departments?organization_id=eq.' + orgId);
 }
 
 async function updateDepartment(id, data) {
-    return supabaseQuery(`departments?id=eq.${id}`, {
+    return supabaseQuery('departments?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
 
 async function deleteDepartment(id) {
-    return supabaseQuery(`departments?id=eq.${id}`, {
+    return supabaseQuery('departments?id=eq.' + id, {
         method: 'DELETE'
     });
 }
 
 // ===== ПРИЗНАЧЕННЯ У ВІДДІЛ =====
 async function assignEmployeeToDepartment(employeeId, departmentId) {
-    return supabaseQuery(`employees?id=eq.${employeeId}`, {
+    return supabaseQuery('employees?id=eq.' + employeeId, {
         method: 'PATCH',
         body: JSON.stringify({ department_id: departmentId })
     });
 }
 
 async function getEmployeesByDepartment(departmentId) {
-    return supabaseQuery(`employees?department_id=eq.${departmentId}`);
+    return supabaseQuery('employees?department_id=eq.' + departmentId);
 }
 
 async function removeEmployeeFromDepartment(employeeId) {
-    return supabaseQuery(`employees?id=eq.${employeeId}`, {
+    return supabaseQuery('employees?id=eq.' + employeeId, {
         method: 'PATCH',
         body: JSON.stringify({ department_id: null })
     });
 }
 
 // ===== ЧАТ =====
-async function sendChatMessage(organizationId, userId, message, mentions = []) {
+async function sendChatMessage(organizationId, userId, message, mentions) {
+    if (mentions === undefined) mentions = [];
     return supabaseQuery('org_chat_messages', {
         method: 'POST',
         body: JSON.stringify({
@@ -457,14 +475,13 @@ async function sendChatMessage(organizationId, userId, message, mentions = []) {
     });
 }
 
-async function getChatMessages(organizationId, limit = 50) {
-    return supabaseQuery(
-        `org_chat_messages?organization_id=eq.${organizationId}&order=created_at.desc&limit=${limit}`
-    );
+async function getChatMessages(organizationId, limit) {
+    if (limit === undefined) limit = 50;
+    return supabaseQuery('org_chat_messages?organization_id=eq.' + organizationId + '&order=created_at.desc&limit=' + limit);
 }
 
 async function deleteChatMessage(messageId) {
-    return supabaseQuery(`org_chat_messages?id=eq.${messageId}`, {
+    return supabaseQuery('org_chat_messages?id=eq.' + messageId, {
         method: 'DELETE'
     });
 }
@@ -475,44 +492,49 @@ async function createVacation(data) {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
-            ...data,
+            organization_id: data.organization_id,
+            user_id: data.user_id,
+            start_date: data.start_date,
+            end_date: data.end_date,
+            type: data.type || 'annual',
+            reason: data.reason || '',
+            status: data.status || 'pending',
+            approved_by: data.approved_by || null,
             created_at: new Date().toISOString()
         }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
 
-async function getVacations(organizationId, status = null) {
-    let query = `org_vacations?organization_id=eq.${organizationId}`;
+async function getVacations(organizationId, status) {
+    var query = 'org_vacations?organization_id=eq.' + organizationId;
     if (status) {
-        query += `&status=eq.${status}`;
+        query += '&status=eq.' + status;
     }
-    query += `&order=created_at.desc`;
+    query += '&order=created_at.desc';
     return supabaseQuery(query);
 }
 
 async function getUserVacations(userId) {
-    return supabaseQuery(
-        `org_vacations?user_id=eq.${userId}&order=created_at.desc`
-    );
+    return supabaseQuery('org_vacations?user_id=eq.' + userId + '&order=created_at.desc');
 }
 
-async function updateVacationStatus(vacationId, status, approvedBy = null) {
-    const data = { 
+async function updateVacationStatus(vacationId, status, approvedBy) {
+    var data = { 
         status: status,
         updated_at: new Date().toISOString()
     };
     if (approvedBy) {
         data.approved_by = approvedBy;
     }
-    return supabaseQuery(`org_vacations?id=eq.${vacationId}`, {
+    return supabaseQuery('org_vacations?id=eq.' + vacationId, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
 
 async function deleteVacation(vacationId) {
-    return supabaseQuery(`org_vacations?id=eq.${vacationId}`, {
+    return supabaseQuery('org_vacations?id=eq.' + vacationId, {
         method: 'DELETE'
     });
 }
@@ -523,28 +545,33 @@ async function createNotification(data) {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
-            ...data,
+            user_id: data.user_id,
+            organization_id: data.organization_id,
+            type: data.type,
+            title: data.title,
+            message: data.message,
+            link: data.link || null,
+            is_read: false,
             created_at: new Date().toISOString()
         }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
 
-async function getNotifications(userId, limit = 20) {
-    return supabaseQuery(
-        `notifications?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`
-    );
+async function getNotifications(userId, limit) {
+    if (limit === undefined) limit = 20;
+    return supabaseQuery('notifications?user_id=eq.' + userId + '&order=created_at.desc&limit=' + limit);
 }
 
 async function markNotificationRead(notificationId) {
-    return supabaseQuery(`notifications?id=eq.${notificationId}`, {
+    return supabaseQuery('notifications?id=eq.' + notificationId, {
         method: 'PATCH',
         body: JSON.stringify({ is_read: true })
     });
 }
 
 async function markAllNotificationsRead(userId) {
-    return supabaseQuery(`notifications?user_id=eq.${userId}`, {
+    return supabaseQuery('notifications?user_id=eq.' + userId, {
         method: 'PATCH',
         body: JSON.stringify({ is_read: true })
     });
@@ -552,65 +579,65 @@ async function markAllNotificationsRead(userId) {
 
 // ===== КОРИСТУВАЧІ =====
 async function updateUser(id, data) {
-    return supabaseQuery(`users?id=eq.${id}`, {
+    return supabaseQuery('users?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
 
 async function deleteUser(id) {
-    return supabaseQuery(`users?id=eq.${id}`, {
+    return supabaseQuery('users?id=eq.' + id, {
         method: 'DELETE'
     });
 }
 
 // ===== ЕКСПОРТ =====
 window.db = {
-    supabaseQuery,
-    createOrganization,
-    getUserOrganizations,
-    getUserAllOrganizations,
-    getOrganization,
-    updateOrganization,
-    deleteOrganization,
-    getOrganizationByJoinCode,
-    createDefaultRanks,
-    getOrganizationRanks,
-    createRank,
-    updateRank,
-    deleteRank,
-    addMemberToOrganization,
-    getOrganizationMembers,
-    updateMemberRank,
-    removeMemberFromOrganization,
-    createJoinRequest,
-    getJoinRequests,
-    updateJoinRequest,
-    createEmployee,
-    getOrganizationEmployees,
-    updateEmployee,
-    deleteEmployee,
-    createDepartment,
-    getOrganizationDepartments,
-    updateDepartment,
-    deleteDepartment,
-    assignEmployeeToDepartment,
-    getEmployeesByDepartment,
-    removeEmployeeFromDepartment,
-    sendChatMessage,
-    getChatMessages,
-    deleteChatMessage,
-    createVacation,
-    getVacations,
-    getUserVacations,
-    updateVacationStatus,
-    deleteVacation,
-    createNotification,
-    getNotifications,
-    markNotificationRead,
-    markAllNotificationsRead,
-    updateUser,
-    deleteUser
+    supabaseQuery: supabaseQuery,
+    createOrganization: createOrganization,
+    getUserOrganizations: getUserOrganizations,
+    getUserAllOrganizations: getUserAllOrganizations,
+    getOrganization: getOrganization,
+    updateOrganization: updateOrganization,
+    deleteOrganization: deleteOrganization,
+    getOrganizationByJoinCode: getOrganizationByJoinCode,
+    createDefaultRanks: createDefaultRanks,
+    getOrganizationRanks: getOrganizationRanks,
+    createRank: createRank,
+    updateRank: updateRank,
+    deleteRank: deleteRank,
+    addMemberToOrganization: addMemberToOrganization,
+    getOrganizationMembers: getOrganizationMembers,
+    updateMemberRank: updateMemberRank,
+    removeMemberFromOrganization: removeMemberFromOrganization,
+    createJoinRequest: createJoinRequest,
+    getJoinRequests: getJoinRequests,
+    updateJoinRequest: updateJoinRequest,
+    createEmployee: createEmployee,
+    getOrganizationEmployees: getOrganizationEmployees,
+    updateEmployee: updateEmployee,
+    deleteEmployee: deleteEmployee,
+    createDepartment: createDepartment,
+    getOrganizationDepartments: getOrganizationDepartments,
+    updateDepartment: updateDepartment,
+    deleteDepartment: deleteDepartment,
+    assignEmployeeToDepartment: assignEmployeeToDepartment,
+    getEmployeesByDepartment: getEmployeesByDepartment,
+    removeEmployeeFromDepartment: removeEmployeeFromDepartment,
+    sendChatMessage: sendChatMessage,
+    getChatMessages: getChatMessages,
+    deleteChatMessage: deleteChatMessage,
+    createVacation: createVacation,
+    getVacations: getVacations,
+    getUserVacations: getUserVacations,
+    updateVacationStatus: updateVacationStatus,
+    deleteVacation: deleteVacation,
+    createNotification: createNotification,
+    getNotifications: getNotifications,
+    markNotificationRead: markNotificationRead,
+    markAllNotificationsRead: markAllNotificationsRead,
+    updateUser: updateUser,
+    deleteUser: deleteUser
 };
 
 console.log('✅ DB module loaded');
