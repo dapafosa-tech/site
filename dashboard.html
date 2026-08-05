@@ -1,16 +1,22 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Організація — Typebiz</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Дашборд — Typebiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: var(--paper);
+            background: var(--gray-50);
+            font-family: 'Inter', sans-serif;
         }
 
         .sidebar {
@@ -19,18 +25,17 @@
             top: 0;
             width: 260px;
             height: 100%;
-            background: var(--ink);
-            border-right: 1px solid var(--ink-line);
+            background: white;
+            border-right: 1px solid var(--gray-200);
             padding: 1.5rem;
             overflow-y: auto;
             z-index: 100;
         }
 
         .sidebar .logo {
-            font-family: var(--font-display);
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-onink);
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-800);
             margin-bottom: 2rem;
             display: flex;
             align-items: center;
@@ -38,73 +43,106 @@
             text-decoration: none;
         }
 
-        .sidebar .logo i { color: var(--gold); }
-        .sidebar .logo span { color: var(--text-onink); }
+        .sidebar .logo i {
+            color: var(--primary);
+        }
 
-        .sidebar .org-info {
+        .sidebar .logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar .user-info {
             padding: 1rem;
-            background: var(--ink-soft);
-            border: 1px solid var(--ink-line);
+            background: var(--gray-50);
             border-radius: var(--radius-sm);
             margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .sidebar .org-info .org-name {
+        .sidebar .user-info .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
             font-weight: 600;
             font-size: 1rem;
-            color: var(--text-onink);
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .sidebar .org-info .org-type {
-            font-size: 0.8rem;
-            color: var(--muted-onink);
+        .sidebar .user-info .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .sidebar .org-info .org-code {
+        .sidebar .user-info .name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .sidebar .user-info .email {
             font-size: 0.8rem;
-            color: var(--muted-onink);
-            margin-top: 0.25rem;
-            font-family: var(--font-mono);
+            color: var(--gray-500);
         }
 
         .sidebar .nav-menu {
             list-style: none;
         }
 
-        .sidebar .nav-menu li { margin-bottom: 0.25rem; }
+        .sidebar .nav-menu li {
+            margin-bottom: 0.25rem;
+        }
+
         .sidebar .nav-menu a {
             display: flex;
             align-items: center;
             gap: 0.75rem;
             padding: 0.75rem 1rem;
             border-radius: var(--radius-sm);
-            color: var(--muted-onink);
+            color: var(--gray-600);
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             font-weight: 500;
-            font-size: 0.92rem;
             cursor: pointer;
         }
 
-        .sidebar .nav-menu a:hover { background: var(--ink-soft); color: var(--text-onink); }
-        .sidebar .nav-menu a.active { background: var(--gold); color: var(--ink); font-weight: 600; }
-        .sidebar .nav-menu a i { width: 20px; text-align: center; color: var(--teal); }
-        .sidebar .nav-menu a.active i { color: var(--ink); }
+        .sidebar .nav-menu a:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+        }
 
-        .mobile-topbar { display: none; }
-        .sidebar-overlay { display: none; }
+        .sidebar .nav-menu a.active {
+            background: var(--primary);
+            color: white;
+        }
 
-        @media (max-width: 900px) {
-            .mobile-topbar {
-                display: flex; align-items: center; justify-content: space-between;
-                position: fixed; top: 0; left: 0; right: 0; height: 56px;
-                background: var(--ink); color: var(--text-onink); padding: 0 1rem; z-index: 300;
-            }
-            .mobile-topbar .hamburger { background: none; border: none; color: var(--text-onink); font-size: 1.3rem; cursor: pointer; }
-            .sidebar { transform: translateX(-100%); transition: transform .25s ease; z-index: 400; }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay.active { display: block; position: fixed; inset: 0; background: rgba(15,17,21,0.5); z-index: 350; }
-            .main-content { margin-left: 0 !important; padding-top: 4.5rem !important; }
+        .sidebar .nav-menu a i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar .nav-menu .logout-btn {
+            margin-top: 2rem;
+            border-top: 1px solid var(--gray-200);
+            padding-top: 1rem;
+        }
+
+        .sidebar .nav-menu .logout-btn a {
+            color: var(--danger);
+            cursor: pointer;
+        }
+
+        .sidebar .nav-menu .logout-btn a:hover {
+            background: #fef2f2;
         }
 
         .main-content {
@@ -122,59 +160,164 @@
             gap: 1rem;
         }
 
-        .page-header h1 { font-size: 2rem; font-weight: 700; }
-        .page-header p { color: var(--gray-500); }
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
 
-        .back-link {
-            color: var(--primary);
-            text-decoration: none;
-            display: inline-flex;
+        .page-header p {
+            color: var(--gray-500);
+        }
+
+        .org-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .org-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .org-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .org-card .org-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            font-size: 1.5rem;
             margin-bottom: 1rem;
         }
 
-        .back-link:hover { text-decoration: underline; }
-
-        .section-content { animation: fadeIn 0.3s ease; }
-
-        .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border-left: 4px solid var(--primary);
+        .org-card .org-icon.shop {
+            background: #dbeafe;
+            color: #2563eb;
         }
 
-        .stat-card .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--gray-900);
+        .org-card .org-icon.library {
+            background: #d1fae5;
+            color: #059669;
         }
 
-        .stat-card .stat-label {
+        .org-card .org-icon.company {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .org-card .org-icon.other {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .org-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .org-card p {
             color: var(--gray-500);
             font-size: 0.9rem;
-            margin-top: 0.25rem;
         }
 
-        .badge-pending { background: #fef3c7; color: #92400e; }
-        .badge-approved { background: #d1fae5; color: #065f46; }
-        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .org-card .org-type {
+            display: inline-block;
+            padding: 0.2rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            margin-top: 0.5rem;
+        }
+
+        .org-card .org-join-code {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .org-card .org-join-code .join-code {
+            font-family: monospace;
+            font-size: 1rem;
+            background: var(--gray-100);
+            padding: 0.1rem 0.6rem;
+            border-radius: var(--radius-sm);
+            letter-spacing: 2px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .create-org-card {
+            border: 2px dashed var(--gray-300);
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .create-org-card:hover {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .create-org-card i {
+            font-size: 3rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .create-org-card h4 {
+            color: var(--gray-600);
+        }
 
         .empty-state {
             text-align: center;
-            padding: 3rem 2rem;
+            padding: 4rem 2rem;
         }
 
         .empty-state i {
-            font-size: 3rem;
+            font-size: 4rem;
             color: var(--gray-300);
             margin-bottom: 1rem;
         }
 
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+        }
+
         .empty-state p {
             color: var(--gray-500);
+            max-width: 400px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .btn-join {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-join:hover {
+            background: #059669;
         }
 
         .modal {
@@ -191,7 +334,10 @@
             backdrop-filter: blur(4px);
         }
 
-        .modal.active { display: flex; }
+        .modal.active {
+            display: flex;
+        }
+
         .modal-content {
             background: white;
             border-radius: var(--radius);
@@ -216,217 +362,665 @@
             font-size: 1.5rem;
             cursor: pointer;
             color: var(--gray-500);
+            transition: color 0.3s ease;
         }
 
-        .modal-close:hover { color: var(--gray-700); }
-
-        .color-picker {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+        .modal-close:hover {
+            color: var(--gray-700);
         }
 
-        .color-picker .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
+        .modal .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
             transition: all 0.3s ease;
+            font-family: inherit;
+            background: white;
         }
 
-        .color-picker .color-option:hover { transform: scale(1.1); }
-        .color-picker .color-option.selected { border-color: var(--primary); }
+        .modal .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
 
-        .btn-sm {
-            padding: 0.3rem 0.8rem;
-            font-size: 0.8rem;
+        .modal select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        .modal textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
         }
 
         @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .main-content { margin-left: 0; padding: 1rem; }
-            .page-header h1 { font-size: 1.5rem; }
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="mobile-topbar">
-        <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open'); document.querySelector('.sidebar-overlay').classList.toggle('active');"><i class="fas fa-bars"></i></button>
-        <span style="font-family: var(--font-display); font-weight:700; color:var(--text-onink);">Typebiz</span>
-        <span></span>
-    </div>
-    <div class="sidebar-overlay" onclick="this.classList.remove('active'); document.querySelector('.sidebar').classList.remove('open');"></div>
-
     <aside class="sidebar">
         <a href="/dashboard" class="logo">
             <i class="fas fa-cubes"></i>
             <span>Typebiz</span>
         </a>
 
-        <div class="org-info" id="orgInfo">
-            <div class="org-name" id="orgName">Завантаження...</div>
-            <div class="org-type" id="orgType">---</div>
-            <div class="org-code" id="orgCode"><i class="fas fa-key"></i> Код: <span id="joinCode">---</span></div>
+        <div class="user-info">
+            <div class="avatar" id="userAvatar">U</div>
+            <div>
+                <div class="name" id="userName">Загрузка...</div>
+                <div class="email" id="userEmail">---</div>
+            </div>
         </div>
 
         <ul class="nav-menu">
-            <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад</a></li>
-            <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Огляд</a></li>
-            <li><a onclick="loadSection('members')"><i class="fas fa-users"></i> Учасники</a></li>
-            <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
-            <li><a onclick="loadSection('ranks')"><i class="fas fa-crown"></i> Посади</a></li>
-            <li><a onclick="loadSection('departments')"><i class="fas fa-sitemap"></i> Відділи</a></li>
-            <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Налаштування</a></li>
+            <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мои организации</a></li>
+            <li><a href="#" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Вступить по коду</a></li>
+            <li id="adminLink" style="display: none;"><a href="/admin"><i class="fas fa-crown"></i> Админ-панель</a></li>
+            <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
+            <li><a href="/settings"><i class="fas fa-cog"></i> Настройки</a></li>
+            <li class="logout-btn"><a onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
         </ul>
     </aside>
 
     <main class="main-content">
-        <a href="/dashboard" class="back-link">
-            <i class="fas fa-arrow-left"></i> До моїх організацій
-        </a>
-
         <div class="page-header">
             <div>
-                <h1 id="pageTitle">Огляд</h1>
-                <p id="pageSubtitle">Керування організацією</p>
+                <h1>Мои организации</h1>
+                <p>Управляйте своими организациями и создавайте новые</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button class="btn btn-success btn-join" onclick="openJoinOrg()">
+                    <i class="fas fa-sign-in-alt"></i> Вступить по коду
+                </button>
+                <button class="btn btn-primary" onclick="openCreateOrg()">
+                    <i class="fas fa-plus"></i> Создать организацию
+                </button>
             </div>
         </div>
 
-        <div id="sectionContent" class="section-content">
-            <div class="text-center text-muted">Завантаження...</div>
+        <div id="orgsContainer">
+            <div class="empty-state" id="emptyState">
+                <i class="fas fa-building"></i>
+                <h3>У вас пока нет организаций</h3>
+                <p>Создайте свою первую организацию или вступите по коду</p>
+                <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="openCreateOrg()">
+                        <i class="fas fa-plus"></i> Создать организацию
+                    </button>
+                    <button class="btn btn-success btn-join" onclick="openJoinOrg()">
+                        <i class="fas fa-sign-in-alt"></i> Вступить по коду
+                    </button>
+                </div>
+            </div>
+            <div class="org-grid" id="orgGrid"></div>
         </div>
     </main>
 
-    <!-- Модалка створення посади -->
-    <div class="modal" id="rankModal">
+    <!-- Модалка создания организации -->
+    <div class="modal" id="createOrgModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="rankModalTitle">Створити посаду</h2>
-                <button class="modal-close" onclick="closeModal('rankModal')">&times;</button>
+                <h2>Создать организацию</h2>
+                <button class="modal-close" onclick="closeModal('createOrgModal')">&times;</button>
             </div>
-            <form id="rankForm">
-                <input type="hidden" id="rankEditId">
+            <form id="createOrgForm">
                 <div class="form-group">
-                    <label class="form-label">Назва посади</label>
-                    <input type="text" class="form-control" id="rankName" placeholder="Наприклад: Менеджер" required>
+                    <label class="form-label">Название организации</label>
+                    <input type="text" class="form-control" id="orgName" placeholder="Например: ООО Ромашка" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Колір</label>
-                    <div class="color-picker" id="colorPicker">
-                        <div class="color-option selected" style="background:#4f46e5" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#ef4444" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#f59e0b" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#10b981" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#3b82f6" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#8b5cf6" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#ec4899" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#14b8a6" onclick="selectColor(this)"></div>
-                    </div>
-                    <input type="hidden" id="rankColor" value="#4f46e5">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Права</label>
-                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
-                            <input type="checkbox" class="rank-permission" value="all"> Все права
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
-                            <input type="checkbox" class="rank-permission" value="manage"> Керування
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
-                            <input type="checkbox" class="rank-permission" value="moderate"> Модерація
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
-                            <input type="checkbox" class="rank-permission" value="view"> Перегляд
-                        </label>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">
-                    <i class="fas fa-save"></i> <span id="rankSubmitText">Створити</span>
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Модалка створення відділу -->
-    <div class="modal" id="departmentModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Створити відділ</h2>
-                <button class="modal-close" onclick="closeModal('departmentModal')">&times;</button>
-            </div>
-            <form id="departmentForm">
-                <div class="form-group">
-                    <label class="form-label">Назва відділу</label>
-                    <input type="text" class="form-control" id="deptName" placeholder="Наприклад: Відділ продажів" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="deptDesc" rows="3" placeholder="Опис відділу"></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">
-                    <i class="fas fa-save"></i> Створити відділ
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Модалка призначення посади -->
-    <div class="modal" id="assignRankModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Призначити посаду</h2>
-                <button class="modal-close" onclick="closeModal('assignRankModal')">&times;</button>
-            </div>
-            <form id="assignRankForm">
-                <input type="hidden" id="assignMemberId">
-                <div class="form-group">
-                    <label class="form-label">Користувач</label>
-                    <input type="text" class="form-control" id="assignUserName" disabled>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Посада</label>
-                    <select class="form-control" id="assignRankSelect" required>
-                        <option value="">Оберіть посаду...</option>
+                    <label class="form-label">Тип организации</label>
+                    <select class="form-control" id="orgType" required>
+                        <option value="">Выберите тип...</option>
+                        <option value="shop">🏪 Магазин</option>
+                        <option value="library">📚 Библиотека</option>
+                        <option value="company">🏢 Компания</option>
+                        <option value="school">🎓 Школа</option>
+                        <option value="clinic">🏥 Клиника</option>
+                        <option value="restaurant">🍽️ Ресторан</option>
+                        <option value="cafe">☕ Кафе</option>
+                        <option value="hotel">🏨 Отель</option>
+                        <option value="gym">💪 Спортзал</option>
+                        <option value="beauty">💄 Салон красоты</option>
+                        <option value="auto">🚗 Автосервис</option>
+                        <option value="realty">🏠 Недвижимость</option>
+                        <option value="it">💻 IT-компания</option>
+                        <option value="marketing">📊 Маркетинг</option>
+                        <option value="legal">⚖️ Юридическая</option>
+                        <option value="finance">💰 Финансы</option>
+                        <option value="education">📖 Образование</option>
+                        <option value="medical">🏥 Медицина</option>
+                        <option value="sport">⚽ Спорт</option>
+                        <option value="art">🎨 Искусство</option>
+                        <option value="music">🎵 Музыка</option>
+                        <option value="photo">📸 Фото</option>
+                        <option value="video">🎬 Видео</option>
+                        <option value="construction">🏗️ Строительство</option>
+                        <option value="repair">🔧 Ремонт</option>
+                        <option value="cleaning">🧹 Клининг</option>
+                        <option value="delivery">📦 Доставка</option>
+                        <option value="logistics">🚚 Логистика</option>
+                        <option value="agriculture">🌾 Сельское хозяйство</option>
+                        <option value="tourism">✈️ Туризм</option>
+                        <option value="event">🎉 Ивент</option>
+                        <option value="charity">❤️ Благотворительность</option>
+                        <option value="government">🏛️ Государственная</option>
+                        <option value="gamedev">🎮 GameDev</option>
+                        <option value="indie">🚀 Инди-разработка</option>
+                        <option value="publishing">📰 Издательство</option>
+                        <option value="animation">🎬 Анимация</option>
+                        <option value="vr">🥽 VR/AR</option>
+                        <option value="esports">🏆 Киберспорт</option>
+                        <option value="streaming">📡 Стриминг</option>
+                        <option value="podcast">🎙️ Подкаст</option>
+                        <option value="blogging">📝 Блоггинг</option>
+                        <option value="social">📱 Соцсети</option>
+                        <option value="startup">💡 Стартап</option>
+                        <option value="agency">📢 Агентство</option>
+                        <option value="consulting">🤝 Консалтинг</option>
+                        <option value="freelance">👔 Фриланс</option>
+                        <option value="remote">🌍 Удалённая работа</option>
+                        <option value="coworking">🏢 Коворкинг</option>
+                        <option value="incubator">🌱 Инкубатор</option>
+                        <option value="accelerator">🚀 Акселератор</option>
+                        <option value="venture">📊 Венчур</option>
+                        <option value="nonprofit">❤️ Некоммерческая</option>
+                        <option value="community">👥 Сообщество</option>
+                        <option value="religious">⛪ Религиозная</option>
+                        <option value="cultural">🏛️ Культурная</option>
+                        <option value="research">🔬 Исследования</option>
+                        <option value="science">⚛️ Наука</option>
+                        <option value="space">🚀 Космос</option>
+                        <option value="robotics">🤖 Робототехника</option>
+                        <option value="ai">🧠 ИИ</option>
+                        <option value="blockchain">⛓️ Блокчейн</option>
+                        <option value="crypto">🪙 Криптовалюта</option>
+                        <option value="defi">📈 DeFi</option>
+                        <option value="nft">🖼️ NFT</option>
+                        <option value="metaverse">🌐 Метавселенная</option>
+                        <option value="web3">🌍 Web3</option>
+                        <option value="other">📋 Другое</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Описание (необязательно)</label>
+                    <textarea class="form-control" id="orgDesc" rows="3" placeholder="Краткое описание организации"></textarea>
+                </div>
                 <button type="submit" class="btn btn-primary btn-block">
-                    <i class="fas fa-save"></i> Призначити
+                    <i class="fas fa-rocket"></i> Создать организацию
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- Модалка призначення у відділ -->
-    <div class="modal" id="assignEmployeeModal">
+    <!-- Модалка вступления по коду -->
+    <div class="modal" id="joinOrgModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Призначити працівника у відділ</h2>
-                <button class="modal-close" onclick="closeModal('assignEmployeeModal')">&times;</button>
+                <h2>Вступить в организацию</h2>
+                <button class="modal-close" onclick="closeModal('joinOrgModal')">&times;</button>
             </div>
-            <form id="assignEmployeeForm">
-                <input type="hidden" id="assignDeptId">
+            <form id="joinOrgForm">
                 <div class="form-group">
-                    <label class="form-label">Відділ</label>
-                    <input type="text" class="form-control" id="assignDeptName" disabled>
+                    <label class="form-label">Код организации</label>
+                    <input type="text" class="form-control" id="joinCode" placeholder="Например: ABC123" required style="text-transform: uppercase; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">
+                    <small style="color: var(--gray-500);">Введите 6-значный код, который выдал лидер организации</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Працівник</label>
-                    <select class="form-control" id="assignEmployeeSelect" required>
-                        <option value="">Оберіть працівника...</option>
-                    </select>
+                    <label class="form-label">Сообщение лидеру (необязательно)</label>
+                    <textarea class="form-control" id="joinMessage" rows="3" placeholder="Напишите пару слов лидеру организации"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">
-                    <i class="fas fa-save"></i> Призначити
+                <button type="submit" class="btn btn-success btn-block">
+                    <i class="fas fa-paper-plane"></i> Отправить заявку
                 </button>
             </form>
         </div>
     </div>
 
     <script src="/js/db.js"></script>
+    <script src="/js/storage.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
-    <script src="/js/org-dashboard.js"></script>
+    <script>
+        // ============================================
+        // TYPEBIZ - ДАШБОРД
+        // ============================================
+
+        function logoutUser() {
+            if (confirm('Вы уверены, что хотите выйти?')) {
+                localStorage.removeItem('userData');
+                localStorage.removeItem('isGuest');
+                window.location.href = '/login';
+            }
+        }
+
+        function openCreateOrg() {
+            document.getElementById('createOrgModal').classList.add('active');
+        }
+
+        function openJoinOrg() {
+            document.getElementById('joinOrgModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // ===== ЗАГРУЗКА =====
+        async function loadDashboard() {
+            const user = auth.getCurrentUser();
+            if (!user) {
+                window.location.href = '/login';
+                return;
+            }
+
+            document.getElementById('userName').textContent = user.full_name || 'Пользователь';
+            document.getElementById('userEmail').textContent = user.email;
+
+            // Аватарка
+            const avatarEl = document.getElementById('userAvatar');
+            if (user.avatar_url) {
+                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="Avatar">`;
+            } else {
+                avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
+            }
+
+            if (user.role === 'admin') {
+                document.getElementById('adminLink').style.display = 'block';
+            }
+
+            await loadOrganizations();
+        }
+
+        async function loadOrganizations() {
+            try {
+                const orgs = await db.getUserAllOrganizations();
+                const grid = document.getElementById('orgGrid');
+                const emptyState = document.getElementById('emptyState');
+
+                grid.innerHTML = '';
+
+                if (!orgs || orgs.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                const iconMap = {
+                    'shop': { icon: 'fa-store', class: 'shop' },
+                    'library': { icon: 'fa-book', class: 'library' },
+                    'company': { icon: 'fa-building', class: 'company' },
+                    'school': { icon: 'fa-graduation-cap', class: 'other' },
+                    'clinic': { icon: 'fa-heartbeat', class: 'other' },
+                    'restaurant': { icon: 'fa-utensils', class: 'other' },
+                    'cafe': { icon: 'fa-coffee', class: 'other' },
+                    'hotel': { icon: 'fa-hotel', class: 'other' },
+                    'gym': { icon: 'fa-dumbbell', class: 'other' },
+                    'beauty': { icon: 'fa-spa', class: 'other' },
+                    'auto': { icon: 'fa-car', class: 'other' },
+                    'realty': { icon: 'fa-home', class: 'other' },
+                    'it': { icon: 'fa-code', class: 'other' },
+                    'marketing': { icon: 'fa-chart-line', class: 'other' },
+                    'legal': { icon: 'fa-gavel', class: 'other' },
+                    'finance': { icon: 'fa-coins', class: 'other' },
+                    'education': { icon: 'fa-graduation-cap', class: 'other' },
+                    'medical': { icon: 'fa-heartbeat', class: 'other' },
+                    'sport': { icon: 'fa-running', class: 'other' },
+                    'art': { icon: 'fa-palette', class: 'other' },
+                    'music': { icon: 'fa-music', class: 'other' },
+                    'photo': { icon: 'fa-camera', class: 'other' },
+                    'video': { icon: 'fa-video', class: 'other' },
+                    'construction': { icon: 'fa-hard-hat', class: 'other' },
+                    'repair': { icon: 'fa-tools', class: 'other' },
+                    'cleaning': { icon: 'fa-broom', class: 'other' },
+                    'delivery': { icon: 'fa-truck', class: 'other' },
+                    'logistics': { icon: 'fa-shipping-fast', class: 'other' },
+                    'agriculture': { icon: 'fa-tractor', class: 'other' },
+                    'tourism': { icon: 'fa-plane', class: 'other' },
+                    'event': { icon: 'fa-calendar-check', class: 'other' },
+                    'charity': { icon: 'fa-hand-holding-heart', class: 'other' },
+                    'government': { icon: 'fa-landmark', class: 'other' },
+                    'gamedev': { icon: 'fa-gamepad', class: 'other' },
+                    'indie': { icon: 'fa-rocket', class: 'other' },
+                    'publishing': { icon: 'fa-newspaper', class: 'other' },
+                    'animation': { icon: 'fa-film', class: 'other' },
+                    'vr': { icon: 'fa-vr-cardboard', class: 'other' },
+                    'esports': { icon: 'fa-trophy', class: 'other' },
+                    'streaming': { icon: 'fa-broadcast', class: 'other' },
+                    'podcast': { icon: 'fa-microphone', class: 'other' },
+                    'blogging': { icon: 'fa-blog', class: 'other' },
+                    'social': { icon: 'fa-share-alt', class: 'other' },
+                    'startup': { icon: 'fa-lightbulb', class: 'other' },
+                    'agency': { icon: 'fa-ad', class: 'other' },
+                    'consulting': { icon: 'fa-handshake', class: 'other' },
+                    'freelance': { icon: 'fa-user-tie', class: 'other' },
+                    'remote': { icon: 'fa-globe', class: 'other' },
+                    'coworking': { icon: 'fa-building', class: 'other' },
+                    'incubator': { icon: 'fa-seedling', class: 'other' },
+                    'accelerator': { icon: 'fa-rocket', class: 'other' },
+                    'venture': { icon: 'fa-chart-pie', class: 'other' },
+                    'nonprofit': { icon: 'fa-heart', class: 'other' },
+                    'community': { icon: 'fa-users', class: 'other' },
+                    'religious': { icon: 'fa-church', class: 'other' },
+                    'cultural': { icon: 'fa-landmark', class: 'other' },
+                    'research': { icon: 'fa-flask', class: 'other' },
+                    'science': { icon: 'fa-atom', class: 'other' },
+                    'space': { icon: 'fa-rocket', class: 'other' },
+                    'robotics': { icon: 'fa-robot', class: 'other' },
+                    'ai': { icon: 'fa-brain', class: 'other' },
+                    'blockchain': { icon: 'fa-link', class: 'other' },
+                    'crypto': { icon: 'fa-coins', class: 'other' },
+                    'defi': { icon: 'fa-chart-line', class: 'other' },
+                    'nft': { icon: 'fa-image', class: 'other' },
+                    'metaverse': { icon: 'fa-vr-cardboard', class: 'other' },
+                    'web3': { icon: 'fa-globe', class: 'other' },
+                    'other': { icon: 'fa-cubes', class: 'other' }
+                };
+
+                const typeLabels = {
+                    'shop': 'Магазин',
+                    'library': 'Библиотека',
+                    'company': 'Компания',
+                    'school': 'Школа',
+                    'clinic': 'Клиника',
+                    'restaurant': 'Ресторан',
+                    'cafe': 'Кафе',
+                    'hotel': 'Отель',
+                    'gym': 'Спортзал',
+                    'beauty': 'Салон красоты',
+                    'auto': 'Автосервис',
+                    'realty': 'Недвижимость',
+                    'it': 'IT-компания',
+                    'marketing': 'Маркетинг',
+                    'legal': 'Юридическая',
+                    'finance': 'Финансы',
+                    'education': 'Образование',
+                    'medical': 'Медицина',
+                    'sport': 'Спорт',
+                    'art': 'Искусство',
+                    'music': 'Музыка',
+                    'photo': 'Фото',
+                    'video': 'Видео',
+                    'construction': 'Строительство',
+                    'repair': 'Ремонт',
+                    'cleaning': 'Клининг',
+                    'delivery': 'Доставка',
+                    'logistics': 'Логистика',
+                    'agriculture': 'Сельское хозяйство',
+                    'tourism': 'Туризм',
+                    'event': 'Ивент',
+                    'charity': 'Благотворительность',
+                    'government': 'Государственная',
+                    'gamedev': 'GameDev',
+                    'indie': 'Инди-разработка',
+                    'publishing': 'Издательство',
+                    'animation': 'Анимация',
+                    'vr': 'VR/AR',
+                    'esports': 'Киберспорт',
+                    'streaming': 'Стриминг',
+                    'podcast': 'Подкаст',
+                    'blogging': 'Блоггинг',
+                    'social': 'Соцсети',
+                    'startup': 'Стартап',
+                    'agency': 'Агентство',
+                    'consulting': 'Консалтинг',
+                    'freelance': 'Фриланс',
+                    'remote': 'Удалённая работа',
+                    'coworking': 'Коворкинг',
+                    'incubator': 'Инкубатор',
+                    'accelerator': 'Акселератор',
+                    'venture': 'Венчур',
+                    'nonprofit': 'Некоммерческая',
+                    'community': 'Сообщество',
+                    'religious': 'Религиозная',
+                    'cultural': 'Культурная',
+                    'research': 'Исследования',
+                    'science': 'Наука',
+                    'space': 'Космос',
+                    'robotics': 'Робототехника',
+                    'ai': 'ИИ',
+                    'blockchain': 'Блокчейн',
+                    'crypto': 'Криптовалюта',
+                    'defi': 'DeFi',
+                    'nft': 'NFT',
+                    'metaverse': 'Метавселенная',
+                    'web3': 'Web3',
+                    'other': 'Другое'
+                };
+
+                orgs.forEach(org => {
+                    const iconData = iconMap[org.type] || iconMap['other'];
+                    const card = document.createElement('div');
+                    card.className = 'org-card';
+                    card.innerHTML = `
+                        <div class="org-icon ${iconData.class}">
+                            <i class="fas ${iconData.icon}"></i>
+                        </div>
+                        <h3>${org.name}</h3>
+                        <p>${org.description || 'Нет описания'}</p>
+                        <span class="org-type">${typeLabels[org.type] || org.type}</span>
+                        <div class="org-join-code">
+                            <i class="fas fa-key"></i> Код: <span class="join-code">${org.join_code || '---'}</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        window.location.href = `/org?id=${org.id}`;
+                    });
+                    grid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('Load organizations error:', error);
+                alert('Ошибка загрузки организаций: ' + error.message);
+            }
+        }
+
+        // ===== СОЗДАНИЕ ОРГАНИЗАЦИИ =====
+        document.getElementById('createOrgForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('orgName').value.trim();
+            const type = document.getElementById('orgType').value;
+            const description = document.getElementById('orgDesc').value.trim();
+
+            if (!name) {
+                alert('Введите название организации');
+                return;
+            }
+
+            if (!type) {
+                alert('Выберите тип организации');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+
+            try {
+                await db.createOrganization({
+                    name,
+                    type,
+                    description: description || '',
+                    is_active: true,
+                    settings: {}
+                });
+
+                alert('Организация создана! 🎉');
+                closeModal('createOrgModal');
+                document.getElementById('createOrgForm').reset();
+                await loadOrganizations();
+
+            } catch (error) {
+                console.error('Create organization error:', error);
+                alert('Ошибка: ' + error.message);
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
+        });
+
+        // ===== ВСТУПЛЕНИЕ ПО КОДУ =====
+        document.getElementById('joinOrgForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const code = document.getElementById('joinCode').value.trim().toUpperCase();
+            const message = document.getElementById('joinMessage').value.trim();
+            const user = auth.getCurrentUser();
+
+            if (!code) {
+                alert('Введите код организации');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
+
+            try {
+                const org = await db.getOrganizationByJoinCode(code);
+                
+                if (!org) {
+                    alert('Организация с таким кодом не найдена');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить заявку';
+                    return;
+                }
+
+                const members = await db.getOrganizationMembers(org.id);
+                const alreadyMember = members.some(m => m.user_id === user.id);
+                
+                if (alreadyMember) {
+                    alert('Вы уже состоите в этой организации');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить заявку';
+                    return;
+                }
+
+                await db.createJoinRequest(org.id, user.id, message);
+
+                alert('Заявка отправлена! Лидер организации рассмотрит её.');
+                closeModal('joinOrgModal');
+                document.getElementById('joinOrgForm').reset();
+
+            } catch (error) {
+                console.error('Join organization error:', error);
+                alert('Ошибка: ' + error.message);
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить заявку';
+        });
+
+        // Закрытие модалок по клику вне
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // ===== ИНИЦИАЛИЗАЦИЯ =====
+        (async function init() {
+            const isAuth = await auth.requireAuth();
+            if (!isAuth) return;
+
+            await loadDashboard();
+            console.log('✅ Dashboard loaded');
+        })();
+    </script>
 </body>
 </html>
