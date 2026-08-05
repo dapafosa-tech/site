@@ -1,267 +1,246 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация — Typebiz</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Реєстрація — Typebiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/style.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --ink: #0F1115;
+            --ink-soft: #171A21;
+            --ink-line: #2A2E38;
+            --gold: #F2A93B;
+            --teal: #46C9B8;
+            --text-onink: #E7E4DA;
+            --muted: #8B93A6;
+            --radius: 10px;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            padding: 2rem;
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:'IBM Plex Sans',sans-serif;
+            background:var(--ink);
+            color:var(--text-onink);
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:2rem;
         }
-
-        .register-container {
-            background: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-xl);
-            padding: 3rem;
-            max-width: 440px;
-            width: 100%;
-            animation: fadeIn 0.5s ease;
+        .register-container{
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius);
+            padding:3rem;
+            max-width:440px;
+            width:100%;
+            box-shadow:0 30px 60px rgba(0,0,0,0.5);
         }
-
-        .register-container .logo {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 2rem;
-            color: var(--gray-800);
+        .logo{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            font-weight:700;
+            font-size:1.5rem;
+            margin-bottom:2rem;
         }
-
-        .register-container .logo i {
-            color: var(--primary);
-            margin-right: 0.5rem;
+        .logo .tab{
+            width:30px;height:30px;
+            border-radius:4px;
+            background:var(--gold);
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:'IBM Plex Mono';
+            font-size:0.75rem;
+            font-weight:600;
+            transform:rotate(-6deg);
         }
-
-        .register-container .logo span {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        h2{
+            font-family:'Space Grotesk',sans-serif;
+            font-size:1.5rem;
+            text-align:center;
+            margin-bottom:0.5rem;
         }
-
-        .register-container h2 {
-            text-align: center;
-            margin-bottom: 0.5rem;
-            color: var(--gray-800);
+        .subtitle{
+            text-align:center;
+            color:var(--muted);
+            margin-bottom:2rem;
+            font-size:0.95rem;
         }
-
-        .register-container p.subtitle {
-            text-align: center;
-            color: var(--gray-500);
-            margin-bottom: 2rem;
+        .form-group{margin-bottom:1.5rem;}
+        .form-label{
+            display:block;
+            font-weight:600;
+            margin-bottom:0.4rem;
+            font-size:0.85rem;
         }
-
-        .login-link {
-            text-align: center;
-            margin-top: 1.5rem;
-            color: var(--gray-500);
+        .form-control{
+            width:100%;
+            padding:0.75rem 1rem;
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:6px;
+            color:var(--text-onink);
+            font-family:'IBM Plex Sans',sans-serif;
+            font-size:1rem;
+            transition:border-color .2s;
         }
-
-        .login-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
+        .form-control:focus{
+            outline:none;
+            border-color:var(--gold);
         }
-
-        .login-link a:hover {
-            text-decoration: underline;
+        .form-control::placeholder{color:var(--muted);}
+        .password-toggle{position:relative;}
+        .password-toggle .toggle-btn{
+            position:absolute;
+            right:1rem;
+            top:50%;
+            transform:translateY(-50%);
+            background:none;
+            border:none;
+            color:var(--muted);
+            cursor:pointer;
+            padding:0.25rem;
         }
-
-        .password-toggle {
-            position: relative;
+        .password-toggle .toggle-btn:hover{color:var(--text-onink);}
+        .password-hint{
+            display:block;
+            color:var(--muted);
+            font-size:0.8rem;
+            margin-top:0.25rem;
         }
-
-        .password-toggle .toggle-btn {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--gray-400);
-            cursor: pointer;
-            padding: 0.5rem;
+        .terms-check{
+            display:flex;
+            align-items:flex-start;
+            gap:0.5rem;
+            font-size:0.9rem;
+            color:var(--muted);
+            cursor:pointer;
+            margin-top:0.5rem;
         }
-
-        .password-toggle .toggle-btn:hover {
-            color: var(--gray-600);
+        .terms-check input[type="checkbox"]{
+            margin-top:0.2rem;
+            flex-shrink:0;
+            width:18px;height:18px;
+            accent-color:var(--gold);
+            cursor:pointer;
         }
-
-        .password-hint {
-            display: block;
-            color: var(--gray-500);
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
+        .terms-check a{color:var(--teal);}
+        .terms-check a:hover{color:var(--gold);}
+        .btn{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:8px;
+            padding:0.75rem 1.5rem;
+            border-radius:6px;
+            font-weight:600;
+            font-size:1rem;
+            cursor:pointer;
+            border:1px solid transparent;
+            transition:transform .15s,box-shadow .15s;
+            width:100%;
         }
-
-        .terms-check {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--gray-600);
-            cursor: pointer;
-            margin-top: 0.5rem;
+        .btn-gold{
+            background:var(--gold);
+            color:var(--ink);
         }
-
-        .terms-check input[type="checkbox"] {
-            margin-top: 0.25rem;
-            flex-shrink: 0;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
+        .btn-gold:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 20px rgba(242,169,59,0.28);
         }
-
-        .terms-check a {
-            color: var(--primary);
-            text-decoration: none;
+        .btn:disabled{opacity:0.6;cursor:not-allowed;}
+        .login-link{
+            text-align:center;
+            margin-top:1.5rem;
+            color:var(--muted);
+            font-size:0.9rem;
         }
-
-        .terms-check a:hover {
-            text-decoration: underline;
+        .login-link a{color:var(--teal);font-weight:600;}
+        .login-link a:hover{color:var(--gold);}
+        .avatar-upload{display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem;}
+        .avatar-upload .avatar-preview{
+            width:100px;height:100px;
+            border-radius:50%;
+            background:var(--ink);
+            border:2px dashed var(--ink-line);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:3rem;
+            color:var(--muted);
+            cursor:pointer;
+            transition:border-color .3s,background .3s;
+            overflow:hidden;
+            position:relative;
         }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .avatar-upload .avatar-preview:hover{border-color:var(--gold);background:var(--ink-soft);}
+        .avatar-upload .avatar-preview img{width:100%;height:100%;object-fit:cover;}
+        .avatar-upload .avatar-preview .overlay{
+            position:absolute;bottom:0;left:0;right:0;
+            background:rgba(0,0,0,0.7);
+            color:white;font-size:0.65rem;padding:0.2rem;
+            text-align:center;opacity:0;
+            transition:opacity .3s;
         }
-
-        .btn-block {
-            width: 100%;
-            justify-content: center;
-        }
-
-        /* Стили для аватарки */
-        .avatar-upload {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .avatar-upload .avatar-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: var(--gray-200);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            color: var(--gray-500);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 3px dashed var(--gray-300);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .avatar-upload .avatar-preview:hover {
-            border-color: var(--primary);
-            background: var(--gray-100);
-        }
-
-        .avatar-upload .avatar-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .avatar-upload .avatar-preview .overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.6);
-            color: white;
-            font-size: 0.7rem;
-            padding: 0.25rem;
-            text-align: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .avatar-upload .avatar-preview:hover .overlay {
-            opacity: 1;
-        }
-
-        .avatar-upload .avatar-hint {
-            font-size: 0.8rem;
-            color: var(--gray-500);
-            margin-top: 0.5rem;
-        }
-
-        #avatarInput {
-            display: none;
-        }
-
-        @media (max-width: 480px) {
-            .register-container {
-                padding: 2rem 1.5rem;
-            }
+        .avatar-upload .avatar-preview:hover .overlay{opacity:1;}
+        .avatar-upload .avatar-hint{font-size:0.8rem;color:var(--muted);margin-top:0.5rem;}
+        #avatarInput{display:none;}
+        @media(max-width:480px){
+            .register-container{padding:2rem 1.5rem;}
         }
     </style>
 </head>
 <body>
     <div class="register-container">
         <div class="logo">
-            <i class="fas fa-cubes"></i>
+            <span class="tab">Tb</span>
             <span>Typebiz</span>
         </div>
 
-        <h2>Создать аккаунт</h2>
-        <p class="subtitle">Начните управлять своей организацией</p>
+        <h2>Створити акаунт</h2>
+        <p class="subtitle">Почніть керувати своєю організацією</p>
 
         <form id="registerForm" autocomplete="off" novalidate>
-            <!-- АВАТАРКА -->
             <div class="avatar-upload">
                 <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarInput').click()">
                     <i class="fas fa-user"></i>
-                    <div class="overlay">Изменить фото</div>
+                    <div class="overlay">Змінити фото</div>
                 </div>
                 <input type="file" id="avatarInput" accept="image/*" onchange="previewAvatar(event)">
-                <span class="avatar-hint">Нажмите на аватар, чтобы загрузить фото</span>
+                <span class="avatar-hint">Натисніть на аватар, щоб завантажити фото</span>
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="fullName">Полное имя</label>
-                <input type="text" id="fullName" class="form-control" placeholder="Иван Иванов" required autofocus>
+                <label class="form-label" for="fullName">Повне ім'я</label>
+                <input type="text" id="fullName" class="form-control" placeholder="Іван Іванов" required autofocus>
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="email">Email</label>
+                <label class="form-label" for="email">Електронна пошта</label>
                 <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="password">Пароль</label>
                 <div class="password-toggle">
-                    <input type="password" id="password" class="form-control" placeholder="Минимум 6 символов" required minlength="6">
+                    <input type="password" id="password" class="form-control" placeholder="Мінімум 6 символів" required minlength="6">
                     <button type="button" class="toggle-btn" onclick="togglePassword('password')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
-                <span class="password-hint">Пароль должен содержать минимум 6 символов</span>
+                <span class="password-hint">Пароль має містити мінімум 6 символів</span>
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="confirmPassword">Подтвердите пароль</label>
+                <label class="form-label" for="confirmPassword">Підтвердіть пароль</label>
                 <div class="password-toggle">
-                    <input type="password" id="confirmPassword" class="form-control" placeholder="Повторите пароль" required>
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="Повторіть пароль" required>
                     <button type="button" class="toggle-btn" onclick="togglePassword('confirmPassword')">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -272,19 +251,19 @@
                 <label class="terms-check">
                     <input type="checkbox" id="terms" required>
                     <span>
-                        Я согласен с <a href="/terms" target="_blank">условиями использования</a>
-                        и <a href="/privacy" target="_blank">политикой конфиденциальности</a>
+                        Я погоджуюся з <a href="/terms" target="_blank">умовами використання</a>
+                        та <a href="/privacy" target="_blank">політикою конфіденційності</a>
                     </span>
                 </label>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block btn-lg" id="registerBtn">
-                <i class="fas fa-user-plus"></i> Создать аккаунт
+            <button type="submit" class="btn btn-gold" id="registerBtn">
+                <i class="fas fa-user-plus"></i> Створити акаунт
             </button>
         </form>
 
         <p class="login-link">
-            Уже есть аккаунт? <a href="/login">Войти</a>
+            Уже є акаунт? <a href="/login">Увійти</a>
         </p>
     </div>
 
@@ -293,30 +272,23 @@
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
-        // ============================================
-        // TYPEBIZ - РЕГИСТРАЦИЯ С АВАТАРКОЙ
-        // ============================================
-
         let selectedAvatarFile = null;
 
-        // ===== ПРЕВЬЮ АВАТАРКИ =====
         function previewAvatar(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 const preview = document.getElementById('avatarPreview');
                 preview.innerHTML = `
-                    <img src="${e.target.result}" alt="Avatar">
-                    <div class="overlay">Изменить фото</div>
+                    <img src="${e.target.result}" alt="Аватар">
+                    <div class="overlay">Змінити фото</div>
                 `;
                 selectedAvatarFile = file;
             };
             reader.readAsDataURL(file);
         }
 
-        // ===== ПЕРЕКЛЮЧЕНИЕ ПАРОЛЯ =====
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             const icon = input.parentElement.querySelector('.toggle-btn i');
@@ -329,28 +301,26 @@
             }
         }
 
-        // ===== ВАЛИДАЦИЯ ПАРОЛЯ =====
         document.getElementById('password').addEventListener('input', function() {
             const confirmInput = document.getElementById('confirmPassword');
             if (confirmInput.value && confirmInput.value !== this.value) {
-                confirmInput.style.borderColor = 'var(--danger)';
+                confirmInput.style.borderColor = '#E2503E';
             } else if (confirmInput.value) {
-                confirmInput.style.borderColor = 'var(--success)';
+                confirmInput.style.borderColor = '#46C9B8';
             }
         });
 
         document.getElementById('confirmPassword').addEventListener('input', function() {
             const passwordInput = document.getElementById('password');
             if (this.value && this.value !== passwordInput.value) {
-                this.style.borderColor = 'var(--danger)';
+                this.style.borderColor = '#E2503E';
             } else if (this.value) {
-                this.style.borderColor = 'var(--success)';
+                this.style.borderColor = '#46C9B8';
             } else {
                 this.style.borderColor = '';
             }
         });
 
-        // ===== РЕГИСТРАЦИЯ =====
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -362,56 +332,53 @@
             const submitBtn = document.getElementById('registerBtn');
 
             if (!fullName) {
-                await showAlert('Введите ваше имя', 'warning');
+                await showAlert("Введіть ваше ім'я", 'warning');
                 return;
             }
 
             if (!email) {
-                await showAlert('Введите email', 'warning');
+                await showAlert('Введіть електронну пошту', 'warning');
                 return;
             }
 
             if (password.length < 6) {
-                await showAlert('Пароль должен быть минимум 6 символов', 'warning');
+                await showAlert('Пароль має бути мінімум 6 символів', 'warning');
                 return;
             }
 
             if (password !== confirmPassword) {
-                await showAlert('Пароли не совпадают!', 'error');
+                await showAlert('Паролі не співпадають!', 'error');
                 return;
             }
 
             if (!terms) {
-                await showAlert('Примите условия использования', 'warning');
+                await showAlert('Прийміть умови використання', 'warning');
                 return;
             }
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
             try {
-                // Регистрация
                 const result = await auth.registerUser(email, password, fullName);
                 
                 if (!result.success) {
                     throw new Error(result.error);
                 }
 
-                // Загрузка аватарки если есть
                 if (selectedAvatarFile) {
                     try {
                         await storage.uploadAvatar(selectedAvatarFile);
-                        await showToast('Аватарка загружена!', 'success');
+                        await showToast('Аватар завантажено!', 'success');
                     } catch (avatarError) {
                         console.warn('Avatar upload error:', avatarError);
-                        // Не критично, продолжаем
                     }
                 }
 
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Створити акаунт';
 
-                await showToast('Аккаунт создан! Добро пожаловать в Typebiz! 🎉', 'success');
+                await showToast('Акаунт створено! Ласкаво просимо до Typebiz! 🎉', 'success');
                 
                 setTimeout(() => {
                     window.location.href = '/dashboard';
@@ -420,12 +387,11 @@
             } catch (error) {
                 console.error('Registration error:', error);
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Создать аккаунт';
-                await showAlert('Ошибка: ' + error.message, 'error');
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Створити акаунт';
+                await showAlert('Помилка: ' + error.message, 'error');
             }
         });
 
-        // Проверка авторизации
         (async () => {
             try {
                 const userData = localStorage.getItem('userData');
@@ -446,7 +412,7 @@
                     }
                 }
             } catch (e) {
-                console.log('Не авторизован');
+                console.log('Не авторизовано');
             }
         })();
     </script>
