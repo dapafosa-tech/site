@@ -82,6 +82,21 @@ const statusLabels = {
     'rejected': '❌ Відхилено'
 };
 
+const vacationStatusLabels = {
+    'pending': '⏳ Очікує',
+    'approved': '✅ Схвалено',
+    'rejected': '❌ Відхилено',
+    'cancelled': '🚫 Скасовано'
+};
+
+const vacationTypeLabels = {
+    'annual': 'Щорічна',
+    'sick': 'Лікарняний',
+    'unpaid': 'Без збереження',
+    'maternity': 'Декретна',
+    'other': 'Інша'
+};
+
 function debugLog(message, data = null) {
     console.log(`[ORG] ${message}`, data || '');
 }
@@ -176,7 +191,7 @@ async function loadOverview() {
                     <div class="stat-label">Очікують заявки</div>
                 </div>
                 <div class="stat-card" style="border-color: var(--muted);">
-                    <div class="stat-value" style="font-family:'IBM Plex Mono',monospace;font-size:1.5rem;letter-spacing:3px;">${currentOrg.join_code || '---'}</div>
+                    <div class="stat-value" style="font-family:'IBM Plex Mono',monospace;font-size:1.5rem;letter-spacing:3px;text-transform:lowercase;">${currentOrg.join_code || '---'}</div>
                     <div class="stat-label">Код вступу</div>
                 </div>
             </div>
@@ -191,7 +206,7 @@ async function loadOverview() {
                         <p><strong>Опис:</strong> ${currentOrg?.description || 'Немає опису'}</p>
                     </div>
                     <div>
-                        <p><strong>Код вступу:</strong> <span style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;letter-spacing:2px;background:var(--ink);padding:0.2rem 0.8rem;border-radius:var(--radius-sm);color:var(--gold);">${currentOrg?.join_code || '---'}</span></p>
+                        <p><strong>Код вступу:</strong> <span style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;letter-spacing:2px;background:var(--ink);padding:0.2rem 0.8rem;border-radius:var(--radius-sm);color:var(--gold);text-transform:lowercase;">${currentOrg?.join_code || '---'}</span></p>
                         <p><strong>Створено:</strong> ${new Date(currentOrg?.created_at).toLocaleDateString('uk-UA')}</p>
                     </div>
                 </div>
@@ -213,6 +228,8 @@ async function loadMembers() {
         const members = await db.getOrganizationMembers(currentOrgId);
         const ranks = await db.getOrganizationRanks(currentOrgId);
         const user = auth.getCurrentUser();
+        const userRank = ranks?.find(r => r.id === members?.find(m => m.user_id === user.id)?.rank_id);
+        const canManage = userRank?.permissions?.manage_members || userRank?.permissions?.all || currentOrg.leader_id === user.id;
 
         let html = `
             <div class="card">
@@ -246,7 +263,7 @@ async function loadMembers() {
                             <td>${rank ? `<span style="color:${rank.color}">${rank.name}</span>` : 'Без посади'}</td>
                             <td>${new Date(member.joined_at).toLocaleDateString('uk-UA')}</td>
                             <td>
-                                ${!isLeader && currentOrg.leader_id === user?.id ? `
+                                ${!isLeader && canManage ? `
                                     <button class="btn btn-sm btn-teal" onclick="openAssignRank('${member.id}', '${userName}')">
                                         <i class="fas fa-crown"></i>
                                     </button>
@@ -288,6 +305,9 @@ async function loadRequests() {
     try {
         const requests = await db.getJoinRequests(currentOrgId);
         const user = auth.getCurrentUser();
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const userRank = ranks?.find(r => r.id === (await db.getOrganizationMembers(currentOrgId))?.find(m => m.user_id === user.id)?.rank_id);
+        const canManage = userRank?.permissions?.manage_requests || userRank?.permissions?.all || currentOrg.leader_id === user.id;
 
         let html = `
             <div class="card">
@@ -315,8 +335,6 @@ async function loadRequests() {
                     const userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : 'Невідомо';
 
                     const isPending = req.status === 'pending';
-                    const isLeader = currentOrg.leader_id === user?.id;
-
                     const statusClass = req.status === 'pending' ? 'badge-warning' : 
                                        req.status === 'approved' ? 'badge-success' : 'badge-danger';
 
@@ -327,7 +345,7 @@ async function loadRequests() {
                             <td><span class="badge ${statusClass}">${statusLabels[req.status] || req.status}</span></td>
                             <td>${new Date(req.created_at).toLocaleDateString('uk-UA')}</td>
                             <td>
-                                ${isPending && isLeader ? `
+                                ${isPending && canManage ? `
                                     <button class="btn btn-sm btn-teal" onclick="handleRequest('${req.id}', 'approved')">
                                         <i class="fas fa-check"></i>
                                     </button>
@@ -369,9 +387,31 @@ async function handleRequest(requestId, status) {
             const request = await db.supabaseQuery(`join_requests?id=eq.${requestId}`);
             if (request && request.length > 0) {
                 await db.addMemberToOrganization(request[0].organization_id, request[0].user_id);
-                await showToast('Заявку схвалено!', 'success');
+                
+                // Сповіщення
+                await db.createNotification({
+                    user_id: request[0].user_id,
+                    organization_id: request[0].organization_id,
+                    type: 'join_approved',
+                    title: 'Заявку схвалено',
+                    message: `Вашу заявку на вступ до "${currentOrg.name}" схвалено!`,
+                    link: `/org?id=${currentOrgId}`
+                });
+                
+                await showToast('Заявку схвалено! Користувача додано.', 'success');
             }
         } else {
+            const request = await db.supabaseQuery(`join_requests?id=eq.${requestId}`);
+            if (request && request.length > 0) {
+                await db.createNotification({
+                    user_id: request[0].user_id,
+                    organization_id: request[0].organization_id,
+                    type: 'join_rejected',
+                    title: 'Заявку відхилено',
+                    message: `Вашу заявку на вступ до "${currentOrg.name}" відхилено.`,
+                    link: `/org?id=${currentOrgId}`
+                });
+            }
             await showToast('Заявку відхилено.', 'warning');
         }
 
@@ -389,6 +429,17 @@ async function removeMember(memberId) {
     if (!confirmed) return;
 
     try {
+        const member = await db.supabaseQuery(`org_members?id=eq.${memberId}`);
+        if (member && member.length > 0) {
+            await db.createNotification({
+                user_id: member[0].user_id,
+                organization_id: member[0].organization_id,
+                type: 'removed',
+                title: 'Вас видалено з організації',
+                message: `Вас видалено з організації "${currentOrg.name}".`,
+                link: `/dashboard`
+            });
+        }
         await db.removeMemberFromOrganization(memberId);
         await showToast('Учасника видалено', 'success');
         loadMembers();
@@ -399,7 +450,7 @@ async function removeMember(memberId) {
     }
 }
 
-// ===== ПОСАДИ =====
+// ===== ПОСАДИ (З ПРАВАМИ) =====
 async function loadRanks() {
     const container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Посади';
@@ -408,12 +459,14 @@ async function loadRanks() {
     try {
         const ranks = await db.getOrganizationRanks(currentOrgId);
         const user = auth.getCurrentUser();
+        const userRank = ranks?.find(r => r.id === (await db.getOrganizationMembers(currentOrgId))?.find(m => m.user_id === user.id)?.rank_id);
+        const canManage = userRank?.permissions?.manage_ranks || userRank?.permissions?.all || currentOrg.leader_id === user.id;
 
         let html = `
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Посади (${ranks?.length || 0})</h3>
-                    ${currentOrg.leader_id === user?.id ? `
+                    ${canManage ? `
                         <button class="btn btn-gold btn-sm" onclick="openCreateRank()">
                             <i class="fas fa-plus"></i> Створити посаду
                         </button>
@@ -425,6 +478,7 @@ async function loadRanks() {
                             <tr>
                                 <th>Назва</th>
                                 <th>Колір</th>
+                                <th>Права</th>
                                 <th>Дії</th>
                             </tr>
                         </thead>
@@ -433,24 +487,43 @@ async function loadRanks() {
 
         if (ranks && ranks.length > 0) {
             for (const rank of ranks) {
-                const isDefault = ['Основатель', 'Адміністратор', 'Модератор', 'Учасник', 'Директор'].includes(rank.name);
+                const isDefault = ['Директор', 'Адміністратор', 'Менеджер', 'Старший учасник', 'Учасник'].includes(rank.name);
+                const permLabels = [];
+                if (rank.permissions?.all) permLabels.push('🔑 Всі');
+                if (rank.permissions?.manage_members) permLabels.push('👥 Учасники');
+                if (rank.permissions?.manage_ranks) permLabels.push('👑 Посади');
+                if (rank.permissions?.manage_departments) permLabels.push('🏢 Відділи');
+                if (rank.permissions?.manage_settings) permLabels.push('⚙️ Налаштування');
+                if (rank.permissions?.manage_requests) permLabels.push('📩 Заявки');
+                if (rank.permissions?.manage_vacations) permLabels.push('🏖️ Відпустки');
+                if (rank.permissions?.manage_chat) permLabels.push('💬 Чат');
+                if (rank.permissions?.view) permLabels.push('👀 Перегляд');
 
                 html += `
                     <tr>
                         <td><strong>${rank.name}</strong></td>
                         <td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${rank.color};"></span> ${rank.color}</td>
+                        <td style="font-size:0.75rem;">${permLabels.join(', ') || '—'}</td>
                         <td>
-                            ${!isDefault && currentOrg.leader_id === user?.id ? `
+                            ${canManage && !isDefault ? `
+                                <button class="btn btn-sm btn-teal" onclick="openEditRank('${rank.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteRank('${rank.id}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                            ` : '—'}
+                            ` : ''}
+                            ${canManage && isDefault && rank.name === 'Директор' ? `
+                                <button class="btn btn-sm btn-teal" onclick="openEditRank('${rank.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
                         </td>
                     </tr>
                 `;
             }
         } else {
-            html += `<tr><td colspan="3" class="text-center text-muted">Немає посад</td></tr>`;
+            html += `<tr><td colspan="4" class="text-center text-muted">Немає посад</td></tr>`;
         }
 
         html += `
@@ -467,25 +540,44 @@ async function loadRanks() {
     }
 }
 
-// ===== СТВОРЕННЯ ПОСАДИ =====
-function openCreateRank(editData = null) {
+// ===== СТВОРЕННЯ/РЕДАГУВАННЯ ПОСАДИ =====
+async function openCreateRank() {
+    document.getElementById('rankModalTitle').textContent = 'Створити посаду';
+    document.getElementById('rankSubmitText').textContent = 'Створити';
+    document.getElementById('rankEditId').value = '';
+    document.getElementById('rankName').value = '';
+    document.getElementById('rankColor').value = '#F2A93B';
+    document.querySelectorAll('.rank-permission').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+    document.querySelector('.color-option')?.classList.add('selected');
     document.getElementById('rankModal').classList.add('active');
+}
 
-    if (editData) {
+async function openEditRank(rankId) {
+    try {
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const rank = ranks.find(r => r.id === rankId);
+        if (!rank) return;
+
         document.getElementById('rankModalTitle').textContent = 'Редагувати посаду';
         document.getElementById('rankSubmitText').textContent = 'Зберегти';
-        document.getElementById('rankEditId').value = editData.id;
-        document.getElementById('rankName').value = editData.name;
-        document.getElementById('rankColor').value = editData.color;
-    } else {
-        document.getElementById('rankModalTitle').textContent = 'Створити посаду';
-        document.getElementById('rankSubmitText').textContent = 'Створити';
-        document.getElementById('rankEditId').value = '';
-        document.getElementById('rankName').value = '';
-        document.getElementById('rankColor').value = '#F2A93B';
-
-        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-        document.querySelector('.color-option')?.classList.add('selected');
+        document.getElementById('rankEditId').value = rank.id;
+        document.getElementById('rankName').value = rank.name;
+        document.getElementById('rankColor').value = rank.color;
+        
+        const permissions = rank.permissions || {};
+        document.querySelectorAll('.rank-permission').forEach(cb => {
+            cb.checked = permissions[cb.value] === true;
+        });
+        
+        document.querySelectorAll('.color-option').forEach(el => {
+            el.classList.toggle('selected', el.style.backgroundColor === rank.color);
+        });
+        
+        document.getElementById('rankModal').classList.add('active');
+    } catch (error) {
+        debugLog('❌ Помилка:', error);
+        await showAlert('Помилка завантаження посади', 'error');
     }
 }
 
@@ -496,6 +588,11 @@ document.getElementById('rankForm')?.addEventListener('submit', async (e) => {
     const name = document.getElementById('rankName').value.trim();
     const color = document.getElementById('rankColor').value;
 
+    const permissions = {};
+    document.querySelectorAll('.rank-permission:checked').forEach(cb => {
+        permissions[cb.value] = true;
+    });
+
     if (!name) {
         await showAlert('Введіть назву посади', 'warning');
         return;
@@ -503,13 +600,10 @@ document.getElementById('rankForm')?.addEventListener('submit', async (e) => {
 
     try {
         if (editId) {
-            await db.supabaseQuery(`org_ranks?id=eq.${editId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ name, color })
-            });
+            await db.updateRank(editId, { name, color, permissions });
             await showToast('Посаду оновлено!', 'success');
         } else {
-            await db.createRank(currentOrgId, { name, color, permissions: {} });
+            await db.createRank(currentOrgId, { name, color, permissions });
             await showToast('Посаду створено!', 'success');
         }
 
@@ -575,6 +669,22 @@ document.getElementById('assignRankForm')?.addEventListener('submit', async (e) 
 
     try {
         await db.updateMemberRank(memberId, rankId);
+        
+        // Сповіщення
+        const member = await db.supabaseQuery(`org_members?id=eq.${memberId}`);
+        if (member && member.length > 0) {
+            const rank = await db.getOrganizationRanks(currentOrgId);
+            const rankName = rank.find(r => r.id === rankId)?.name || 'посаду';
+            await db.createNotification({
+                user_id: member[0].user_id,
+                organization_id: currentOrgId,
+                type: 'rank_changed',
+                title: 'Посаду змінено',
+                message: `Вам призначено посаду "${rankName}" в "${currentOrg.name}".`,
+                link: `/org?id=${currentOrgId}`
+            });
+        }
+        
         await showToast('Посаду призначено!', 'success');
         closeModal('assignRankModal');
         loadMembers();
@@ -593,12 +703,15 @@ async function loadDepartments() {
     try {
         const depts = await db.getOrganizationDepartments(currentOrgId);
         const user = auth.getCurrentUser();
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const userRank = ranks?.find(r => r.id === (await db.getOrganizationMembers(currentOrgId))?.find(m => m.user_id === user.id)?.rank_id);
+        const canManage = userRank?.permissions?.manage_departments || userRank?.permissions?.all || currentOrg.leader_id === user.id;
 
         let html = `
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Відділи (${depts?.length || 0})</h3>
-                    ${currentOrg.leader_id === user?.id ? `
+                    ${canManage ? `
                         <button class="btn btn-gold btn-sm" onclick="openCreateDepartment()">
                             <i class="fas fa-plus"></i> Створити відділ
                         </button>
@@ -630,7 +743,7 @@ async function loadDepartments() {
                         <td>${dept.description || '—'}</td>
                         <td><small>${employeeNames}</small></td>
                         <td>
-                            ${currentOrg.leader_id === user?.id ? `
+                            ${canManage ? `
                                 <button class="btn btn-sm btn-teal" onclick="openAssignEmployee('${dept.id}', '${dept.name}')">
                                     <i class="fas fa-user-plus"></i>
                                 </button>
@@ -768,11 +881,16 @@ async function loadChat() {
     try {
         const messages = await db.getChatMessages(currentOrgId);
         const user = auth.getCurrentUser();
+        const members = await db.getOrganizationMembers(currentOrgId);
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const userRank = ranks?.find(r => r.id === members?.find(m => m.user_id === user.id)?.rank_id);
+        const canManage = userRank?.permissions?.manage_chat || userRank?.permissions?.all || currentOrg.leader_id === user.id;
 
         let html = `
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Чат організації</h3>
+                    <small style="color:var(--muted);font-size:0.7rem;">Використовуйте @ для згадування</small>
                 </div>
                 <div id="chatMessages" style="max-height:400px;overflow-y:auto;margin-bottom:1rem;padding:0.5rem;">
         `;
@@ -784,15 +902,17 @@ async function loadChat() {
                     ? (userData[0].full_name || userData[0].email || 'Невідомо') 
                     : 'Невідомо';
                 const isOwn = msg.user_id === user?.id;
+                const hasMention = msg.mentions?.includes(user?.id);
 
                 html += `
                     <div style="display:flex;justify-content:${isOwn ? 'flex-end' : 'flex-start'};margin-bottom:0.5rem;">
-                        <div style="max-width:70%;background:${isOwn ? 'var(--gold)' : 'var(--ink)'};color:${isOwn ? 'var(--ink)' : 'var(--text-onink)'};padding:0.5rem 1rem;border-radius:12px;border-bottom-${isOwn ? 'right' : 'left'}-radius:4px;border:${isOwn ? 'none' : '1px solid var(--ink-line)'};">
+                        <div style="max-width:70%;background:${isOwn ? 'var(--gold)' : 'var(--ink)'};color:${isOwn ? 'var(--ink)' : 'var(--text-onink)'};padding:0.5rem 1rem;border-radius:12px;border-bottom-${isOwn ? 'right' : 'left'}-radius:4px;border:${isOwn ? 'none' : '1px solid var(--ink-line)'};${hasMention && !isOwn ? 'border-left:3px solid var(--teal);' : ''}">
                             <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.2rem;">
                                 ${userName} · ${new Date(msg.created_at).toLocaleTimeString('uk-UA')}
+                                ${hasMention ? ' <span style="color:var(--teal);">@згадування</span>' : ''}
                             </div>
                             <div>${msg.message}</div>
-                            ${isOwn ? `
+                            ${isOwn || canManage ? `
                                 <button class="btn btn-sm btn-danger" onclick="deleteChatMessage('${msg.id}')" style="margin-top:0.25rem;padding:0.1rem 0.5rem;font-size:0.6rem;">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -808,7 +928,7 @@ async function loadChat() {
         html += `
                 </div>
                 <form id="chatForm" style="display:flex;gap:0.5rem;">
-                    <input type="text" class="form-control" id="chatInput" placeholder="Введіть повідомлення..." required>
+                    <input type="text" class="form-control" id="chatInput" placeholder="Введіть повідомлення... (використовуйте @ для згадування)" required>
                     <button type="submit" class="btn btn-gold">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -830,8 +950,36 @@ async function loadChat() {
 
             if (!message) return;
 
+            // Знаходимо згадування (@username)
+            const mentionRegex = /@(\S+)/g;
+            const mentions = [];
+            let match;
+            const allMembers = await db.getOrganizationMembers(currentOrgId);
+            
+            while ((match = mentionRegex.exec(message)) !== null) {
+                const username = match[1];
+                for (const member of allMembers) {
+                    const userData = await db.supabaseQuery(`users?id=eq.${member.user_id}`);
+                    if (userData && userData.length > 0 && 
+                        (userData[0].full_name?.toLowerCase().includes(username.toLowerCase()) || 
+                         userData[0].email?.toLowerCase().includes(username.toLowerCase()))) {
+                        mentions.push(member.user_id);
+                        // Сповіщення про згадування
+                        await db.createNotification({
+                            user_id: member.user_id,
+                            organization_id: currentOrgId,
+                            type: 'chat_mention',
+                            title: 'Вас згадали в чаті',
+                            message: `${user.full_name || 'Хтось'} згадав вас у чаті: "${message}"`,
+                            link: `/org?id=${currentOrgId}`
+                        });
+                        break;
+                    }
+                }
+            }
+
             try {
-                await db.sendChatMessage(currentOrgId, auth.getCurrentUser().id, message);
+                await db.sendChatMessage(currentOrgId, auth.getCurrentUser().id, message, mentions);
                 input.value = '';
                 await loadChat();
             } catch (error) {
@@ -867,27 +1015,10 @@ async function loadVacations() {
     try {
         const vacations = await db.getVacations(currentOrgId);
         const user = auth.getCurrentUser();
-        const isLeader = currentOrg.leader_id === user?.id;
-
-        const statusLabels = {
-            'pending': '⏳ Очікує',
-            'approved': '✅ Схвалено',
-            'rejected': '❌ Відхилено',
-            'cancelled': '🚫 Скасовано'
-        };
-        const statusColors = {
-            'pending': 'badge-warning',
-            'approved': 'badge-success',
-            'rejected': 'badge-danger',
-            'cancelled': 'badge-secondary'
-        };
-        const typeLabels = {
-            'annual': 'Щорічна',
-            'sick': 'Лікарняний',
-            'unpaid': 'Без збереження',
-            'maternity': 'Декретна',
-            'other': 'Інша'
-        };
+        const members = await db.getOrganizationMembers(currentOrgId);
+        const ranks = await db.getOrganizationRanks(currentOrgId);
+        const userRank = ranks?.find(r => r.id === members?.find(m => m.user_id === user.id)?.rank_id);
+        const canManage = userRank?.permissions?.manage_vacations || userRank?.permissions?.all || currentOrg.leader_id === user.id;
 
         let html = `
             <div class="card">
@@ -919,15 +1050,18 @@ async function loadVacations() {
                     : 'Невідомо';
 
                 const isPending = vac.status === 'pending';
+                const statusClass = vac.status === 'pending' ? 'badge-warning' : 
+                                   vac.status === 'approved' ? 'badge-success' : 
+                                   vac.status === 'rejected' ? 'badge-danger' : 'badge-secondary';
 
                 html += `
                     <tr>
                         <td><strong>${userName}</strong></td>
                         <td>${new Date(vac.start_date).toLocaleDateString('uk-UA')} - ${new Date(vac.end_date).toLocaleDateString('uk-UA')}</td>
-                        <td>${typeLabels[vac.type] || vac.type}</td>
-                        <td><span class="badge ${statusColors[vac.status] || 'badge-secondary'}">${statusLabels[vac.status] || vac.status}</span></td>
+                        <td>${vacationTypeLabels[vac.type] || vac.type}</td>
+                        <td><span class="badge ${statusClass}">${vacationStatusLabels[vac.status] || vac.status}</span></td>
                         <td>
-                            ${isPending && isLeader ? `
+                            ${isPending && canManage ? `
                                 <button class="btn btn-sm btn-teal" onclick="approveVacation('${vac.id}')">
                                     <i class="fas fa-check"></i>
                                 </button>
@@ -996,6 +1130,19 @@ document.getElementById('vacationForm')?.addEventListener('submit', async (e) =>
             status: 'pending'
         });
 
+        // Сповіщення для керівника
+        const leader = await db.supabaseQuery(`users?id=eq.${currentOrg.leader_id}`);
+        if (leader && leader.length > 0) {
+            await db.createNotification({
+                user_id: currentOrg.leader_id,
+                organization_id: currentOrgId,
+                type: 'vacation_request',
+                title: 'Нова заявка на відпустку',
+                message: `${auth.getCurrentUser().full_name || 'Користувач'} подав заявку на відпустку.`,
+                link: `/org?id=${currentOrgId}`
+            });
+        }
+
         await showToast('Заявку на відпустку відправлено!', 'success');
         closeModal('vacationModal');
         document.getElementById('vacationForm').reset();
@@ -1011,7 +1158,20 @@ async function approveVacation(vacationId) {
     if (!confirmed) return;
 
     try {
+        const vacation = await db.supabaseQuery(`org_vacations?id=eq.${vacationId}`);
         await db.updateVacationStatus(vacationId, 'approved', auth.getCurrentUser().id);
+        
+        if (vacation && vacation.length > 0) {
+            await db.createNotification({
+                user_id: vacation[0].user_id,
+                organization_id: currentOrgId,
+                type: 'vacation_approved',
+                title: 'Заявку на відпустку схвалено',
+                message: `Вашу заявку на відпустку (${new Date(vacation[0].start_date).toLocaleDateString('uk-UA')} - ${new Date(vacation[0].end_date).toLocaleDateString('uk-UA')}) схвалено!`,
+                link: `/org?id=${currentOrgId}`
+            });
+        }
+        
         await showToast('Заявку схвалено!', 'success');
         loadVacations();
     } catch (error) {
@@ -1024,7 +1184,20 @@ async function rejectVacation(vacationId) {
     if (!confirmed) return;
 
     try {
+        const vacation = await db.supabaseQuery(`org_vacations?id=eq.${vacationId}`);
         await db.updateVacationStatus(vacationId, 'rejected', auth.getCurrentUser().id);
+        
+        if (vacation && vacation.length > 0) {
+            await db.createNotification({
+                user_id: vacation[0].user_id,
+                organization_id: currentOrgId,
+                type: 'vacation_rejected',
+                title: 'Заявку на відпустку відхилено',
+                message: `Вашу заявку на відпустку відхилено.`,
+                link: `/org?id=${currentOrgId}`
+            });
+        }
+        
         await showToast('Заявку відхилено', 'warning');
         loadVacations();
     } catch (error) {
@@ -1061,27 +1234,34 @@ async function loadSettings() {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="settingsDesc" rows="3">${currentOrg?.description || ''}</textarea>
+                    <textarea class="form-control" id="settingsDesc" rows="3" placeholder="Короткий опис організації">${currentOrg?.description || ''}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Код вступу</label>
-                    <div style="display:flex;gap:0.5rem;">
-                        <input type="text" class="form-control" id="settingsCode" value="${currentOrg?.join_code || ''}" style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;letter-spacing:2px;" readonly>
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <input type="text" class="form-control" id="settingsCode" value="${currentOrg?.join_code || ''}" style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;letter-spacing:2px;text-transform:lowercase;" readonly>
                         ${currentOrg.leader_id === auth.getCurrentUser()?.id ? `
-                            <button type="button" class="btn btn-teal" onclick="regenerateCode()">
+                            <button type="button" class="btn btn-teal" onclick="regenerateCode()" title="Згенерувати новий код">
                                 <i class="fas fa-sync"></i>
                             </button>
                         ` : ''}
                     </div>
+                    <small style="color:var(--muted);">Код формату: abcd-abcd-abcd-abcd (латиниця, малі літери)</small>
                 </div>
-                ${currentOrg.leader_id === auth.getCurrentUser()?.id ? `
-                    <button type="submit" class="btn btn-gold">
-                        <i class="fas fa-save"></i> Зберегти налаштування
-                    </button>
-                    <button type="button" class="btn btn-danger" onclick="deleteOrganization()" style="margin-left:0.5rem;">
-                        <i class="fas fa-trash"></i> Видалити організацію
-                    </button>
-                ` : ''}
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">
+                    ${currentOrg.leader_id === auth.getCurrentUser()?.id ? `
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-save"></i> Зберегти налаштування
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="deleteOrganization()">
+                            <i class="fas fa-trash"></i> Видалити організацію
+                        </button>
+                    ` : `
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-save"></i> Зберегти налаштування
+                        </button>
+                    `}
+                </div>
             </form>
         </div>
     `;
@@ -1113,7 +1293,7 @@ async function regenerateCode() {
     if (!confirmed) return;
 
     try {
-        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const newCode = generateJoinCode();
         await db.updateOrganization(currentOrgId, { join_code: newCode });
         await showToast('Код оновлено!', 'success');
         currentOrg = await db.getOrganization(currentOrgId);
