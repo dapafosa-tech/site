@@ -7,11 +7,11 @@ if (typeof SUPABASE_URL === 'undefined') {
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 }
 
-let currentUser = null;
+var currentUser = null;
 
 function getCurrentUser() {
     try {
-        const userData = localStorage.getItem('userData');
+        var userData = localStorage.getItem('userData');
         if (userData) {
             currentUser = JSON.parse(userData);
             return currentUser;
@@ -23,20 +23,20 @@ function getCurrentUser() {
 }
 
 async function checkAuth() {
-    const user = getCurrentUser();
+    var user = getCurrentUser();
     if (!user) return false;
 
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}`, {
+        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(user.email), {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
             }
         });
 
         if (!response.ok) return false;
         
-        const data = await response.json();
+        var data = await response.json();
         if (!data || data.length === 0) return false;
         
         currentUser = data[0];
@@ -48,7 +48,7 @@ async function checkAuth() {
 }
 
 async function requireAuth() {
-    const isAuth = await checkAuth();
+    var isAuth = await checkAuth();
     if (!isAuth) {
         window.location.href = '/login';
         return false;
@@ -57,14 +57,14 @@ async function requireAuth() {
 }
 
 async function requireAdmin() {
-    const isAuth = await checkAuth();
+    var isAuth = await checkAuth();
     if (!isAuth) {
         window.location.href = '/login';
         return false;
     }
     
-    const user = getCurrentUser();
-    if (user?.role !== 'admin') {
+    var user = getCurrentUser();
+    if (user && user.role !== 'admin') {
         await showAlert('Доступ заборонено. Потрібні права адміністратора.', 'error');
         window.location.href = '/dashboard';
         return false;
@@ -81,10 +81,10 @@ function logoutUser() {
 
 async function loginUser(email, password) {
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}`, {
+        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
             }
         });
 
@@ -92,13 +92,13 @@ async function loginUser(email, password) {
             throw new Error('Помилка під час пошуку користувача');
         }
 
-        const users = await response.json();
+        var users = await response.json();
         
         if (!users || users.length === 0) {
             throw new Error('Користувача не знайдено');
         }
 
-        const user = users[0];
+        var user = users[0];
 
         if (user.password && user.password !== password) {
             throw new Error('Невірний пароль');
@@ -108,7 +108,7 @@ async function loginUser(email, password) {
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
-        return { success: true, user };
+        return { success: true, user: user };
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -116,10 +116,9 @@ async function loginUser(email, password) {
 
 async function registerUser(email, password, fullName) {
     try {
-        // Використовуємо generateUUID з db.js
-        const userId = window.db ? window.db.generateUUID() : generateUUIDFallback();
+        var userId = generateUUID();
         
-        const userData = {
+        var userData = {
             id: userId,
             auth_id: userId,
             email: email,
@@ -130,11 +129,11 @@ async function registerUser(email, password, fullName) {
             created_at: new Date().toISOString()
         };
 
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+        var response = await fetch(SUPABASE_URL + '/rest/v1/users', {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
                 'Content-Type': 'application/json',
                 'Prefer': 'return=representation'
             },
@@ -142,48 +141,48 @@ async function registerUser(email, password, fullName) {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
+            var errorText = await response.text();
             if (errorText.includes('duplicate key') || errorText.includes('already exists')) {
                 throw new Error('Користувач з таким email вже існує');
             }
             throw new Error('Помилка при створенні акаунта');
         }
 
-        const result = await response.json();
-        const user = result[0] || result;
+        var result = await response.json();
+        var user = result[0] || result;
         
         localStorage.setItem('userData', JSON.stringify(user));
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
-        return { success: true, user };
+        return { success: true, user: user };
     } catch (error) {
         return { success: false, error: error.message };
     }
 }
 
-function generateUUIDFallback() {
+function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0,
-            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        var r = Math.random() * 16 | 0;
+        var v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
 }
 
 function isAdmin() {
-    const user = getCurrentUser();
-    return user?.role === 'admin';
+    var user = getCurrentUser();
+    return user && user.role === 'admin';
 }
 
 window.auth = {
-    getCurrentUser,
-    checkAuth,
-    requireAuth,
-    requireAdmin,
-    logoutUser,
-    loginUser,
-    registerUser,
-    isAdmin
+    getCurrentUser: getCurrentUser,
+    checkAuth: checkAuth,
+    requireAuth: requireAuth,
+    requireAdmin: requireAdmin,
+    logoutUser: logoutUser,
+    loginUser: loginUser,
+    registerUser: registerUser,
+    isAdmin: isAdmin
 };
 
 console.log('✅ Auth module loaded');
