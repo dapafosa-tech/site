@@ -30,14 +30,15 @@ function generateUUID() {
 // ===== НОВИЙ ФОРМАТ КОДУ ВСТУПУ =====
 function generateJoinCode() {
     const chars = 'abcdefghijklmnopqrstuvwxyz';
-    let code = '';
+    let parts = [];
     for (let i = 0; i < 4; i++) {
+        let part = '';
         for (let j = 0; j < 4; j++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
+            part += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        if (i < 3) code += '-';
+        parts.push(part);
     }
-    return code;
+    return parts.join('-');
 }
 
 async function supabaseQuery(endpoint, options = {}) {
