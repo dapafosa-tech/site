@@ -1,79 +1,34 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА ВЕРСІЯ)
+// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА)
 // ============================================
 
 var currentOrgId = null;
 var currentOrg = null;
 
 var typeLabels = {
-    'shop': 'Магазин',
-    'library': 'Бібліотека',
-    'company': 'Компанія',
-    'school': 'Школа',
-    'clinic': 'Клініка',
-    'restaurant': 'Ресторан',
-    'cafe': 'Кафе',
-    'hotel': 'Готель',
-    'gym': 'Спортзал',
-    'beauty': 'Салон краси',
-    'auto': 'Автосервіс',
-    'realty': 'Нерухомість',
-    'it': 'IT-компанія',
-    'marketing': 'Маркетинг',
-    'legal': 'Юридична',
-    'finance': 'Фінанси',
-    'education': 'Освіта',
-    'medical': 'Медицина',
-    'sport': 'Спорт',
-    'art': 'Мистецтво',
-    'music': 'Музика',
-    'photo': 'Фото',
-    'video': 'Відео',
-    'construction': 'Будівництво',
-    'repair': 'Ремонт',
-    'cleaning': 'Клінінг',
-    'delivery': 'Доставка',
-    'logistics': 'Логістика',
-    'agriculture': 'Сільське господарство',
-    'tourism': 'Туризм',
-    'event': 'Івент',
-    'charity': 'Благодійність',
-    'government': 'Державна',
-    'gamedev': 'GameDev',
-    'indie': 'Інді-розробка',
-    'publishing': 'Видавництво',
-    'animation': 'Анімація',
-    'vr': 'VR/AR',
-    'esports': 'Кіберспорт',
-    'streaming': 'Стримінг',
-    'podcast': 'Подкаст',
-    'blogging': 'Блогінг',
-    'social': 'Соцмережі',
-    'startup': 'Стартап',
-    'agency': 'Агентство',
-    'consulting': 'Консалтинг',
-    'freelance': 'Фриланс',
-    'remote': 'Віддалена робота',
-    'coworking': 'Коворкінг',
-    'incubator': 'Інкубатор',
-    'accelerator': 'Акселератор',
-    'venture': 'Венчур',
-    'nonprofit': 'Некомерційна',
-    'community': 'Спільнота',
-    'religious': 'Релігійна',
-    'cultural': 'Культурна',
-    'research': 'Дослідження',
-    'science': 'Наука',
-    'space': 'Космос',
-    'robotics': 'Робототехніка',
-    'ai': 'ШІ',
-    'blockchain': 'Блокчейн',
-    'crypto': 'Криптовалюта',
-    'defi': 'DeFi',
-    'nft': 'NFT',
-    'metaverse': 'Метавсесвіт',
-    'web3': 'Web3',
-    'other': 'Інше'
+    'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
+    'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
+    'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
+    'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
+    'it': 'IT-компанія', 'marketing': 'Маркетинг', 'legal': 'Юридична',
+    'finance': 'Фінанси', 'education': 'Освіта', 'medical': 'Медицина',
+    'sport': 'Спорт', 'art': 'Мистецтво', 'music': 'Музика',
+    'photo': 'Фото', 'video': 'Відео', 'construction': 'Будівництво',
+    'repair': 'Ремонт', 'cleaning': 'Клінінг', 'delivery': 'Доставка',
+    'logistics': 'Логістика', 'agriculture': 'Сільське господарство',
+    'tourism': 'Туризм', 'event': 'Івент', 'charity': 'Благодійність',
+    'government': 'Державна', 'gamedev': 'GameDev', 'indie': 'Інді-розробка',
+    'publishing': 'Видавництво', 'animation': 'Анімація', 'vr': 'VR/AR',
+    'esports': 'Кіберспорт', 'streaming': 'Стримінг', 'podcast': 'Подкаст',
+    'blogging': 'Блогінг', 'social': 'Соцмережі', 'startup': 'Стартап',
+    'agency': 'Агентство', 'consulting': 'Консалтинг', 'freelance': 'Фриланс',
+    'remote': 'Віддалена робота', 'coworking': 'Коворкінг', 'incubator': 'Інкубатор',
+    'accelerator': 'Акселератор', 'venture': 'Венчур', 'nonprofit': 'Некомерційна',
+    'community': 'Спільнота', 'religious': 'Релігійна', 'cultural': 'Культурна',
+    'research': 'Дослідження', 'science': 'Наука', 'space': 'Космос',
+    'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
+    'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
+    'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
 };
 
 var statusLabels = {
@@ -431,6 +386,13 @@ async function loadRanks() {
         var user = auth.getCurrentUser();
         var canManage = currentOrg && currentOrg.leader_id === (user ? user.id : null);
 
+        // СОРТУЄМО: Директор завжди зверху
+        ranks.sort(function(a, b) {
+            if (a.name === 'Директор') return -1;
+            if (b.name === 'Директор') return 1;
+            return (a.order || 0) - (b.order || 0);
+        });
+
         var html = 
             '<div class="card">' +
                 '<div class="card-header">' +
@@ -454,20 +416,30 @@ async function loadRanks() {
         if (ranks && ranks.length > 0) {
             for (var i = 0; i < ranks.length; i++) {
                 var rank = ranks[i];
-                var isDefault = ['Директор', 'Адміністратор', 'Менеджер', 'Старший учасник', 'Учасник'].indexOf(rank.name) !== -1;
+                var isDirector = rank.name === 'Директор';
 
                 html += 
                     '<tr>' +
                         '<td><strong>' + rank.name + '</strong></td>' +
                         '<td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:' + rank.color + ';"></span> ' + rank.color + '</td>' +
-                        '<td>' + ((!isDefault || rank.name === 'Директор') && canManage ? 
-                            '<button class="btn btn-sm btn-teal" onclick="openEditRank(\'' + rank.id + '\')">' +
-                                '<i class="fas fa-edit"></i>' +
-                            '</button>' : '') +
-                            (!isDefault && canManage ? 
+                        '<td>' +
+                            (canManage ? 
+                                '<button class="btn btn-sm btn-teal" onclick="openEditRank(\'' + rank.id + '\')">' +
+                                    '<i class="fas fa-edit"></i>' +
+                                '</button>' : '') +
+                            (!isDirector && canManage ? 
                                 '<button class="btn btn-sm btn-danger" onclick="deleteRank(\'' + rank.id + '\')">' +
                                     '<i class="fas fa-trash"></i>' +
-                                '</button>' : '') + '</td>' +
+                                '</button>' : '') +
+                            (canManage && !isDirector && i > 1 ? 
+                                '<button class="btn btn-sm btn-outline" onclick="moveRank(\'' + rank.id + '\', \'up\')">' +
+                                    '<i class="fas fa-arrow-up"></i>' +
+                                '</button>' : '') +
+                            (canManage && !isDirector && i < ranks.length - 1 && i > 0 ? 
+                                '<button class="btn btn-sm btn-outline" onclick="moveRank(\'' + rank.id + '\', \'down\')">' +
+                                    '<i class="fas fa-arrow-down"></i>' +
+                                '</button>' : '') +
+                        '</td>' +
                     '</tr>';
             }
         } else {
@@ -484,6 +456,44 @@ async function loadRanks() {
     } catch (error) {
         debugLog('Помилка:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+// ===== ПЕРЕМІЩЕННЯ ПОСАД =====
+async function moveRank(rankId, direction) {
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        ranks.sort(function(a, b) {
+            if (a.name === 'Директор') return -1;
+            if (b.name === 'Директор') return 1;
+            return (a.order || 0) - (b.order || 0);
+        });
+
+        var index = -1;
+        for (var i = 0; i < ranks.length; i++) {
+            if (ranks[i].id === rankId) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index === -1 || (direction === 'up' && index <= 1) || (direction === 'down' && index >= ranks.length - 1)) {
+            return;
+        }
+
+        var newIndex = direction === 'up' ? index - 1 : index + 1;
+        var tempOrder = ranks[index].order || index;
+        ranks[index].order = ranks[newIndex].order || newIndex;
+        ranks[newIndex].order = tempOrder;
+
+        await db.updateRank(ranks[index].id, { order: ranks[index].order });
+        await db.updateRank(ranks[newIndex].id, { order: ranks[newIndex].order });
+
+        await showToast('Посаду переміщено!', 'success');
+        loadRanks();
+    } catch (error) {
+        debugLog('Помилка:', error);
+        await showAlert('Помилка: ' + error.message, 'error');
     }
 }
 
@@ -582,7 +592,9 @@ document.getElementById('rankForm')?.addEventListener('submit', async function(e
             await db.updateRank(editId, { name: name, color: color, permissions: permissions });
             await showToast('Посаду оновлено!', 'success');
         } else {
-            await db.createRank(currentOrgId, { name: name, color: color, permissions: permissions });
+            var ranks = await db.getOrganizationRanks(currentOrgId);
+            var order = ranks ? ranks.length : 0;
+            await db.createRank(currentOrgId, { name: name, color: color, permissions: permissions, order: order });
             await showToast('Посаду створено!', 'success');
         }
 
