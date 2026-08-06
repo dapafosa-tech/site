@@ -437,7 +437,7 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
             padding: 2rem;
-            max-width: 520px;
+            max-width: 580px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
@@ -466,6 +466,33 @@
 
         .modal-close:hover {
             color: var(--text-primary);
+        }
+
+        /* ===== ВКЛАДКИ ПОСАД ===== */
+        .rank-tab-btn {
+            background: none;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .rank-tab-btn.active {
+            color: var(--gold);
+            border-bottom: 2px solid var(--gold);
+        }
+
+        .rank-tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .rank-tab-content {
+            padding: 0.5rem 0;
         }
 
         /* ===== ФОРМИ ===== */
@@ -609,11 +636,23 @@
             .grid-2 {
                 grid-template-columns: 1fr;
             }
+            .modal-content {
+                max-width: 95%;
+                padding: 1.5rem;
+            }
+            .rank-tab-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
         }
 
         @media (max-width: 480px) {
             .grid-4 {
                 grid-template-columns: 1fr;
+            }
+            .rank-tab-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
             }
         }
 
@@ -766,7 +805,7 @@
     <!-- ===== ВСІ МОДАЛКИ ===== -->
     <!-- ============================================ -->
 
-    <!-- ===== МОДАЛКА СТВОРЕННЯ/РЕДАГУВАННЯ ПОСАДИ ===== -->
+    <!-- ===== МОДАЛКА СТВОРЕННЯ/РЕДАГУВАННЯ ПОСАДИ (З 2 ВКЛАДКАМИ) ===== -->
     <div class="modal" id="rankModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -776,7 +815,7 @@
             <form id="rankForm">
                 <input type="hidden" id="rankEditId">
                 <div class="form-group">
-                    <label class="form-label">Назва посади</label>
+                    <label class="form-label">Назва посади <span style="color:var(--gold);">*</span></label>
                     <input type="text" class="form-control" id="rankName" placeholder="Наприклад: Менеджер" required>
                 </div>
                 <div class="form-group">
@@ -793,39 +832,118 @@
                     </div>
                     <input type="hidden" id="rankColor" value="#F2A93B">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Права доступу</label>
-                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="all"> 🔑 Всі
+
+                <!-- ===== ВКЛАДКИ ===== -->
+                <div style="display:flex;gap:0;border-bottom:2px solid var(--border-color);margin-bottom:1.5rem;">
+                    <button type="button" class="rank-tab-btn active" data-tab="view" style="color:var(--gold);border-bottom:2px solid var(--gold);">
+                        👁️ Перегляд
+                    </button>
+                    <button type="button" class="rank-tab-btn" data-tab="actions">
+                        ⚡ Дії
+                    </button>
+                </div>
+
+                <!-- ===== ВКЛАДКА "ПЕРЕГЛЯД" ===== -->
+                <div id="rankTabView" class="rank-tab-content">
+                    <div style="margin-bottom:0.75rem;color:var(--text-secondary);font-size:0.85rem;">
+                        <i class="fas fa-eye"></i> Права на перегляд та створення
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_overview"> 📊 Огляд
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_members"> 👥 Учасники
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_members"> 👥 Учасники
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_ranks"> 👑 Посади
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_ranks"> 👑 Посади
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_departments"> 🏢 Відділи
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_departments"> 🏢 Відділи
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_settings"> ⚙️ Налаштування
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_chat"> 💬 Чат
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_requests"> 📩 Заявки
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_vacations"> 🏖️ Відпустки
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_vacations"> 🏖️ Відпустки
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_events"> 📅 Події
                         </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_chat"> 💬 Чат
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_tasks"> 📋 Завдання
                         </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_polls"> 📊 Опитування
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_files"> 📁 Файли
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_settings"> ⚙️ Налаштування
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="view_requests"> 📩 Заявки
+                        </label>
+                    </div>
+                    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="view"> 👀 Перегляд
+                            <input type="checkbox" class="rank-permission" id="viewAllPermissions" onchange="toggleAllViewPermissions()"> ✅ Вибрати всі
                         </label>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-gold btn-block">
+
+                <!-- ===== ВКЛАДКА "ДІЇ" ===== -->
+                <div id="rankTabActions" class="rank-tab-content" style="display:none;">
+                    <div style="margin-bottom:0.75rem;color:var(--text-secondary);font-size:0.85rem;">
+                        <i class="fas fa-bolt"></i> Права на управління та модерацію
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_members"> 👥 Керувати учасниками
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_ranks"> 👑 Керувати посадами
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_departments"> 🏢 Керувати відділами
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_settings"> ⚙️ Керувати налаштуваннями
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_requests"> 📩 Керувати заявками
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_vacations"> 🏖️ Керувати відпустками
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_chat"> 💬 Керувати чатом
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_events"> 📅 Керувати подіями
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_tasks"> 📋 Керувати завданнями
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_polls"> 📊 Керувати опитуваннями
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="manage_files"> 📁 Керувати файлами
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="rank-permission" value="delete_org"> 🗑️ Видалити організацію
+                        </label>
+                    </div>
+                    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" id="actionsAllPermissions" onchange="toggleAllActionsPermissions()"> ✅ Вибрати всі
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-gold btn-block" style="margin-top:1.5rem;">
                     <i class="fas fa-save"></i> <span id="rankSubmitText">Створити</span>
                 </button>
             </form>
@@ -841,7 +959,7 @@
             </div>
             <form id="departmentForm">
                 <div class="form-group">
-                    <label class="form-label">Назва відділу</label>
+                    <label class="form-label">Назва відділу <span style="color:var(--gold);">*</span></label>
                     <input type="text" class="form-control" id="deptName" placeholder="Наприклад: Відділ продажів" required>
                 </div>
                 <div class="form-group">
@@ -869,7 +987,7 @@
                     <input type="text" class="form-control" id="assignUserName" disabled>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Посада</label>
+                    <label class="form-label">Посада <span style="color:var(--gold);">*</span></label>
                     <select class="form-control" id="assignRankSelect" required>
                         <option value="">Оберіть посаду...</option>
                     </select>
@@ -895,7 +1013,7 @@
                     <input type="text" class="form-control" id="assignDeptName" disabled>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Співробітник</label>
+                    <label class="form-label">Співробітник <span style="color:var(--gold);">*</span></label>
                     <select class="form-control" id="assignEmployeeSelect" required>
                         <option value="">Оберіть співробітника...</option>
                     </select>
@@ -916,7 +1034,7 @@
             </div>
             <form id="eventForm">
                 <div class="form-group">
-                    <label class="form-label">Назва події</label>
+                    <label class="form-label">Назва події <span style="color:var(--gold);">*</span></label>
                     <input type="text" class="form-control" id="eventTitle" placeholder="Назва" required>
                 </div>
                 <div class="form-group">
@@ -924,11 +1042,11 @@
                     <textarea class="form-control" id="eventDesc" rows="3" placeholder="Опис"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата початку</label>
+                    <label class="form-label">Дата початку <span style="color:var(--gold);">*</span></label>
                     <input type="datetime-local" class="form-control" id="eventStart" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата закінчення</label>
+                    <label class="form-label">Дата закінчення <span style="color:var(--gold);">*</span></label>
                     <input type="datetime-local" class="form-control" id="eventEnd" required>
                 </div>
                 <div class="form-group">
@@ -950,7 +1068,7 @@
             <form id="taskForm">
                 <input type="hidden" id="taskEditId">
                 <div class="form-group">
-                    <label class="form-label">Назва завдання</label>
+                    <label class="form-label">Назва завдання <span style="color:var(--gold);">*</span></label>
                     <input type="text" class="form-control" id="taskTitle" placeholder="Назва" required>
                 </div>
                 <div class="form-group">
@@ -993,7 +1111,7 @@
             <form id="pollForm">
                 <input type="hidden" id="pollEditId">
                 <div class="form-group">
-                    <label class="form-label">Назва опитування</label>
+                    <label class="form-label">Назва опитування <span style="color:var(--gold);">*</span></label>
                     <input type="text" class="form-control" id="pollTitle" placeholder="Назва" required>
                 </div>
                 <div class="form-group">
@@ -1001,7 +1119,7 @@
                     <textarea class="form-control" id="pollDesc" rows="3" placeholder="Опис"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Варіанти відповідей</label>
+                    <label class="form-label">Варіанти відповідей <span style="color:var(--gold);">*</span></label>
                     <textarea class="form-control" id="pollOptions" rows="4" placeholder="Варіант 1&#10;Варіант 2&#10;Варіант 3" required></textarea>
                     <small style="color:var(--text-secondary);">Кожен варіант з нового рядка</small>
                 </div>
@@ -1019,7 +1137,7 @@
             </div>
             <form id="fileForm">
                 <div class="form-group">
-                    <label class="form-label">Файл</label>
+                    <label class="form-label">Файл <span style="color:var(--gold);">*</span></label>
                     <input type="file" class="form-control" id="fileInput" required style="padding:0.5rem;background:var(--bg-input);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">
@@ -1038,15 +1156,15 @@
             </div>
             <form id="vacationForm">
                 <div class="form-group">
-                    <label class="form-label">Дата початку</label>
+                    <label class="form-label">Дата початку <span style="color:var(--gold);">*</span></label>
                     <input type="date" class="form-control" id="vacStart" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата закінчення</label>
+                    <label class="form-label">Дата закінчення <span style="color:var(--gold);">*</span></label>
                     <input type="date" class="form-control" id="vacEnd" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Тип відпустки</label>
+                    <label class="form-label">Тип відпустки <span style="color:var(--gold);">*</span></label>
                     <select class="form-control" id="vacType" required>
                         <option value="annual">Щорічна</option>
                         <option value="sick">Лікарняний</option>
