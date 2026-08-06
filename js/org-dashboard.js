@@ -52,9 +52,23 @@ var vacationTypeLabels = {
     'other': 'Інша'
 };
 
+var taskStatusLabels = {
+    'new': '🆕 Нове',
+    'in_progress': '🔄 В роботі',
+    'review': '👀 На перевірці',
+    'done': '✅ Виконано',
+    'closed': '📌 Закрито'
+};
+
+var taskPriorityLabels = {
+    'low': '🟢 Низький',
+    'medium': '🟡 Середній',
+    'high': '🔴 Високий',
+    'urgent': '🔥 Терміновий'
+};
+
 function debugLog(message, data) {
     if (data === undefined) data = null;
-    console.log('[ORG] ' + message, data || '');
 }
 
 async function init() {
@@ -80,7 +94,6 @@ async function loadOrganization() {
     try {
         currentOrg = await db.getOrganization(orgId);
     } catch (error) {
-        debugLog('Помилка завантаження:', error);
         await showAlert('Помилка завантаження організації', 'error');
         window.location.href = '/dashboard';
         return;
@@ -119,6 +132,10 @@ function loadSection(section) {
         case 'departments': loadDepartments(); break;
         case 'chat': loadChat(); break;
         case 'vacations': loadVacations(); break;
+        case 'events': loadEvents(); break;
+        case 'tasks': loadTasks(); break;
+        case 'polls': loadPolls(); break;
+        case 'files': loadFiles(); break;
         case 'settings': loadSettings(); break;
         default: loadOverview();
     }
@@ -134,6 +151,7 @@ async function loadOverview() {
         var members = await db.getOrganizationMembers(currentOrgId);
         var ranks = await db.getOrganizationRanks(currentOrgId);
         var requests = await db.getJoinRequests(currentOrgId);
+        var tasks = await db.getTasks(currentOrgId);
 
         var pendingCount = 0;
         if (requests) {
@@ -141,6 +159,8 @@ async function loadOverview() {
                 if (requests[i].status === 'pending') pendingCount++;
             }
         }
+
+        var tasksCount = tasks ? tasks.length : 0;
 
         container.innerHTML = 
             '<div class="grid-4">' +
@@ -156,9 +176,9 @@ async function loadOverview() {
                     '<div class="stat-value">' + pendingCount + '</div>' +
                     '<div class="stat-label">Очікують заявки</div>' +
                 '</div>' +
-                '<div class="stat-card" style="border-color: var(--muted);">' +
-                    '<div class="stat-value" style="font-family:monospace;font-size:1.5rem;letter-spacing:3px;text-transform:lowercase;">' + (currentOrg ? currentOrg.join_code || '---' : '---') + '</div>' +
-                    '<div class="stat-label">Код вступу</div>' +
+                '<div class="stat-card" style="border-color: #3B82F6;">' +
+                    '<div class="stat-value">' + tasksCount + '</div>' +
+                    '<div class="stat-label">Завдань</div>' +
                 '</div>' +
             '</div>' +
             '<div class="card">' +
@@ -178,7 +198,6 @@ async function loadOverview() {
                 '</div>' +
             '</div>';
     } catch (error) {
-        debugLog('Помилка:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
 }
@@ -231,7 +250,7 @@ async function loadMembers() {
                     html += 
                         '<tr>' +
                             '<td><strong>' + userName + (isLeader ? ' 👑' : '') + '</strong></td>' +
-                            '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + '</span>' : 'Без посади') + '</td>' +
+                            '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' ⭐' : '') + '</span>' : 'Без посади') + '</td>' +
                             '<td>' + new Date(member.joined_at).toLocaleDateString('uk-UA') + '</td>' +
                             '<td>' + (!isLeader && currentOrg && currentOrg.leader_id === (user ? user.id : null) ? 
                                 '<button class="btn btn-sm btn-teal" onclick="openAssignRank(\'' + member.id + '\', \'' + userName + '\')">' +
@@ -241,9 +260,7 @@ async function loadMembers() {
                                     '<i class="fas fa-times"></i>' +
                                 '</button>' : '—') + '</td>' +
                         '</tr>';
-                } catch (e) {
-                    debugLog('Помилка завантаження користувача:', e);
-                }
+                } catch (e) {}
             }
         } else {
             html += '<tr><td colspan="4" class="text-center text-muted">Немає учасників</td></tr>';
@@ -257,7 +274,6 @@ async function loadMembers() {
 
         container.innerHTML = html;
     } catch (error) {
-        debugLog('Помилка:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
 }
@@ -317,9 +333,7 @@ async function loadRequests() {
                                     '<i class="fas fa-times"></i>' +
                                 '</button>' : (isPending ? '⏳' : '—')) + '</td>' +
                         '</tr>';
-                } catch (e) {
-                    debugLog('Помилка завантаження користувача:', e);
-                }
+                } catch (e) {}
             }
         } else {
             html += '<tr><td colspan="5" class="text-center text-muted">Немає заявок</td></tr>';
@@ -333,7 +347,6 @@ async function loadRequests() {
 
         container.innerHTML = html;
     } catch (error) {
-        debugLog('Помилка:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
 }
@@ -355,7 +368,6 @@ async function handleRequest(requestId, status) {
         loadRequests();
         loadOverview();
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
@@ -370,7 +382,6 @@ async function removeMember(memberId) {
         loadMembers();
         loadOverview();
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
@@ -385,13 +396,6 @@ async function loadRanks() {
         var ranks = await db.getOrganizationRanks(currentOrgId);
         var user = auth.getCurrentUser();
         var canManage = currentOrg && currentOrg.leader_id === (user ? user.id : null);
-
-        // СОРТУЄМО: Директор завжди зверху
-        ranks.sort(function(a, b) {
-            if (a.name === 'Директор') return -1;
-            if (b.name === 'Директор') return 1;
-            return (a.order || 0) - (b.order || 0);
-        });
 
         var html = 
             '<div class="card">' +
@@ -416,26 +420,23 @@ async function loadRanks() {
         if (ranks && ranks.length > 0) {
             for (var i = 0; i < ranks.length; i++) {
                 var rank = ranks[i];
-                var isDirector = rank.name === 'Директор';
 
                 html += 
                     '<tr>' +
-                        '<td><strong>' + rank.name + '</strong></td>' +
+                        '<td><strong>' + rank.name + (rank.is_default ? ' ⭐' : '') + '</strong></td>' +
                         '<td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:' + rank.color + ';"></span> ' + rank.color + '</td>' +
-                        '<td>' +
-                            (canManage ? 
-                                '<button class="btn btn-sm btn-teal" onclick="openEditRank(\'' + rank.id + '\')">' +
-                                    '<i class="fas fa-edit"></i>' +
-                                '</button>' : '') +
-                            (!isDirector && canManage ? 
+                        '<td>' + (canManage ? 
+                            '<button class="btn btn-sm btn-teal" onclick="openEditRank(\'' + rank.id + '\')">' +
+                                '<i class="fas fa-edit"></i>' +
+                            '</button>' : '') +
+                            (!rank.is_default && canManage ? 
                                 '<button class="btn btn-sm btn-danger" onclick="deleteRank(\'' + rank.id + '\')">' +
                                     '<i class="fas fa-trash"></i>' +
                                 '</button>' : '') +
-                            (canManage && !isDirector && i > 1 ? 
+                            (canManage && !rank.is_default ? 
                                 '<button class="btn btn-sm btn-outline" onclick="moveRank(\'' + rank.id + '\', \'up\')">' +
                                     '<i class="fas fa-arrow-up"></i>' +
-                                '</button>' : '') +
-                            (canManage && !isDirector && i < ranks.length - 1 && i > 0 ? 
+                                '</button>' +
                                 '<button class="btn btn-sm btn-outline" onclick="moveRank(\'' + rank.id + '\', \'down\')">' +
                                     '<i class="fas fa-arrow-down"></i>' +
                                 '</button>' : '') +
@@ -454,46 +455,7 @@ async function loadRanks() {
 
         container.innerHTML = html;
     } catch (error) {
-        debugLog('Помилка:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-// ===== ПЕРЕМІЩЕННЯ ПОСАД =====
-async function moveRank(rankId, direction) {
-    try {
-        var ranks = await db.getOrganizationRanks(currentOrgId);
-        ranks.sort(function(a, b) {
-            if (a.name === 'Директор') return -1;
-            if (b.name === 'Директор') return 1;
-            return (a.order || 0) - (b.order || 0);
-        });
-
-        var index = -1;
-        for (var i = 0; i < ranks.length; i++) {
-            if (ranks[i].id === rankId) {
-                index = i;
-                break;
-            }
-        }
-
-        if (index === -1 || (direction === 'up' && index <= 1) || (direction === 'down' && index >= ranks.length - 1)) {
-            return;
-        }
-
-        var newIndex = direction === 'up' ? index - 1 : index + 1;
-        var tempOrder = ranks[index].order || index;
-        ranks[index].order = ranks[newIndex].order || newIndex;
-        ranks[newIndex].order = tempOrder;
-
-        await db.updateRank(ranks[index].id, { order: ranks[index].order });
-        await db.updateRank(ranks[newIndex].id, { order: ranks[newIndex].order });
-
-        await showToast('Посаду переміщено!', 'success');
-        loadRanks();
-    } catch (error) {
-        debugLog('Помилка:', error);
-        await showAlert('Помилка: ' + error.message, 'error');
     }
 }
 
@@ -550,7 +512,6 @@ async function openEditRank(rankId) {
         
         document.getElementById('rankModal').classList.add('active');
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка завантаження посади', 'error');
     }
 }
@@ -564,7 +525,36 @@ async function deleteRank(rankId) {
         await showToast('Посаду видалено', 'success');
         loadRanks();
     } catch (error) {
-        debugLog('Помилка:', error);
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function moveRank(rankId, direction) {
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var index = -1;
+        for (var i = 0; i < ranks.length; i++) {
+            if (ranks[i].id === rankId) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index === -1 || (direction === 'up' && index <= 0) || (direction === 'down' && index >= ranks.length - 1)) {
+            return;
+        }
+
+        var newIndex = direction === 'up' ? index - 1 : index + 1;
+        var tempOrder = ranks[index].order || index;
+        ranks[index].order = ranks[newIndex].order || newIndex;
+        ranks[newIndex].order = tempOrder;
+
+        await db.updateRank(ranks[index].id, { order: ranks[index].order });
+        await db.updateRank(ranks[newIndex].id, { order: ranks[newIndex].order });
+
+        await showToast('Посаду переміщено!', 'success');
+        loadRanks();
+    } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
@@ -592,16 +582,58 @@ document.getElementById('rankForm')?.addEventListener('submit', async function(e
             await db.updateRank(editId, { name: name, color: color, permissions: permissions });
             await showToast('Посаду оновлено!', 'success');
         } else {
-            var ranks = await db.getOrganizationRanks(currentOrgId);
-            var order = ranks ? ranks.length : 0;
-            await db.createRank(currentOrgId, { name: name, color: color, permissions: permissions, order: order });
+            await db.createRank(currentOrgId, { name: name, color: color, permissions: permissions });
             await showToast('Посаду створено!', 'success');
         }
 
         closeModal('rankModal');
         loadRanks();
     } catch (error) {
-        debugLog('Помилка:', error);
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function openAssignRank(memberId, userName) {
+    document.getElementById('assignMemberId').value = memberId;
+    document.getElementById('assignUserName').value = userName;
+
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var select = document.getElementById('assignRankSelect');
+        select.innerHTML = '<option value="">Оберіть посаду...</option>';
+
+        if (ranks && ranks.length > 0) {
+            for (var i = 0; i < ranks.length; i++) {
+                var option = document.createElement('option');
+                option.value = ranks[i].id;
+                option.textContent = ranks[i].name;
+                select.appendChild(option);
+            }
+        }
+
+        document.getElementById('assignRankModal').classList.add('active');
+    } catch (error) {
+        await showAlert('Помилка завантаження посад', 'error');
+    }
+}
+
+document.getElementById('assignRankForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var memberId = document.getElementById('assignMemberId').value;
+    var rankId = document.getElementById('assignRankSelect').value;
+
+    if (!rankId) {
+        await showAlert('Оберіть посаду', 'warning');
+        return;
+    }
+
+    try {
+        await db.updateMemberRank(memberId, rankId);
+        await showToast('Посаду призначено!', 'success');
+        closeModal('assignRankModal');
+        loadMembers();
+    } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
@@ -672,7 +704,6 @@ async function loadDepartments() {
 
         container.innerHTML = html;
     } catch (error) {
-        debugLog('Помилка:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
 }
@@ -703,7 +734,6 @@ document.getElementById('departmentForm')?.addEventListener('submit', async func
         document.getElementById('departmentForm').reset();
         loadDepartments();
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
@@ -717,7 +747,6 @@ async function deleteDepartment(deptId) {
         await showToast('Відділ видалено', 'success');
         loadDepartments();
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
@@ -771,7 +800,6 @@ document.getElementById('assignEmployeeForm')?.addEventListener('submit', async 
         loadDepartments();
         loadOverview();
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
@@ -876,7 +904,6 @@ async function loadChat() {
         });
 
     } catch (error) {
-        console.error('Load chat error:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження чату</div>';
     }
 }
@@ -970,7 +997,6 @@ async function loadVacations() {
 
         container.innerHTML = html;
     } catch (error) {
-        console.error('Load vacations error:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
 }
@@ -1059,6 +1085,651 @@ async function cancelVacation(vacationId) {
     }
 }
 
+// ========== ПОДІЇ (КАЛЕНДАР) ==========
+async function loadEvents() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Календар подій';
+    document.getElementById('pageSubtitle').textContent = 'Планування зустрічей та подій';
+
+    try {
+        var events = await db.getEvents(currentOrgId);
+        var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Події (' + (events ? events.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreateEvent()">' +
+                        '<i class="fas fa-plus"></i> Створити подію' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Дата</th>' +
+                                '<th>Місце</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (events && events.length > 0) {
+            for (var i = 0; i < events.length; i++) {
+                var ev = events[i];
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + ev.title + '</strong></td>' +
+                        '<td>' + new Date(ev.start_date).toLocaleString('uk-UA') + '</td>' +
+                        '<td>' + (ev.location || '—') + '</td>' +
+                        '<td>' + (isLeader ? 
+                            '<button class="btn btn-sm btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' : '—') + '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає подій</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreateEvent() {
+    document.getElementById('eventModal').classList.add('active');
+}
+
+document.getElementById('eventForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var title = document.getElementById('eventTitle').value.trim();
+    var description = document.getElementById('eventDesc').value.trim();
+    var startDate = document.getElementById('eventStart').value;
+    var endDate = document.getElementById('eventEnd').value;
+    var location = document.getElementById('eventLocation').value.trim();
+
+    if (!title || !startDate || !endDate) {
+        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
+        return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+        await showAlert('Дата початку не може бути пізнішою за дату закінчення', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.createEvent({
+            organization_id: currentOrgId,
+            title: title,
+            description: description || '',
+            start_date: startDate,
+            end_date: endDate,
+            location: location || '',
+            created_by: user ? user.id : null
+        });
+
+        await showToast('Подію створено!', 'success');
+        closeModal('eventModal');
+        document.getElementById('eventForm').reset();
+        loadEvents();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteEvent(eventId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю подію?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteEvent(eventId);
+        await showToast('Подію видалено', 'success');
+        loadEvents();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ЗАВДАННЯ ==========
+async function loadTasks() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Завдання';
+    document.getElementById('pageSubtitle').textContent = 'Управління задачами';
+
+    try {
+        var tasks = await db.getTasks(currentOrgId);
+        var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Завдання (' + (tasks ? tasks.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreateTask()">' +
+                        '<i class="fas fa-plus"></i> Створити завдання' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Відповідальний</th>' +
+                                '<th>Дедлайн</th>' +
+                                '<th>Статус</th>' +
+                                '<th>Пріоритет</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (tasks && tasks.length > 0) {
+            for (var i = 0; i < tasks.length; i++) {
+                var task = tasks[i];
+                var assignedUser = await db.supabaseQuery('users?id=eq.' + task.assigned_to);
+                var assignedName = assignedUser && assignedUser.length > 0 
+                    ? (assignedUser[0].full_name || assignedUser[0].email) 
+                    : 'Не призначено';
+                var isAssignee = task.assigned_to === (user ? user.id : null);
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + task.title + '</strong></td>' +
+                        '<td>' + assignedName + '</td>' +
+                        '<td>' + (task.due_date ? new Date(task.due_date).toLocaleDateString('uk-UA') : '—') + '</td>' +
+                        '<td><span class="badge ' + (task.status === 'done' ? 'badge-success' : task.status === 'in_progress' ? 'badge-warning' : 'badge-primary') + '">' + (taskStatusLabels[task.status] || task.status) + '</span></td>' +
+                        '<td><span class="badge ' + (task.priority === 'high' || task.priority === 'urgent' ? 'badge-danger' : task.priority === 'medium' ? 'badge-warning' : 'badge-success') + '">' + (taskPriorityLabels[task.priority] || task.priority) + '</span></td>' +
+                        '<td>' + (isLeader || isAssignee ? 
+                            '<button class="btn btn-sm btn-teal" onclick="editTask(\'' + task.id + '\')">' +
+                                '<i class="fas fa-edit"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteTask(\'' + task.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' : '—') + '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="6" class="text-center text-muted">Немає завдань</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreateTask() {
+    document.getElementById('taskModal').classList.add('active');
+    document.getElementById('taskEditId').value = '';
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDesc').value = '';
+    document.getElementById('taskAssign').value = '';
+    document.getElementById('taskDue').value = '';
+    document.getElementById('taskPriority').value = 'medium';
+    document.getElementById('taskSubmitText').textContent = 'Створити';
+}
+
+async function editTask(taskId) {
+    try {
+        var tasks = await db.getTasks(currentOrgId);
+        var task = null;
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id === taskId) {
+                task = tasks[i];
+                break;
+            }
+        }
+        if (!task) return;
+
+        document.getElementById('taskModal').classList.add('active');
+        document.getElementById('taskEditId').value = task.id;
+        document.getElementById('taskTitle').value = task.title;
+        document.getElementById('taskDesc').value = task.description || '';
+        document.getElementById('taskAssign').value = task.assigned_to || '';
+        document.getElementById('taskDue').value = task.due_date ? task.due_date.split('T')[0] : '';
+        document.getElementById('taskPriority').value = task.priority || 'medium';
+        document.getElementById('taskSubmitText').textContent = 'Зберегти';
+    } catch (error) {
+        await showAlert('Помилка завантаження завдання', 'error');
+    }
+}
+
+document.getElementById('taskForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var editId = document.getElementById('taskEditId').value;
+    var title = document.getElementById('taskTitle').value.trim();
+    var description = document.getElementById('taskDesc').value.trim();
+    var assignedTo = document.getElementById('taskAssign').value;
+    var dueDate = document.getElementById('taskDue').value;
+    var priority = document.getElementById('taskPriority').value;
+
+    if (!title) {
+        await showAlert('Введіть назву завдання', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        var data = {
+            organization_id: currentOrgId,
+            title: title,
+            description: description || '',
+            assigned_to: assignedTo || null,
+            created_by: user ? user.id : null,
+            due_date: dueDate || null,
+            priority: priority || 'medium'
+        };
+
+        if (editId) {
+            await db.updateTask(editId, data);
+            await showToast('Завдання оновлено!', 'success');
+        } else {
+            data.status = 'new';
+            await db.createTask(data);
+            await showToast('Завдання створено!', 'success');
+        }
+
+        closeModal('taskModal');
+        document.getElementById('taskForm').reset();
+        loadTasks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteTask(taskId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити це завдання?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteTask(taskId);
+        await showToast('Завдання видалено', 'success');
+        loadTasks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ОПИТУВАННЯ ==========
+async function loadPolls() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Опитування';
+    document.getElementById('pageSubtitle').textContent = 'Збір думок та голосування';
+
+    try {
+        var polls = await db.getPolls(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Опитування (' + (polls ? polls.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreatePoll()">' +
+                        '<i class="fas fa-plus"></i> Створити опитування' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Варіанти</th>' +
+                                '<th>Статус</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (polls && polls.length > 0) {
+            for (var i = 0; i < polls.length; i++) {
+                var poll = polls[i];
+                var options = poll.options || [];
+                var optionLabels = options.join(', ');
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + poll.title + '</strong></td>' +
+                        '<td>' + optionLabels + '</td>' +
+                        '<td><span class="badge ' + (poll.is_active ? 'badge-success' : 'badge-secondary') + '">' + (poll.is_active ? 'Активне' : 'Завершене') + '</span></td>' +
+                        '<td>' +
+                            '<button class="btn btn-sm btn-teal" onclick="viewPoll(\'' + poll.id + '\')">' +
+                                '<i class="fas fa-eye"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deletePoll(\'' + poll.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає опитувань</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreatePoll() {
+    document.getElementById('pollModal').classList.add('active');
+    document.getElementById('pollEditId').value = '';
+    document.getElementById('pollTitle').value = '';
+    document.getElementById('pollDesc').value = '';
+    document.getElementById('pollOptions').value = '';
+    document.getElementById('pollSubmitText').textContent = 'Створити';
+}
+
+document.getElementById('pollForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var title = document.getElementById('pollTitle').value.trim();
+    var description = document.getElementById('pollDesc').value.trim();
+    var optionsText = document.getElementById('pollOptions').value.trim();
+
+    if (!title || !optionsText) {
+        await showAlert('Заповніть назву та варіанти відповідей', 'warning');
+        return;
+    }
+
+    var options = optionsText.split('\n').filter(function(o) { return o.trim(); });
+    if (options.length < 2) {
+        await showAlert('Додайте мінімум 2 варіанти відповідей', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.createPoll({
+            organization_id: currentOrgId,
+            title: title,
+            description: description || '',
+            options: options,
+            created_by: user ? user.id : null,
+            expires_at: null
+        });
+
+        await showToast('Опитування створено!', 'success');
+        closeModal('pollModal');
+        document.getElementById('pollForm').reset();
+        loadPolls();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function viewPoll(pollId) {
+    try {
+        var polls = await db.getPolls(currentOrgId);
+        var poll = null;
+        for (var i = 0; i < polls.length; i++) {
+            if (polls[i].id === pollId) {
+                poll = polls[i];
+                break;
+            }
+        }
+        if (!poll) return;
+
+        var results = await db.getPollResults(pollId);
+        var user = auth.getCurrentUser();
+        var hasVoted = results && results.some(function(v) { return v.user_id === (user ? user.id : null); });
+
+        var html = 
+            '<div style="background:var(--ink);border-radius:8px;padding:1rem;margin-bottom:1rem;">' +
+                '<h3 style="color:var(--gold);">' + poll.title + '</h3>' +
+                '<p style="color:var(--muted);">' + (poll.description || '') + '</p>' +
+            '</div>';
+
+        var options = poll.options || [];
+        var totalVotes = results ? results.length : 0;
+
+        html += '<div style="margin-top:1rem;">';
+        for (var j = 0; j < options.length; j++) {
+            var votes = results ? results.filter(function(v) { return v.option_index === j; }).length : 0;
+            var percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+            
+            html += 
+                '<div style="margin-bottom:0.75rem;">' +
+                    '<div style="display:flex;justify-content:space-between;font-size:0.85rem;">' +
+                        '<span>' + options[j] + '</span>' +
+                        '<span>' + votes + ' голосів (' + percent + '%)</span>' +
+                    '</div>' +
+                    '<div style="background:var(--ink);border-radius:4px;height:8px;overflow:hidden;">' +
+                        '<div style="background:var(--gold);height:100%;width:' + percent + '%;border-radius:4px;transition:width 0.5s;"></div>' +
+                    '</div>' +
+                '</div>';
+        }
+        html += '</div>';
+
+        if (!hasVoted && poll.is_active) {
+            html += 
+                '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    options.map(function(opt, idx) {
+                        return '<button class="btn btn-sm btn-teal" onclick="votePoll(\'' + pollId + '\', ' + idx + ')">' + opt + '</button>';
+                    }).join('') +
+                '</div>';
+        } else if (hasVoted) {
+            html += '<p style="color:var(--teal);margin-top:1rem;">✅ Ви вже проголосували</p>';
+        } else {
+            html += '<p style="color:var(--muted);margin-top:1rem;">⏳ Опитування завершено</p>';
+        }
+
+        await showAlert(html, 'info', '📊 Результати опитування');
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function votePoll(pollId, optionIndex) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете проголосувати за цей варіант?', 'Голосування');
+    if (!confirmed) return;
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.votePoll(pollId, user ? user.id : null, optionIndex);
+        await showToast('Голос зараховано!', 'success');
+        viewPoll(pollId);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function deletePoll(pollId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити це опитування?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deletePoll(pollId);
+        await showToast('Опитування видалено', 'success');
+        loadPolls();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ФАЙЛИ ==========
+async function loadFiles() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Файли';
+    document.getElementById('pageSubtitle').textContent = 'Сховище файлів організації';
+
+    try {
+        var files = await db.getFiles(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Файли (' + (files ? files.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openUploadFile()">' +
+                        '<i class="fas fa-upload"></i> Завантажити' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Розмір</th>' +
+                                '<th>Завантажив</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (files && files.length > 0) {
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var uploader = await db.supabaseQuery('users?id=eq.' + file.uploaded_by);
+                var uploaderName = uploader && uploader.length > 0 ? (uploader[0].full_name || uploader[0].email) : 'Невідомо';
+                var size = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : (file.size / 1024).toFixed(0) + ' KB';
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + file.name + '</strong></td>' +
+                        '<td>' + size + '</td>' +
+                        '<td>' + uploaderName + '</td>' +
+                        '<td>' +
+                            '<a href="' + file.url + '" target="_blank" class="btn btn-sm btn-teal">' +
+                                '<i class="fas fa-download"></i>' +
+                            '</a>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteFile(\'' + file.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає файлів</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openUploadFile() {
+    document.getElementById('fileModal').classList.add('active');
+}
+
+document.getElementById('fileForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var fileInput = document.getElementById('fileInput');
+    var file = fileInput.files[0];
+
+    if (!file) {
+        await showAlert('Оберіть файл', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        var fileId = generateUUID();
+        var fileName = fileId + '_' + file.name;
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        var uploadResponse = await fetch(SUPABASE_URL + '/storage/v1/object/org_files/' + fileName, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            },
+            body: file
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('Не вдалося завантажити файл');
+        }
+
+        var fileUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
+
+        await db.createFile({
+            organization_id: currentOrgId,
+            name: file.name,
+            url: fileUrl,
+            size: file.size,
+            mime_type: file.type,
+            uploaded_by: user ? user.id : null
+        });
+
+        await showToast('Файл завантажено!', 'success');
+        closeModal('fileModal');
+        document.getElementById('fileForm').reset();
+        loadFiles();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteFile(fileId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цей файл?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        var files = await db.getFiles(currentOrgId);
+        var file = null;
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].id === fileId) {
+                file = files[i];
+                break;
+            }
+        }
+
+        if (file) {
+            var fileName = file.url.split('/').pop();
+            await fetch(SUPABASE_URL + '/storage/v1/object/org_files/' + fileName, {
+                method: 'DELETE',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            });
+        }
+
+        await db.deleteFile(fileId);
+        await showToast('Файл видалено', 'success');
+        loadFiles();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 // ========== НАЛАШТУВАННЯ ==========
 async function loadSettings() {
     var container = document.getElementById('sectionContent');
@@ -1119,7 +1790,6 @@ async function loadSettings() {
             currentOrg = await db.getOrganization(currentOrgId);
             document.getElementById('orgName').textContent = currentOrg.name;
         } catch (error) {
-            debugLog('Помилка:', error);
             await showAlert('Помилка: ' + error.message, 'error');
         }
     });
@@ -1137,7 +1807,6 @@ async function regenerateCode() {
         document.getElementById('settingsCode').value = currentOrg.join_code;
         document.getElementById('joinCode').textContent = currentOrg.join_code;
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
@@ -1164,57 +1833,9 @@ async function deleteOrganization() {
         await showToast('Організацію видалено', 'success');
         window.location.href = '/dashboard';
     } catch (error) {
-        debugLog('Помилка:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
-
-async function openAssignRank(memberId, userName) {
-    document.getElementById('assignMemberId').value = memberId;
-    document.getElementById('assignUserName').value = userName;
-
-    try {
-        var ranks = await db.getOrganizationRanks(currentOrgId);
-        var select = document.getElementById('assignRankSelect');
-        select.innerHTML = '<option value="">Оберіть посаду...</option>';
-
-        if (ranks && ranks.length > 0) {
-            for (var i = 0; i < ranks.length; i++) {
-                var option = document.createElement('option');
-                option.value = ranks[i].id;
-                option.textContent = ranks[i].name;
-                select.appendChild(option);
-            }
-        }
-
-        document.getElementById('assignRankModal').classList.add('active');
-    } catch (error) {
-        debugLog('Помилка:', error);
-        await showAlert('Помилка завантаження посад', 'error');
-    }
-}
-
-document.getElementById('assignRankForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    var memberId = document.getElementById('assignMemberId').value;
-    var rankId = document.getElementById('assignRankSelect').value;
-
-    if (!rankId) {
-        await showAlert('Оберіть посаду', 'warning');
-        return;
-    }
-
-    try {
-        await db.updateMemberRank(memberId, rankId);
-        await showToast('Посаду призначено!', 'success');
-        closeModal('assignRankModal');
-        loadMembers();
-    } catch (error) {
-        debugLog('Помилка:', error);
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
 
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
@@ -1239,4 +1860,3 @@ for (var m = 0; m < modals.length; m++) {
 }
 
 init();
-console.log('✅ Organization dashboard loaded');
