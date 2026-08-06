@@ -97,10 +97,20 @@ async function supabaseQuery(endpoint, options) {
     }
 }
 
-// ===== ОРГАНІЗАЦІЇ =====
+// ===== СТВОРЕННЯ ОРГАНІЗАЦІЇ (АДМІН БЕЗ ЛІМІТУ) =====
 async function createOrganization(data) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
+    
+    // ===== ПЕРЕВІРКА ЛІМІТУ ТІЛЬКИ ДЛЯ НЕ-АДМІНІВ =====
+    if (user.role !== 'admin') {
+        var orgs = await getUserOrganizations();
+        var leaderOrgs = orgs.filter(function(o) { return o.leader_id === user.id; });
+        if (leaderOrgs.length >= 2) {
+            throw new Error('Ви можете бути лідером максимум у 2 організаціях. Адміністратори можуть створювати безлімітно.');
+        }
+    }
+    // ===== КІНЕЦЬ ПЕРЕВІРКИ =====
     
     var joinCode = generateJoinCode();
     
@@ -158,6 +168,13 @@ async function createOrganization(data) {
     }
 
     return result;
+}
+
+async function setUserRole(userId, role) {
+    return supabaseQuery('users?id=eq.' + userId, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: role })
+    });
 }
 
 async function getUserOrganizations() {
