@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА)
+// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ВИПРАВЛЕНА ВЕРСІЯ)
 // ============================================
 
 var currentOrgId = null;
@@ -67,6 +67,7 @@ var taskPriorityLabels = {
     'urgent': '🔥 Терміновий'
 };
 
+// ===== ІНІЦІАЛІЗАЦІЯ =====
 async function init() {
     var isAuth = await auth.requireAuth();
     if (!isAuth) return;
@@ -78,6 +79,7 @@ function getOrgIdFromUrl() {
     return params.get('id');
 }
 
+// ===== ЗАВАНТАЖЕННЯ ОРГАНІЗАЦІЇ =====
 async function loadOrganization() {
     var orgId = getOrgIdFromUrl();
     if (!orgId) {
@@ -131,12 +133,13 @@ async function loadOrganization() {
             }
         }
     } catch (e) {
-        console.error('Помилка перевірки посади:', e);
+        // Продовжуємо без перевірки посади
     }
 
     loadSection('overview');
 }
 
+// ===== ЗАВАНТАЖЕННЯ РОЗДІЛІВ =====
 function loadSection(section) {
     var links = document.querySelectorAll('.nav-menu a');
     for (var i = 0; i < links.length; i++) {
@@ -1307,10 +1310,10 @@ function openCreateTask() {
     document.getElementById('taskEditId').value = '';
     document.getElementById('taskTitle').value = '';
     document.getElementById('taskDesc').value = '';
-    document.getElementById('taskAssign').value = '';
     document.getElementById('taskDue').value = '';
     document.getElementById('taskPriority').value = 'medium';
     document.getElementById('taskSubmitText').textContent = 'Створити';
+    loadTaskAssignees();
 }
 
 async function editTask(taskId) {
@@ -1329,12 +1332,37 @@ async function editTask(taskId) {
         document.getElementById('taskEditId').value = task.id;
         document.getElementById('taskTitle').value = task.title;
         document.getElementById('taskDesc').value = task.description || '';
-        document.getElementById('taskAssign').value = task.assigned_to || '';
         document.getElementById('taskDue').value = task.due_date ? task.due_date.split('T')[0] : '';
         document.getElementById('taskPriority').value = task.priority || 'medium';
         document.getElementById('taskSubmitText').textContent = 'Зберегти';
+        await loadTaskAssignees();
+        if (task.assigned_to) {
+            document.getElementById('taskAssign').value = task.assigned_to;
+        }
     } catch (error) {
         await showAlert('Помилка завантаження завдання', 'error');
+    }
+}
+
+// ===== ЗАПОВНЕННЯ СПИСКУ ВІДПОВІДАЛЬНИХ У ЗАВДАННЯХ =====
+async function loadTaskAssignees() {
+    var members = await db.getOrganizationMembers(currentOrgId);
+    var select = document.getElementById('taskAssign');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Не призначено</option>';
+    
+    if (members && members.length > 0) {
+        for (var i = 0; i < members.length; i++) {
+            var member = members[i];
+            var userData = await db.supabaseQuery('users?id=eq.' + member.user_id);
+            if (userData && userData.length > 0) {
+                var option = document.createElement('option');
+                option.value = member.user_id;
+                option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
+                select.appendChild(option);
+            }
+        }
     }
 }
 
