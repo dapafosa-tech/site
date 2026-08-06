@@ -162,7 +162,7 @@
             });
 
             document.getElementById('deleteBtn').addEventListener('click', async function() {
-                var confirmed = await showConfirm('Ви впевнені, що хочете видалити акаунт? Це незворотна дія!', 'Увага');
+                var confirmed = await showConfirm('Ви впевнені, що хочете видалити акаунт? Це незворотна дія!', '⚠️ Увага');
                 if (!confirmed) return;
                 
                 var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
