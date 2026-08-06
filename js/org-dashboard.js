@@ -1997,8 +1997,15 @@ async function loadClinic() {
         if (appointments && appointments.length > 0) {
             for (var i = 0; i < appointments.length; i++) {
                 var a = appointments[i];
-                var statusClass = a.status === 'scheduled' ? 'badge-warning' : a.status === 'completed' ? 'badge-success' : a.status === 'cancelled' ? 'badge-danger' : 'badge-secondary';
-                var statusLabel = a.status === 'scheduled' ? '⏳ Заплановано' : a.status === 'completed' ? '✅ Виконано' : a.status === 'cancelled' ? '❌ Скасовано' : a.status || 'Невідомо';
+var statusMap = {
+    'scheduled': { class: 'badge-scheduled', label: '⏳ Заплановано' },
+    'in_progress': { class: 'badge-in_progress', label: '🔄 В процесі' },
+    'completed': { class: 'badge-completed', label: '✅ Виконано' },
+    'cancelled': { class: 'badge-cancelled', label: '❌ Скасовано' }
+};
+var statusInfo = statusMap[a.status] || { class: 'badge-secondary', label: a.status || 'Невідомо' };
+var statusClass = statusInfo.class;
+var statusLabel = statusInfo.label;
                 
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
