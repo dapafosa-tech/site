@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - РАБОТА С ХРАНИЛИЩЕМ (AVATARS)
+// TYPEBIZ - РОБОТА З ХРАНИЛИЩЕМ (AVATARS)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -9,7 +9,7 @@ if (typeof SUPABASE_URL === 'undefined') {
 
 function getCurrentUser() {
     try {
-        const userData = localStorage.getItem('userData');
+        var userData = localStorage.getItem('userData');
         if (userData) {
             return JSON.parse(userData);
         }
@@ -19,89 +19,89 @@ function getCurrentUser() {
     }
 }
 
-// ===== ЗАГРУЗКА АВАТАРКИ =====
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0;
+        var v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 async function uploadAvatar(file) {
-    const user = getCurrentUser();
-    if (!user) throw new Error('Не авторизован');
+    var user = getCurrentUser();
+    if (!user) throw new Error('Не авторизовано');
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    var fileExt = file.name.split('.').pop();
+    var fileName = user.id + '.' + fileExt;
+    var filePath = 'avatars/' + fileName;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`, {
+    var response = await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + fileName, {
         method: 'POST',
         headers: {
             'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
         },
         body: file
     });
 
     if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Ошибка загрузки: ${error}`);
+        var error = await response.text();
+        throw new Error('Помилка завантаження: ' + error);
     }
 
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
+    var publicUrl = SUPABASE_URL + '/storage/v1/object/public/avatars/' + fileName;
     
-    // Обновляем профиль пользователя
     await db.updateUser(user.id, { avatar_url: publicUrl });
     
-    // Обновляем локальные данные
     user.avatar_url = publicUrl;
     localStorage.setItem('userData', JSON.stringify(user));
 
     return publicUrl;
 }
 
-// ===== УДАЛЕНИЕ АВАТАРКИ =====
 async function deleteAvatar() {
-    const user = getCurrentUser();
-    if (!user) throw new Error('Не авторизован');
+    var user = getCurrentUser();
+    if (!user) throw new Error('Не авторизовано');
 
-    const filePath = `avatars/${user.id}.*`;
-    
-    // Находим файл
-    const listResponse = await fetch(`${SUPABASE_URL}/storage/v1/object/list/avatars`, {
+    var listResponse = await fetch(SUPABASE_URL + '/storage/v1/object/list/avatars', {
         headers: {
             'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
         }
     });
 
     if (!listResponse.ok) return;
 
-    const files = await listResponse.json();
-    const avatarFile = files.find(f => f.name.startsWith(user.id));
+    var files = await listResponse.json();
+    var avatarFile = null;
+    for (var i = 0; i < files.length; i++) {
+        if (files[i].name.indexOf(user.id) === 0) {
+            avatarFile = files[i];
+            break;
+        }
+    }
 
     if (avatarFile) {
-        await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${avatarFile.name}`, {
+        await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + avatarFile.name, {
             method: 'DELETE',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
             }
         });
     }
 
-    // Обновляем профиль
     await db.updateUser(user.id, { avatar_url: null });
     user.avatar_url = null;
     localStorage.setItem('userData', JSON.stringify(user));
 }
 
-// ===== ПОЛУЧЕНИЕ URL АВАТАРКИ =====
 function getAvatarUrl(userId) {
-    return `${SUPABASE_URL}/storage/v1/object/public/avatars/${userId}`;
+    return SUPABASE_URL + '/storage/v1/object/public/avatars/' + userId;
 }
 
 window.storage = {
-    uploadAvatar,
-    deleteAvatar,
-    getAvatarUrl
+    uploadAvatar: uploadAvatar,
+    deleteAvatar: deleteAvatar,
+    getAvatarUrl: getAvatarUrl
 };
-
-console.log('✅ Storage module loaded');
