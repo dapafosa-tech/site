@@ -2025,6 +2025,59 @@ async function loadClinic() {
     }
 }
 
+// ===== ЗМІНА СТАТУСУ ЗАПИСУ =====
+async function changeAppointmentStatus(appointmentId, currentStatus) {
+    // Статуси для вибору
+    var statuses = [
+        { value: 'scheduled', label: '⏳ Заплановано' },
+        { value: 'in_progress', label: '🔄 В процесі' },
+        { value: 'completed', label: '✅ Виконано' },
+        { value: 'cancelled', label: '❌ Скасовано' }
+    ];
+    
+    // Створюємо HTML з кнопками
+    var html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">';
+    html += '<p style="color:var(--muted);margin-bottom:0.5rem;">Поточний статус: <strong style="color:var(--gold);">' + (statuses.find(s => s.value === currentStatus)?.label || currentStatus) + '</strong></p>';
+    html += '<p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem;">Оберіть новий статус:</p>';
+    
+    for (var i = 0; i < statuses.length; i++) {
+        var s = statuses[i];
+        var isActive = s.value === currentStatus;
+        var btnClass = isActive ? 'btn-gold' : 'btn-outline';
+        html += '<button class="btn ' + btnClass + '" onclick="setAppointmentStatus(\'' + appointmentId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + (isActive ? 'opacity:0.7;' : '') + '">';
+        html += s.label + (isActive ? ' ✅' : '');
+        html += '</button>';
+    }
+    html += '</div>';
+    
+    await showAlert(html, 'info', '📋 Зміна статусу запису');
+}
+
+// ===== ВСТАНОВИТИ НОВИЙ СТАТУС =====
+async function setAppointmentStatus(appointmentId, newStatus) {
+    try {
+        // Закриваємо модалку (якщо відкрита)
+        closeModal('alertModal');
+        
+        var confirmed = await showConfirm('Змінити статус на "' + (newStatus === 'scheduled' ? '⏳ Заплановано' : newStatus === 'in_progress' ? '🔄 В процесі' : newStatus === 'completed' ? '✅ Виконано' : '❌ Скасовано') + '"?', 'Підтвердження');
+        if (!confirmed) return;
+        
+        await db.supabaseQuery('clinic_appointments?id=eq.' + appointmentId, {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+                status: newStatus,
+                updated_at: new Date().toISOString()
+            })
+        });
+        
+        await showToast('Статус оновлено!', 'success');
+        loadClinic();
+    } catch (error) {
+        console.error('Error updating status:', error);
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 // ===== ДОДАТИ ПАЦІЄНТА =====
 function openClinicPatient() {
     document.getElementById('clinicPatientModal').classList.add('active');
