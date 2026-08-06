@@ -322,6 +322,31 @@
             cursor: not-allowed;
         }
 
+        /* ===== БЕЙДЖІ СТАТУСІВ КЛІНІКИ ===== */
+        .badge-scheduled {
+            background: #F59E0B20;
+            color: #F59E0B;
+            border: 1px solid #F59E0B40;
+        }
+
+        .badge-in_progress {
+            background: #3B82F620;
+            color: #3B82F6;
+            border: 1px solid #3B82F640;
+        }
+
+        .badge-completed {
+            background: #46C9B820;
+            color: #46C9B8;
+            border: 1px solid #46C9B840;
+        }
+
+        .badge-cancelled {
+            background: #E2503E20;
+            color: #E2503E;
+            border: 1px solid #E2503E40;
+        }
+
         /* ===== ТАБЛИЦІ ===== */
         .table {
             width: 100%;
@@ -638,7 +663,7 @@
             <li><a onclick="loadSection('polls')"><i class="fas fa-poll"></i> Опитування</a></li>
             <li><a onclick="loadSection('files')"><i class="fas fa-folder"></i> Файли</a></li>
             <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Налаштування</a></li>
-            
+
             <!-- МОДУЛІ -->
             <li><a onclick="loadSection('clinic')"><i class="fas fa-heartbeat"></i> Клініка</a></li>
             <li><a onclick="loadSection('shop')"><i class="fas fa-store"></i> Магазин</a></li>
@@ -674,8 +699,11 @@
         </div>
     </main>
 
+    <!-- ============================================ -->
     <!-- ===== ВСІ МОДАЛКИ ===== -->
-    <!-- Модалка створення/редагування посади -->
+    <!-- ============================================ -->
+
+    <!-- ===== МОДАЛКА СТВОРЕННЯ/РЕДАГУВАННЯ ПОСАДИ ===== -->
     <div class="modal" id="rankModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -741,7 +769,7 @@
         </div>
     </div>
 
-    <!-- Модалка створення відділу -->
+    <!-- ===== МОДАЛКА СТВОРЕННЯ ВІДДІЛУ ===== -->
     <div class="modal" id="departmentModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -764,7 +792,7 @@
         </div>
     </div>
 
-    <!-- Модалка призначення посади -->
+    <!-- ===== МОДАЛКА ПРИЗНАЧЕННЯ ПОСАДИ ===== -->
     <div class="modal" id="assignRankModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -790,7 +818,7 @@
         </div>
     </div>
 
-    <!-- Модалка призначення у відділ -->
+    <!-- ===== МОДАЛКА ПРИЗНАЧЕННЯ У ВІДДІЛ ===== -->
     <div class="modal" id="assignEmployeeModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -816,7 +844,7 @@
         </div>
     </div>
 
-    <!-- Модалка створення події -->
+    <!-- ===== МОДАЛКА СТВОРЕННЯ ПОДІЇ ===== -->
     <div class="modal" id="eventModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -849,7 +877,7 @@
         </div>
     </div>
 
-    <!-- Модалка створення завдання -->
+    <!-- ===== МОДАЛКА СТВОРЕННЯ ЗАВДАННЯ ===== -->
     <div class="modal" id="taskModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -892,7 +920,7 @@
         </div>
     </div>
 
-    <!-- Модалка створення опитування -->
+    <!-- ===== МОДАЛКА СТВОРЕННЯ ОПИТУВАННЯ ===== -->
     <div class="modal" id="pollModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -919,7 +947,7 @@
         </div>
     </div>
 
-    <!-- Модалка завантаження файлу -->
+    <!-- ===== МОДАЛКА ЗАВАНТАЖЕННЯ ФАЙЛУ ===== -->
     <div class="modal" id="fileModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -938,7 +966,7 @@
         </div>
     </div>
 
-    <!-- Модалка створення відпустки -->
+    <!-- ===== МОДАЛКА СТВОРЕННЯ ВІДПУСТКИ ===== -->
     <div class="modal" id="vacationModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -975,7 +1003,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ КЛІНІКИ -->
+    <!-- ===== МОДАЛКИ ДЛЯ КЛІНІКИ ===== -->
     <div class="modal" id="clinicPatientModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -985,12 +1013,12 @@
             <form id="clinicPatientForm">
                 <input type="hidden" id="clinicPatientId">
                 <div class="form-group">
-                    <label class="form-label">ПІБ пацієнта</label>
-                    <input type="text" class="form-control" id="clinicPatientName" required>
+                    <label class="form-label">ПІБ пацієнта <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="clinicPatientName" placeholder="Іванов Іван Іванович" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон</label>
-                    <input type="text" class="form-control" id="clinicPatientPhone">
+                    <input type="text" class="form-control" id="clinicPatientPhone" placeholder="+380 00 000 0000">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Дата народження</label>
@@ -998,7 +1026,17 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Група крові</label>
-                    <input type="text" class="form-control" id="clinicPatientBlood" placeholder="Наприклад: A+, O-">
+                    <select class="form-control" id="clinicPatientBlood">
+                        <option value="">Не вказано</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Алергії</label>
@@ -1009,52 +1047,38 @@
         </div>
     </div>
 
-<!-- МОДАЛКА СТВОРЕННЯ ЗАПИСУ (З ВИБОРОМ ПАЦІЄНТА) -->
-<div class="modal" id="clinicAppointmentModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити запис</h2>
-            <button class="modal-close" onclick="closeModal('clinicAppointmentModal')">&times;</button>
+    <div class="modal" id="clinicAppointmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити запис</h2>
+                <button class="modal-close" onclick="closeModal('clinicAppointmentModal')">&times;</button>
+            </div>
+            <form id="clinicAppointmentForm">
+                <input type="hidden" id="clinicAppointmentId">
+                <div class="form-group">
+                    <label class="form-label">Пацієнт <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="clinicAppointmentPatient" required>
+                        <option value="">Оберіть пацієнта...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Лікар</label>
+                    <input type="text" class="form-control" id="clinicAppointmentDoctor" placeholder="ПІБ лікаря">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата та час <span style="color:var(--gold);">*</span></label>
+                    <input type="datetime-local" class="form-control" id="clinicAppointmentDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Причина</label>
+                    <textarea class="form-control" id="clinicAppointmentReason" rows="2" placeholder="Причина візиту"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Записати</button>
+            </form>
         </div>
-        <form id="clinicAppointmentForm">
-            <input type="hidden" id="clinicAppointmentId">
-            
-            <div class="form-group">
-                <label class="form-label">Пацієнт <span style="color:var(--gold);">*</span></label>
-                <select class="form-control" id="clinicAppointmentPatient" required>
-                    <option value="">Оберіть пацієнта...</option>
-                </select>
-                <small style="color:var(--muted);">Якщо пацієнта немає в списку - спочатку додайте його</small>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Лікар</label>
-                <input type="text" class="form-control" id="clinicAppointmentDoctor" placeholder="ПІБ лікаря">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Дата та час <span style="color:var(--gold);">*</span></label>
-                <input type="datetime-local" class="form-control" id="clinicAppointmentDate" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Причина</label>
-                <textarea class="form-control" id="clinicAppointmentReason" rows="2" placeholder="Причина візиту"></textarea>
-            </div>
-            
-            <div style="display:flex;gap:0.75rem;">
-                <button type="button" class="btn btn-outline" onclick="closeModal('clinicAppointmentModal')" style="flex:1;">
-                    <i class="fas fa-times"></i> Скасувати
-                </button>
-                <button type="submit" class="btn btn-gold" style="flex:1;">
-                    <i class="fas fa-calendar-plus"></i> Записати
-                </button>
-            </div>
-        </form>
     </div>
-</div>
 
-    <!-- МОДАЛКИ ДЛЯ МАГАЗИНУ -->
+    <!-- ===== МОДАЛКИ ДЛЯ МАГАЗИНУ ===== -->
     <div class="modal" id="shopProductModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1064,12 +1088,12 @@
             <form id="shopProductForm">
                 <input type="hidden" id="shopProductId">
                 <div class="form-group">
-                    <label class="form-label">Назва товару</label>
-                    <input type="text" class="form-control" id="shopProductName" required>
+                    <label class="form-label">Назва товару <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="shopProductName" placeholder="Назва товару" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна (грн)</label>
-                    <input type="number" class="form-control" id="shopProductPrice" step="0.01">
+                    <input type="number" class="form-control" id="shopProductPrice" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Кількість</label>
@@ -1089,11 +1113,13 @@
             <form id="shopSaleForm">
                 <input type="hidden" id="shopSaleId">
                 <div class="form-group">
-                    <label class="form-label">Товар</label>
-                    <select class="form-control" id="shopSaleProduct" required></select>
+                    <label class="form-label">Товар <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="shopSaleProduct" required>
+                        <option value="">Оберіть товар...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Кількість</label>
+                    <label class="form-label">Кількість <span style="color:var(--gold);">*</span></label>
                     <input type="number" class="form-control" id="shopSaleQuantity" value="1" min="1">
                 </div>
                 <div class="form-group">
@@ -1105,7 +1131,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ БІБЛІОТЕКИ -->
+    <!-- ===== МОДАЛКИ ДЛЯ БІБЛІОТЕКИ ===== -->
     <div class="modal" id="libraryBookModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1115,20 +1141,45 @@
             <form id="libraryBookForm">
                 <input type="hidden" id="libraryBookId">
                 <div class="form-group">
-                    <label class="form-label">Назва книги</label>
-                    <input type="text" class="form-control" id="libraryBookTitle" required>
+                    <label class="form-label">Назва книги <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="libraryBookTitle" placeholder="Назва книги" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Автор</label>
-                    <input type="text" class="form-control" id="libraryBookAuthor">
+                    <input type="text" class="form-control" id="libraryBookAuthor" placeholder="Автор">
                 </div>
                 <div class="form-group">
                     <label class="form-label">ISBN</label>
-                    <input type="text" class="form-control" id="libraryBookIsbn">
+                    <input type="text" class="form-control" id="libraryBookIsbn" placeholder="ISBN">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Кількість</label>
                     <input type="number" class="form-control" id="libraryBookQuantity" value="1">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="libraryReaderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати читача</h2>
+                <button class="modal-close" onclick="closeModal('libraryReaderModal')">&times;</button>
+            </div>
+            <form id="libraryReaderForm">
+                <input type="hidden" id="libraryReaderId">
+                <div class="form-group">
+                    <label class="form-label">ПІБ читача <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="libraryReaderName" placeholder="ПІБ читача" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="libraryReaderPhone" placeholder="+380 00 000 0000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="libraryReaderEmail" placeholder="email@example.com">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
@@ -1144,19 +1195,23 @@
             <form id="libraryLoanForm">
                 <input type="hidden" id="libraryLoanId">
                 <div class="form-group">
-                    <label class="form-label">Книга</label>
-                    <select class="form-control" id="libraryLoanBook" required></select>
+                    <label class="form-label">Книга <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="libraryLoanBook" required>
+                        <option value="">Оберіть книгу...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Читач</label>
-                    <select class="form-control" id="libraryLoanReader" required></select>
+                    <label class="form-label">Читач <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="libraryLoanReader" required>
+                        <option value="">Оберіть читача...</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Видати</button>
             </form>
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ ШКОЛИ -->
+    <!-- ===== МОДАЛКИ ДЛЯ ШКОЛИ ===== -->
     <div class="modal" id="schoolStudentModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1166,12 +1221,14 @@
             <form id="schoolStudentForm">
                 <input type="hidden" id="schoolStudentId">
                 <div class="form-group">
-                    <label class="form-label">ПІБ учня</label>
-                    <input type="text" class="form-control" id="schoolStudentName" required>
+                    <label class="form-label">ПІБ учня <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="schoolStudentName" placeholder="Прізвище Ім'я По батькові" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Клас</label>
-                    <select class="form-control" id="schoolStudentClass"></select>
+                    <select class="form-control" id="schoolStudentClass">
+                        <option value="">Без класу</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Дата народження</label>
@@ -1179,7 +1236,15 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон батьків</label>
-                    <input type="text" class="form-control" id="schoolStudentPhone">
+                    <input type="text" class="form-control" id="schoolStudentPhone" placeholder="+380 00 000 0000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email батьків</label>
+                    <input type="email" class="form-control" id="schoolStudentEmail" placeholder="parent@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адреса</label>
+                    <input type="text" class="form-control" id="schoolStudentAddress" placeholder="Домашня адреса">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
@@ -1195,19 +1260,25 @@
             <form id="schoolClassForm">
                 <input type="hidden" id="schoolClassId">
                 <div class="form-group">
-                    <label class="form-label">Назва класу</label>
+                    <label class="form-label">Назва класу <span style="color:var(--gold);">*</span></label>
                     <input type="text" class="form-control" id="schoolClassName" placeholder="Наприклад: 10-А" required>
                 </div>
                 <div class="form-group">
+                    <label class="form-label">Класний керівник</label>
+                    <select class="form-control" id="schoolClassTeacher">
+                        <option value="">Без класного керівника</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Кабінет</label>
-                    <input type="text" class="form-control" id="schoolClassRoom">
+                    <input type="text" class="form-control" id="schoolClassRoom" placeholder="Наприклад: 101">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Створити</button>
             </form>
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ РЕСТОРАНУ -->
+    <!-- ===== МОДАЛКИ ДЛЯ РЕСТОРАНУ ===== -->
     <div class="modal" id="restaurantMenuModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1217,12 +1288,12 @@
             <form id="restaurantMenuForm">
                 <input type="hidden" id="restaurantMenuItemId">
                 <div class="form-group">
-                    <label class="form-label">Назва страви</label>
-                    <input type="text" class="form-control" id="restaurantMenuItemName" required>
+                    <label class="form-label">Назва страви <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="restaurantMenuItemName" placeholder="Назва страви" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна (грн)</label>
-                    <input type="number" class="form-control" id="restaurantMenuItemPrice" step="0.01">
+                    <input type="number" class="form-control" id="restaurantMenuItemPrice" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Категорія</label>
@@ -1243,7 +1314,7 @@
                 <input type="hidden" id="restaurantOrderId">
                 <div class="form-group">
                     <label class="form-label">Номер столика</label>
-                    <input type="number" class="form-control" id="restaurantOrderTable">
+                    <input type="number" class="form-control" id="restaurantOrderTable" placeholder="1">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Страви (кожна з нового рядка)</label>
@@ -1251,14 +1322,14 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Загальна сума (грн)</label>
-                    <input type="number" class="form-control" id="restaurantOrderTotal" step="0.01">
+                    <input type="number" class="form-control" id="restaurantOrderTotal" step="0.01" placeholder="0.00">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Створити</button>
             </form>
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ ГОТЕЛЮ -->
+    <!-- ===== МОДАЛКИ ДЛЯ ГОТЕЛЮ ===== -->
     <div class="modal" id="hotelRoomModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1268,8 +1339,8 @@
             <form id="hotelRoomForm">
                 <input type="hidden" id="hotelRoomId">
                 <div class="form-group">
-                    <label class="form-label">Номер кімнати</label>
-                    <input type="text" class="form-control" id="hotelRoomNumber" required>
+                    <label class="form-label">Номер кімнати <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="hotelRoomNumber" placeholder="101" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Тип</label>
@@ -1277,7 +1348,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна за ніч (грн)</label>
-                    <input type="number" class="form-control" id="hotelRoomPrice" step="0.01">
+                    <input type="number" class="form-control" id="hotelRoomPrice" step="0.01" placeholder="0.00">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
@@ -1293,23 +1364,25 @@
             <form id="hotelBookingForm">
                 <input type="hidden" id="hotelBookingId">
                 <div class="form-group">
-                    <label class="form-label">Номер</label>
-                    <select class="form-control" id="hotelBookingRoom" required></select>
+                    <label class="form-label">Номер <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="hotelBookingRoom" required>
+                        <option value="">Оберіть номер...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Гість</label>
-                    <input type="text" class="form-control" id="hotelBookingGuest" required>
+                    <label class="form-label">Гість <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="hotelBookingGuest" placeholder="ПІБ гостя" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон</label>
-                    <input type="text" class="form-control" id="hotelBookingPhone">
+                    <input type="text" class="form-control" id="hotelBookingPhone" placeholder="+380 00 000 0000">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Заїзд</label>
+                    <label class="form-label">Заїзд <span style="color:var(--gold);">*</span></label>
                     <input type="date" class="form-control" id="hotelBookingCheckIn" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Виїзд</label>
+                    <label class="form-label">Виїзд <span style="color:var(--gold);">*</span></label>
                     <input type="date" class="form-control" id="hotelBookingCheckOut" required>
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Забронювати</button>
@@ -1317,7 +1390,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ СПОРТЗАЛУ -->
+    <!-- ===== МОДАЛКИ ДЛЯ СПОРТЗАЛУ ===== -->
     <div class="modal" id="gymMembershipModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1327,24 +1400,26 @@
             <form id="gymMembershipForm">
                 <input type="hidden" id="gymMembershipId">
                 <div class="form-group">
-                    <label class="form-label">Користувач</label>
-                    <select class="form-control" id="gymMembershipUser" required></select>
+                    <label class="form-label">Користувач <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="gymMembershipUser" required>
+                        <option value="">Оберіть користувача...</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Тип абонементу</label>
                     <input type="text" class="form-control" id="gymMembershipType" placeholder="Стандарт, Преміум">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата початку</label>
+                    <label class="form-label">Дата початку <span style="color:var(--gold);">*</span></label>
                     <input type="date" class="form-control" id="gymMembershipStart" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата закінчення</label>
+                    <label class="form-label">Дата закінчення <span style="color:var(--gold);">*</span></label>
                     <input type="date" class="form-control" id="gymMembershipEnd" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна (грн)</label>
-                    <input type="number" class="form-control" id="gymMembershipPrice" step="0.01">
+                    <input type="number" class="form-control" id="gymMembershipPrice" step="0.01" placeholder="0.00">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
@@ -1360,12 +1435,12 @@
             <form id="gymTrainingForm">
                 <input type="hidden" id="gymTrainingId">
                 <div class="form-group">
-                    <label class="form-label">Назва тренування</label>
-                    <input type="text" class="form-control" id="gymTrainingName" required>
+                    <label class="form-label">Назва тренування <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="gymTrainingName" placeholder="Назва тренування" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Тренер</label>
-                    <input type="text" class="form-control" id="gymTrainingTrainer">
+                    <input type="text" class="form-control" id="gymTrainingTrainer" placeholder="ПІБ тренера">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Розклад</label>
@@ -1376,7 +1451,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ САЛОНУ КРАСИ -->
+    <!-- ===== МОДАЛКИ ДЛЯ САЛОНУ КРАСИ ===== -->
     <div class="modal" id="beautyServiceModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1386,12 +1461,12 @@
             <form id="beautyServiceForm">
                 <input type="hidden" id="beautyServiceId">
                 <div class="form-group">
-                    <label class="form-label">Назва послуги</label>
-                    <input type="text" class="form-control" id="beautyServiceName" required>
+                    <label class="form-label">Назва послуги <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="beautyServiceName" placeholder="Назва послуги" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна (грн)</label>
-                    <input type="number" class="form-control" id="beautyServicePrice" step="0.01">
+                    <input type="number" class="form-control" id="beautyServicePrice" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Тривалість (хвилини)</label>
@@ -1411,19 +1486,21 @@
             <form id="beautyAppointmentForm">
                 <input type="hidden" id="beautyAppointmentId">
                 <div class="form-group">
-                    <label class="form-label">Послуга</label>
-                    <select class="form-control" id="beautyAppointmentService" required></select>
+                    <label class="form-label">Послуга <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="beautyAppointmentService" required>
+                        <option value="">Оберіть послугу...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Клієнт</label>
-                    <input type="text" class="form-control" id="beautyAppointmentClient" required>
+                    <label class="form-label">Клієнт <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="beautyAppointmentClient" placeholder="ПІБ клієнта" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон</label>
-                    <input type="text" class="form-control" id="beautyAppointmentPhone">
+                    <input type="text" class="form-control" id="beautyAppointmentPhone" placeholder="+380 00 000 0000">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата та час</label>
+                    <label class="form-label">Дата та час <span style="color:var(--gold);">*</span></label>
                     <input type="datetime-local" class="form-control" id="beautyAppointmentDate" required>
                 </div>
                 <div class="form-group">
@@ -1435,7 +1512,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ АВТОСЕРВІСУ -->
+    <!-- ===== МОДАЛКИ ДЛЯ АВТОСЕРВІСУ ===== -->
     <div class="modal" id="autoOrderModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1445,24 +1522,24 @@
             <form id="autoOrderForm">
                 <input type="hidden" id="autoOrderId">
                 <div class="form-group">
-                    <label class="form-label">Клієнт</label>
-                    <input type="text" class="form-control" id="autoOrderClient" required>
+                    <label class="form-label">Клієнт <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="autoOrderClient" placeholder="ПІБ клієнта" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон</label>
-                    <input type="text" class="form-control" id="autoOrderPhone">
+                    <input type="text" class="form-control" id="autoOrderPhone" placeholder="+380 00 000 0000">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Марка/Модель авто</label>
-                    <input type="text" class="form-control" id="autoOrderCar">
+                    <input type="text" class="form-control" id="autoOrderCar" placeholder="Toyota Camry">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Номер авто</label>
-                    <input type="text" class="form-control" id="autoOrderNumber">
+                    <input type="text" class="form-control" id="autoOrderNumber" placeholder="AA 1234 BB">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Опис робіт</label>
-                    <textarea class="form-control" id="autoOrderDesc" rows="2"></textarea>
+                    <textarea class="form-control" id="autoOrderDesc" rows="2" placeholder="Опис необхідних робіт"></textarea>
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Створити</button>
             </form>
@@ -1478,12 +1555,12 @@
             <form id="autoPartForm">
                 <input type="hidden" id="autoPartId">
                 <div class="form-group">
-                    <label class="form-label">Назва запчастини</label>
-                    <input type="text" class="form-control" id="autoPartName" required>
+                    <label class="form-label">Назва запчастини <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="autoPartName" placeholder="Назва запчастини" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна (грн)</label>
-                    <input type="number" class="form-control" id="autoPartPrice" step="0.01">
+                    <input type="number" class="form-control" id="autoPartPrice" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Кількість</label>
@@ -1491,14 +1568,14 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Постачальник</label>
-                    <input type="text" class="form-control" id="autoPartSupplier">
+                    <input type="text" class="form-control" id="autoPartSupplier" placeholder="Назва постачальника">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ НЕРУХОМОСТІ -->
+    <!-- ===== МОДАЛКИ ДЛЯ НЕРУХОМОСТІ ===== -->
     <div class="modal" id="realtyPropertyModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1508,8 +1585,8 @@
             <form id="realtyPropertyForm">
                 <input type="hidden" id="realtyPropertyId">
                 <div class="form-group">
-                    <label class="form-label">Адреса</label>
-                    <input type="text" class="form-control" id="realtyPropertyAddress" required>
+                    <label class="form-label">Адреса <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="realtyPropertyAddress" placeholder="Вулиця, будинок" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Тип</label>
@@ -1517,11 +1594,11 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Ціна (грн)</label>
-                    <input type="number" class="form-control" id="realtyPropertyPrice" step="0.01">
+                    <input type="number" class="form-control" id="realtyPropertyPrice" step="0.01" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Площа (м²)</label>
-                    <input type="number" class="form-control" id="realtyPropertyArea" step="0.1">
+                    <input type="number" class="form-control" id="realtyPropertyArea" step="0.1" placeholder="0.0">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
@@ -1537,19 +1614,21 @@
             <form id="realtyDealForm">
                 <input type="hidden" id="realtyDealId">
                 <div class="form-group">
-                    <label class="form-label">Об'єкт</label>
-                    <select class="form-control" id="realtyDealProperty" required></select>
+                    <label class="form-label">Об'єкт <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="realtyDealProperty" required>
+                        <option value="">Оберіть об'єкт...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Клієнт</label>
-                    <input type="text" class="form-control" id="realtyDealClient" required>
+                    <label class="form-label">Клієнт <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="realtyDealClient" placeholder="ПІБ клієнта" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон</label>
-                    <input type="text" class="form-control" id="realtyDealPhone">
+                    <input type="text" class="form-control" id="realtyDealPhone" placeholder="+380 00 000 0000">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Тип угоди</label>
+                    <label class="form-label">Тип угоди <span style="color:var(--gold);">*</span></label>
                     <select class="form-control" id="realtyDealType" required>
                         <option value="sale">Продаж</option>
                         <option value="rent">Оренда</option>
@@ -1558,14 +1637,14 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Сума (грн)</label>
-                    <input type="number" class="form-control" id="realtyDealAmount" step="0.01">
+                    <input type="number" class="form-control" id="realtyDealAmount" step="0.01" placeholder="0.00">
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Створити</button>
             </form>
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ ЛОГІСТИКИ -->
+    <!-- ===== МОДАЛКИ ДЛЯ ЛОГІСТИКИ ===== -->
     <div class="modal" id="logisticsOrderModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1575,24 +1654,24 @@
             <form id="logisticsOrderForm">
                 <input type="hidden" id="logisticsOrderId">
                 <div class="form-group">
-                    <label class="form-label">Номер замовлення</label>
-                    <input type="text" class="form-control" id="logisticsOrderNumber" required>
+                    <label class="form-label">Номер замовлення <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="logisticsOrderNumber" placeholder="LOG-123456" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Клієнт</label>
-                    <input type="text" class="form-control" id="logisticsOrderClient" required>
+                    <label class="form-label">Клієнт <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="logisticsOrderClient" placeholder="ПІБ клієнта" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Адреса забору</label>
-                    <input type="text" class="form-control" id="logisticsOrderPickup">
+                    <input type="text" class="form-control" id="logisticsOrderPickup" placeholder="Адреса забору вантажу">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Адреса доставки</label>
-                    <input type="text" class="form-control" id="logisticsOrderDelivery">
+                    <input type="text" class="form-control" id="logisticsOrderDelivery" placeholder="Адреса доставки">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Вага (кг)</label>
-                    <input type="number" class="form-control" id="logisticsOrderWeight" step="0.1">
+                    <input type="number" class="form-control" id="logisticsOrderWeight" step="0.1" placeholder="0.0">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Дата доставки</label>
@@ -1603,7 +1682,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ ДОСТАВКИ -->
+    <!-- ===== МОДАЛКИ ДЛЯ ДОСТАВКИ ===== -->
     <div class="modal" id="deliveryOrderModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1613,24 +1692,24 @@
             <form id="deliveryOrderForm">
                 <input type="hidden" id="deliveryOrderId">
                 <div class="form-group">
-                    <label class="form-label">Номер замовлення</label>
-                    <input type="text" class="form-control" id="deliveryOrderNumber" required>
+                    <label class="form-label">Номер замовлення <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="deliveryOrderNumber" placeholder="DEL-123456" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Клієнт</label>
-                    <input type="text" class="form-control" id="deliveryOrderClient" required>
+                    <label class="form-label">Клієнт <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="deliveryOrderClient" placeholder="ПІБ клієнта" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Телефон</label>
-                    <input type="text" class="form-control" id="deliveryOrderPhone">
+                    <input type="text" class="form-control" id="deliveryOrderPhone" placeholder="+380 00 000 0000">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Адреса доставки</label>
-                    <input type="text" class="form-control" id="deliveryOrderAddress">
+                    <input type="text" class="form-control" id="deliveryOrderAddress" placeholder="Адреса доставки">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Кур'єр</label>
-                    <input type="text" class="form-control" id="deliveryOrderCourier">
+                    <input type="text" class="form-control" id="deliveryOrderCourier" placeholder="ПІБ кур'єра">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Час доставки</label>
@@ -1641,7 +1720,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ IT -->
+    <!-- ===== МОДАЛКИ ДЛЯ IT / GAMEDEV ===== -->
     <div class="modal" id="itProjectModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1651,12 +1730,12 @@
             <form id="itProjectForm">
                 <input type="hidden" id="itProjectId">
                 <div class="form-group">
-                    <label class="form-label">Назва проекту</label>
-                    <input type="text" class="form-control" id="itProjectName" required>
+                    <label class="form-label">Назва проекту <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="itProjectName" placeholder="Назва проекту" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="itProjectDesc" rows="2"></textarea>
+                    <textarea class="form-control" id="itProjectDesc" rows="2" placeholder="Опис проекту"></textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Дедлайн</label>
@@ -1676,16 +1755,18 @@
             <form id="itBugForm">
                 <input type="hidden" id="itBugId">
                 <div class="form-group">
-                    <label class="form-label">Проект</label>
-                    <select class="form-control" id="itBugProject" required></select>
+                    <label class="form-label">Проект <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="itBugProject" required>
+                        <option value="">Оберіть проект...</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Назва бага</label>
-                    <input type="text" class="form-control" id="itBugTitle" required>
+                    <label class="form-label">Назва бага <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="itBugTitle" placeholder="Назва бага" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="itBugDesc" rows="2"></textarea>
+                    <textarea class="form-control" id="itBugDesc" rows="2" placeholder="Опис бага"></textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Пріоритет</label>
@@ -1698,7 +1779,9 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Призначити</label>
-                    <select class="form-control" id="itBugAssign"></select>
+                    <select class="form-control" id="itBugAssign">
+                        <option value="">Не призначено</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">Додати</button>
             </form>
