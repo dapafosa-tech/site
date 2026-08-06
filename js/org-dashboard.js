@@ -67,6 +67,67 @@ var taskPriorityLabels = {
     'urgent': '🔥 Терміновий'
 };
 
+// ===== НАЛАШТУВАННЯ НАВІГАЦІЇ ЗА ТИПОМ ОРГАНІЗАЦІЇ =====
+function setupNavigationByType(orgType) {
+    var navMap = {
+        'clinic': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'clinic'],
+        'shop': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'shop'],
+        'library': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'library'],
+        'school': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'school'],
+        'restaurant': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'restaurant'],
+        'hotel': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'hotel'],
+        'gym': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'gym'],
+        'beauty': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'beauty'],
+        'auto': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'auto'],
+        'realty': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'realty'],
+        'logistics': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'logistics'],
+        'delivery': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'delivery'],
+        'it': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'it'],
+        'gamedev': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'it']
+    };
+
+    var navMenu = document.querySelector('.nav-menu');
+    if (!navMenu) return;
+
+    var allLinks = navMenu.querySelectorAll('a');
+    
+    // Ховаємо всі модулі
+    var moduleSections = ['clinic', 'shop', 'library', 'school', 'restaurant', 'hotel', 'gym', 'beauty', 'auto', 'realty', 'logistics', 'delivery', 'it'];
+    
+    allLinks.forEach(function(link) {
+        var onclick = link.getAttribute('onclick') || '';
+        var isModule = false;
+        for (var i = 0; i < moduleSections.length; i++) {
+            if (onclick.indexOf("'" + moduleSections[i] + "'") !== -1) {
+                isModule = true;
+                break;
+            }
+        }
+        if (isModule) {
+            link.style.display = 'none';
+        }
+    });
+
+    // Показуємо тільки потрібний модуль
+    var allowedModules = navMap[orgType] || ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings'];
+    
+    allLinks.forEach(function(link) {
+        var onclick = link.getAttribute('onclick') || '';
+        var shouldShow = false;
+        
+        for (var i = 0; i < allowedModules.length; i++) {
+            if (onclick.indexOf("'" + allowedModules[i] + "'") !== -1) {
+                shouldShow = true;
+                break;
+            }
+        }
+        
+        if (shouldShow) {
+            link.style.display = 'flex';
+        }
+    });
+}
+
 // ===== ІНІЦІАЛІЗАЦІЯ =====
 async function init() {
     var isAuth = await auth.requireAuth();
@@ -107,6 +168,9 @@ async function loadOrganization() {
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
     document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
 
+    // НАЛАШТУВАННЯ НАВІГАЦІЇ ЗА ТИПОМ
+    setupNavigationByType(currentOrg.type);
+
     // ПЕРЕВІРКА ПОСАДИ ДИРЕКТОРА
     try {
         var ranks = await db.getOrganizationRanks(currentOrgId);
@@ -139,7 +203,7 @@ async function loadOrganization() {
     loadSection('overview');
 }
 
-// ===== ЗАВАНТАЖЕННЯ РОЗДІЛІВ (РОЗШИРЕНА ВЕРСІЯ) =====
+// ===== ЗАВАНТАЖЕННЯ РОЗДІЛІВ =====
 function loadSection(section) {
     var links = document.querySelectorAll('.nav-menu a');
     for (var i = 0; i < links.length; i++) {
@@ -1929,7 +1993,6 @@ function openClinicAppointment() {
     document.getElementById('clinicAppointmentDate').value = '';
     document.getElementById('clinicAppointmentReason').value = '';
     
-    // Заповнюємо список пацієнтів
     loadClinicPatientsSelect();
 }
 
@@ -2160,7 +2223,6 @@ document.getElementById('shopSaleForm')?.addEventListener('submit', async functi
             status: 'completed'
         });
         
-        // Оновлюємо кількість
         if (product) {
             var newQuantity = (product.quantity || 0) - quantity;
             await db.supabaseQuery('shop_products?id=eq.' + productId, {
@@ -2367,7 +2429,6 @@ document.getElementById('libraryLoanForm')?.addEventListener('submit', async fun
             status: 'active'
         });
         
-        // Зменшуємо кількість доступних книг
         var books = await db.getLibraryBooks(currentOrgId);
         var book = books.find(function(b) { return b.id === bookId; });
         if (book) {
@@ -2830,7 +2891,6 @@ document.getElementById('hotelBookingForm')?.addEventListener('submit', async fu
             status: 'confirmed'
         });
         
-        // Змінюємо статус номера
         await db.supabaseQuery('hotel_rooms?id=eq.' + roomId, {
             method: 'PATCH',
             body: JSON.stringify({ is_available: false })
@@ -3518,20 +3578,20 @@ async function loadLogistics() {
                         </thead>
                         <tbody>
                             ${orders && orders.length > 0 ? orders.map(function(o) {
-                                return `
+                                return \`
                                     <tr>
-                                        <td><strong>${o.order_number || '—'}</strong></td>
-                                        <td>${o.client_name || '—'}</td>
-                                        <td>${o.weight || 0} кг</td>
-                                        <td><span class="badge ${o.status === 'new' ? 'badge-warning' : 'badge-success'}">${o.status || 'new'}</span></td>
-                                        <td>${o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('uk-UA') : '—'}</td>
+                                        <td><strong>\${o.order_number || '—'}</strong></td>
+                                        <td>\${o.client_name || '—'}</td>
+                                        <td>\${o.weight || 0} кг</td>
+                                        <td><span class="badge \${o.status === 'new' ? 'badge-warning' : 'badge-success'}">\${o.status || 'new'}</span></td>
+                                        <td>\${o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('uk-UA') : '—'}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteLogisticsOrder('${o.id}')">
+                                            <button class="btn btn-sm btn-danger" onclick="deleteLogisticsOrder('\${o.id}')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
-                                `;
+                                \`;
                             }).join('') : '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>'}
                         </tbody>
                     </table>
@@ -3636,20 +3696,20 @@ async function loadDelivery() {
                         </thead>
                         <tbody>
                             ${orders && orders.length > 0 ? orders.map(function(o) {
-                                return `
+                                return \`
                                     <tr>
-                                        <td><strong>${o.order_number || '—'}</strong></td>
-                                        <td>${o.client_name || '—'}</td>
-                                        <td>${o.courier_name || 'Не призначено'}</td>
-                                        <td><span class="badge ${o.status === 'pending' ? 'badge-warning' : o.status === 'delivered' ? 'badge-success' : 'badge-primary'}">${o.status || 'pending'}</span></td>
-                                        <td>${o.delivery_time ? new Date(o.delivery_time).toLocaleString('uk-UA') : '—'}</td>
+                                        <td><strong>\${o.order_number || '—'}</strong></td>
+                                        <td>\${o.client_name || '—'}</td>
+                                        <td>\${o.courier_name || 'Не призначено'}</td>
+                                        <td><span class="badge \${o.status === 'pending' ? 'badge-warning' : o.status === 'delivered' ? 'badge-success' : 'badge-primary'}">\${o.status || 'pending'}</span></td>
+                                        <td>\${o.delivery_time ? new Date(o.delivery_time).toLocaleString('uk-UA') : '—'}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteDeliveryOrder('${o.id}')">
+                                            <button class="btn btn-sm btn-danger" onclick="deleteDeliveryOrder('\${o.id}')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
-                                `;
+                                \`;
                             }).join('') : '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>'}
                         </tbody>
                     </table>
