@@ -1997,11 +1997,20 @@ async function loadClinic() {
         if (appointments && appointments.length > 0) {
             for (var i = 0; i < appointments.length; i++) {
                 var a = appointments[i];
-                var statusClass = a.status === 'scheduled' ? 'badge-warning' : a.status === 'completed' ? 'badge-success' : 'badge-danger';
-                var statusLabel = a.status === 'scheduled' ? '⏳ Заплановано' : a.status === 'completed' ? '✅ Виконано' : '❌ Скасовано';
+                var statusClass = a.status === 'scheduled' ? 'badge-warning' : a.status === 'completed' ? 'badge-success' : a.status === 'cancelled' ? 'badge-danger' : 'badge-secondary';
+                var statusLabel = a.status === 'scheduled' ? '⏳ Заплановано' : a.status === 'completed' ? '✅ Виконано' : a.status === 'cancelled' ? '❌ Скасовано' : a.status || 'Невідомо';
+                
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
                 html += '<div><strong>' + (a.patient_name || 'Пацієнт') + '</strong> → ' + (a.doctor_name || 'Лікар') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + statusLabel + '</span></div>';
+                html += '<div>';
+                html += '<span class="badge ' + statusClass + '" style="margin-right:0.5rem;">' + statusLabel + '</span>';
+                html += '<button class="btn btn-sm btn-teal" onclick="changeAppointmentStatus(\'' + a.id + '\', \'' + a.status + '\')" title="Змінити статус" style="padding:0.1rem 0.4rem;font-size:0.6rem;">';
+                html += '<i class="fas fa-sync"></i>';
+                html += '</button>';
+                html += '</div>';
+                html += '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + (a.reason ? ' · ' + a.reason : '') + '</div>';
                 html += '</div>';
             }
         } else {
