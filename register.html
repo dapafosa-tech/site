@@ -236,7 +236,6 @@
         <p class="subtitle">Почніть керувати своєю організацією</p>
 
         <form id="registerForm" autocomplete="off" novalidate>
-            <!-- АВАТАРКА -->
             <div class="avatar-upload">
                 <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarInput').click()">
                     <i class="fas fa-user"></i>
@@ -251,7 +250,6 @@
                 <input type="text" id="fullName" class="form-control" placeholder="Іван Іванов" required autofocus>
             </div>
 
-            <!-- EMAIL З ВЕРИФІКАЦІЄЮ -->
             <div class="form-group">
                 <label class="form-label" for="email">Електронна пошта</label>
                 <div class="email-row">
@@ -351,7 +349,6 @@
             status.className = 'email-status ' + type;
         }
 
-        // ===== ВІДПРАВКА КОДУ =====
         async function sendCode() {
             var email = document.getElementById('email').value.trim();
             var sendBtn = document.getElementById('sendCodeBtn');
@@ -361,7 +358,6 @@
                 return;
             }
 
-            // Проста перевірка email
             if (!email.includes('@') || !email.includes('.')) {
                 await showAlert('Введіть коректну електронну пошту', 'warning');
                 return;
@@ -394,7 +390,6 @@
             sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Код';
         }
 
-        // ===== ПЕРЕВІРКА КОДУ =====
         async function verifyCode() {
             var code = document.getElementById('verificationCode').value.trim();
             var verifyBtn = document.getElementById('verifyBtn');
@@ -442,7 +437,6 @@
             verifyBtn.innerHTML = '<i class="fas fa-check"></i> Підтвердити';
         }
 
-        // Валідація пароля
         document.getElementById('password').addEventListener('input', function() {
             var confirmInput = document.getElementById('confirmPassword');
             if (confirmInput.value && confirmInput.value !== this.value) {
@@ -463,7 +457,6 @@
             }
         });
 
-        // ===== РЕЄСТРАЦІЯ =====
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -539,7 +532,6 @@
             }
         });
 
-        // Перевірка авторизації
         (async function() {
             try {
                 var userData = localStorage.getItem('userData');
