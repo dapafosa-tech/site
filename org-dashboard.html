@@ -516,7 +516,7 @@
         </div>
     </div>
 
-    <!-- Модалка створення опитування -->
+    <!-- Модалка створення опитування (ВИПРАВЛЕНА) -->
     <div class="modal" id="pollModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -524,6 +524,7 @@
                 <button class="modal-close" onclick="closeModal('pollModal')">&times;</button>
             </div>
             <form id="pollForm">
+                <input type="hidden" id="pollEditId">
                 <div class="form-group">
                     <label class="form-label">Назва опитування</label>
                     <input type="text" class="form-control" id="pollTitle" placeholder="Назва" required>
@@ -537,7 +538,7 @@
                     <textarea class="form-control" id="pollOptions" rows="4" placeholder="Варіант 1&#10;Варіант 2&#10;Варіант 3" required></textarea>
                     <small style="color:var(--muted);">Кожен варіант з нового рядка</small>
                 </div>
-                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+                <button type="submit" class="btn btn-gold btn-block" id="pollSubmitText">Створити</button>
             </form>
         </div>
     </div>
