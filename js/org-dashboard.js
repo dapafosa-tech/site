@@ -18,6 +18,7 @@ var allLogisticsOrders = [];
 var allDeliveryOrders = [];
 var allProjects = [];
 var allOrders = [];
+var selectedOrderItems = [];
 
 // ===== ТИПИ =====
 var typeLabels = {
@@ -48,16 +49,16 @@ var typeLabels = {
 
 // ===== СТАТУСИ =====
 var statusLabels = {
-    'pending': '⏳ Очікує',
-    'approved': '✅ Схвалено',
-    'rejected': '❌ Відхилено'
+    'pending': 'Очікує',
+    'approved': 'Схвалено',
+    'rejected': 'Відхилено'
 };
 
 var vacationStatusLabels = {
-    'pending': '⏳ Очікує',
-    'approved': '✅ Схвалено',
-    'rejected': '❌ Відхилено',
-    'cancelled': '🚫 Скасовано'
+    'pending': 'Очікує',
+    'approved': 'Схвалено',
+    'rejected': 'Відхилено',
+    'cancelled': 'Скасовано'
 };
 
 var vacationTypeLabels = {
@@ -69,25 +70,25 @@ var vacationTypeLabels = {
 };
 
 var taskStatusLabels = {
-    'new': '🆕 Нове',
-    'in_progress': '🔄 В роботі',
-    'review': '👀 На перевірці',
-    'done': '✅ Виконано',
-    'closed': '📌 Закрито'
+    'new': 'Нове',
+    'in_progress': 'В роботі',
+    'review': 'На перевірці',
+    'done': 'Виконано',
+    'closed': 'Закрито'
 };
 
 var taskPriorityLabels = {
-    'low': '🟢 Низький',
-    'medium': '🟡 Середній',
-    'high': '🔴 Високий',
-    'urgent': '🔥 Терміновий'
+    'low': 'Низький',
+    'medium': 'Середній',
+    'high': 'Високий',
+    'urgent': 'Терміновий'
 };
 
 var orderStatusLabels = {
-    'new': '🆕 Прийнято',
-    'in_progress': '🔄 В процесі',
-    'completed': '✅ Виконано',
-    'cancelled': '❌ Скасовано'
+    'new': 'Прийнято',
+    'in_progress': 'В процесі',
+    'completed': 'Виконано',
+    'cancelled': 'Скасовано'
 };
 
 // ===== НАЛАШТУВАННЯ НАВІГАЦІЇ =====
@@ -145,6 +146,8 @@ function setupNavigationByType(orgType) {
         
         if (shouldShow) {
             link.style.display = 'flex';
+        } else {
+            link.style.display = 'none';
         }
     });
 }
@@ -397,8 +400,8 @@ async function loadMembers() {
 
                     html += 
                         '<tr>' +
-                            '<td><strong>' + userName + (isLeaderUser ? ' 👑' : '') + (isCurrentUser ? ' (ви)' : '') + '</strong></td>' +
-                            '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' ⭐' : '') + '</span>' : 'Без посади') + '</td>' +
+                            '<td><strong>' + userName + (isLeaderUser ? ' (керівник)' : '') + (isCurrentUser ? ' (ви)' : '') + '</strong></td>' +
+                            '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' (основна)' : '') + '</span>' : 'Без посади') + '</td>' +
                             '<td>' + departmentName + '</td>' +
                             '<td>' + new Date(member.joined_at).toLocaleDateString('uk-UA') + '</td>' +
                             '<td>' + (canManage ? 
@@ -465,7 +468,7 @@ async function removeFromDepartment(employeeId) {
 }
 
 async function removeMember(memberId, userName) {
-    var confirmed = await showConfirm('Ви впевнені, що хочете вигнати користувача "' + userName + '" з організації?', '⚠️ Увага');
+    var confirmed = await showConfirm('Ви впевнені, що хочете вигнати користувача "' + userName + '" з організації?', 'Увага');
     if (!confirmed) return;
 
     try {
@@ -542,7 +545,7 @@ async function loadRequests() {
                                 '</button>' +
                                 '<button class="btn btn-sm btn-danger" onclick="handleRequest(\'' + req.id + '\', \'rejected\')">' +
                                     '<i class="fas fa-times"></i>' +
-                                '</button>' : (isPending ? '⏳' : '—')) + '</td>' +
+                                '</button>' : (isPending ? 'Очікує' : '—')) + '</td>' +
                         '</tr>';
                 } catch (e) {}
             }
@@ -620,7 +623,7 @@ async function loadRanks() {
 
                 html += 
                     '<tr>' +
-                        '<td><strong>' + rank.name + (rank.is_default ? ' ⭐' : '') + '</strong></td>' +
+                        '<td><strong>' + rank.name + (rank.is_default ? ' (основна)' : '') + '</strong></td>' +
                         '<td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:' + rank.color + ';"></span> ' + rank.color + '</td>' +
                         '<td>' + (canManage ? 
                             '<button class="btn btn-sm btn-teal" onclick="openEditRank(\'' + rank.id + '\')">' +
@@ -1088,7 +1091,7 @@ async function loadChat() {
                         '<div style="max-width:70%;background:' + (isOwn ? 'var(--gold)' : 'var(--ink)') + ';color:' + (isOwn ? 'var(--ink)' : 'var(--text-onink)') + ';padding:0.5rem 1rem;border-radius:12px;border-bottom-' + (isOwn ? 'right' : 'left') + '-radius:4px;border:' + (isOwn ? 'none' : '1px solid var(--ink-line)') + ';">' +
                             '<div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.2rem;">' +
                                 userName + ' · ' + new Date(msg.created_at).toLocaleTimeString('uk-UA') +
-                                (hasMention ? ' <span style="color:var(--teal);">@згадування</span>' : '') +
+                                (hasMention ? ' (згадування)' : '') +
                             '</div>' +
                             '<div>' + msg.message + '</div>' +
                             (isOwn ? 
@@ -1810,12 +1813,12 @@ async function viewPoll(pollId) {
                     }).join('') +
                 '</div>';
         } else if (hasVoted) {
-            html += '<p style="color:var(--teal);margin-top:1rem;">✅ Ви вже проголосували</p>';
+            html += '<p style="color:var(--teal);margin-top:1rem;">Ви вже проголосували</p>';
         } else {
-            html += '<p style="color:var(--muted);margin-top:1rem;">⏳ Опитування завершено</p>';
+            html += '<p style="color:var(--muted);margin-top:1rem;">Опитування завершено</p>';
         }
 
-        await showAlert(html, 'info', '📊 Результати опитування');
+        await showAlert(html, 'info', 'Результати опитування');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -1982,7 +1985,7 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
             uploaded_by: user ? user.id : null
         });
 
-        await showToast('Файл завантажено! 🎉', 'success');
+        await showToast('Файл завантажено!', 'success');
         closeModal('fileModal');
         document.getElementById('fileForm').reset();
         loadFiles();
@@ -2028,11 +2031,11 @@ async function deleteFile(fileId) {
 }
 
 // ============================================
-// МОДУЛЬ: КЛІНІКА (З ПОШУКОМ ПАЦІЄНТІВ)
+// МОДУЛЬ: КЛІНІКА
 // ============================================
 async function loadClinic() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🏥 Клініка';
+    document.getElementById('pageTitle').textContent = 'Клініка';
     document.getElementById('pageSubtitle').textContent = 'Управління пацієнтами та записами';
 
     try {
@@ -2049,7 +2052,7 @@ async function loadClinic() {
         html += '<button class="btn btn-gold btn-sm" onclick="openClinicPatient()"><i class="fas fa-plus"></i> Додати</button>';
         html += '</div>';
         html += '<div style="margin-bottom:0.75rem;display:flex;gap:0.5rem;">';
-        html += '<input type="text" class="form-control" id="patientSearch" placeholder="🔍 Пошук пацієнтів..." style="flex:1;" oninput="filterPatients()">';
+        html += '<input type="text" class="form-control" id="patientSearch" placeholder="Пошук пацієнтів..." style="flex:1;" oninput="filterPatients()">';
         html += '</div>';
         html += '<div id="clinicPatientsList" style="max-height:300px;overflow-y:auto;">';
         
@@ -2078,10 +2081,10 @@ async function loadClinic() {
             for (var i = 0; i < appointments.length; i++) {
                 var a = appointments[i];
                 var statusMap = {
-                    'scheduled': { class: 'badge-scheduled', label: '⏳ Заплановано' },
-                    'in_progress': { class: 'badge-in_progress', label: '🔄 В процесі' },
-                    'completed': { class: 'badge-completed', label: '✅ Виконано' },
-                    'cancelled': { class: 'badge-cancelled', label: '❌ Скасовано' }
+                    'scheduled': { class: 'badge-scheduled', label: 'Заплановано' },
+                    'in_progress': { class: 'badge-in_progress', label: 'В процесі' },
+                    'completed': { class: 'badge-completed', label: 'Виконано' },
+                    'cancelled': { class: 'badge-cancelled', label: 'Скасовано' }
                 };
                 var statusInfo = statusMap[a.status] || { class: 'badge-secondary', label: a.status || 'Невідомо' };
                 
@@ -2152,7 +2155,7 @@ async function viewClinicPatient(patientId) {
         html += '<button class="btn btn-danger" onclick="closeModal(\'alertModal\');deleteClinicPatient(\'' + patient.id + '\')"><i class="fas fa-trash"></i> Видалити</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '👤 Пацієнт');
+        await showAlert(html, 'info', 'Пацієнт');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -2288,10 +2291,10 @@ async function deleteClinicPatient(patientId) {
 
 async function changeAppointmentStatus(appointmentId, currentStatus) {
     var statuses = [
-        { value: 'scheduled', label: '⏳ Заплановано' },
-        { value: 'in_progress', label: '🔄 В процесі' },
-        { value: 'completed', label: '✅ Виконано' },
-        { value: 'cancelled', label: '❌ Скасовано' }
+        { value: 'scheduled', label: 'Заплановано' },
+        { value: 'in_progress', label: 'В процесі' },
+        { value: 'completed', label: 'Виконано' },
+        { value: 'cancelled', label: 'Скасовано' }
     ];
     
     var currentLabel = 'Невідомо';
@@ -2314,12 +2317,12 @@ async function changeAppointmentStatus(appointmentId, currentStatus) {
         var style = isActive ? 'opacity:0.7;cursor:default;' : '';
         
         html += '<button class="btn ' + btnClass + '" onclick="setAppointmentStatus(\'' + appointmentId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + style + '">';
-        html += s.label + (isActive ? ' ✅' : '');
+        html += s.label + (isActive ? ' (поточний)' : '');
         html += '</button>';
     }
     html += '</div>';
     
-    await showAlert(html, 'info', '📋 Зміна статусу запису');
+    await showAlert(html, 'info', 'Зміна статусу запису');
 }
 
 async function setAppointmentStatus(appointmentId, newStatus) {
@@ -2327,10 +2330,10 @@ async function setAppointmentStatus(appointmentId, newStatus) {
         closeModal('alertModal');
         
         var labels = {
-            'scheduled': '⏳ Заплановано',
-            'in_progress': '🔄 В процесі',
-            'completed': '✅ Виконано',
-            'cancelled': '❌ Скасовано'
+            'scheduled': 'Заплановано',
+            'in_progress': 'В процесі',
+            'completed': 'Виконано',
+            'cancelled': 'Скасовано'
         };
         
         var confirmed = await showConfirm('Змінити статус на "' + labels[newStatus] + '"?', 'Підтвердження');
@@ -2352,11 +2355,11 @@ async function setAppointmentStatus(appointmentId, newStatus) {
 }
 
 // ============================================
-// МОДУЛЬ: МАГАЗИН (З ПОШУКОМ І КАРТОЧКАМИ)
+// МОДУЛЬ: МАГАЗИН
 // ============================================
 async function loadShop() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🛒 Магазин';
+    document.getElementById('pageTitle').textContent = 'Магазин';
     document.getElementById('pageSubtitle').textContent = 'Управління товарами та продажами';
 
     try {
@@ -2371,7 +2374,7 @@ async function loadShop() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Товари (' + (products ? products.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openShopProduct()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="shopProductSearch" placeholder="🔍 Пошук товарів..." oninput="filterShopProducts()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="shopProductSearch" placeholder="Пошук товарів..." oninput="filterShopProducts()"></div>';
         html += '<div id="shopProductsList" style="max-height:300px;overflow-y:auto;">';
         if (products && products.length > 0) {
             for (var i = 0; i < products.length; i++) {
@@ -2389,7 +2392,7 @@ async function loadShop() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Продажі (' + (sales ? sales.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openShopSale()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="shopSaleSearch" placeholder="🔍 Пошук продажів..." oninput="filterShopSales()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="shopSaleSearch" placeholder="Пошук продажів..." oninput="filterShopSales()"></div>';
         html += '<div id="shopSalesList" style="max-height:300px;overflow-y:auto;">';
         if (sales && sales.length > 0) {
             for (var i = 0; i < sales.length; i++) {
@@ -2464,7 +2467,7 @@ async function viewShopProduct(productId) {
         html += '<button class="btn btn-danger" onclick="closeModal(\'alertModal\');deleteShopProduct(\'' + product.id + '\')"><i class="fas fa-trash"></i> Видалити</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '📦 Товар');
+        await showAlert(html, 'info', 'Товар');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -2495,7 +2498,7 @@ async function viewShopSale(saleId) {
         html += '<div><strong>Статус:</strong> ' + (sale.status || 'completed') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '💳 Продаж');
+        await showAlert(html, 'info', 'Продаж');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -2508,7 +2511,6 @@ function openEditShopProduct(productId) {
 function openShopProduct(editId) {
     document.getElementById('shopProductModal').classList.add('active');
     if (editId) {
-        // Завантажуємо дані для редагування
         var product = allProducts.find(function(p) { return p.id === editId; });
         if (product) {
             document.getElementById('shopProductId').value = product.id;
@@ -2600,12 +2602,12 @@ document.getElementById('shopSaleForm')?.addEventListener('submit', async functi
             }
         }
         var price = product ? product.price : 0;
-        var productName = product ? product.name : 'Товар'; // ← ОТРИМУЄМО НАЗВУ
+        var productName = product ? product.name : 'Товар';
         
         await db.createShopSale({
             organization_id: currentOrgId,
             product_id: productId,
-            product_name: productName, // ← ДОДАЄМО ЦЕЙ РЯДОК
+            product_name: productName,
             quantity: quantity,
             price: price,
             total: price * quantity,
@@ -2644,11 +2646,11 @@ async function deleteShopProduct(productId) {
 }
 
 // ============================================
-// МОДУЛЬ: БІБЛІОТЕКА (З ПОШУКОМ І КАРТОЧКАМИ)
+// МОДУЛЬ: БІБЛІОТЕКА
 // ============================================
 async function loadLibrary() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '📚 Бібліотека';
+    document.getElementById('pageTitle').textContent = 'Бібліотека';
     document.getElementById('pageSubtitle').textContent = 'Управління книгами та читачами';
 
     try {
@@ -2663,7 +2665,7 @@ async function loadLibrary() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Книги (' + (books ? books.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openLibraryBook()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="libraryBookSearch" placeholder="🔍 Пошук книг..." oninput="filterLibraryBooks()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="libraryBookSearch" placeholder="Пошук книг..." oninput="filterLibraryBooks()"></div>';
         html += '<div id="libraryBooksList" style="max-height:300px;overflow-y:auto;">';
         if (books && books.length > 0) {
             for (var i = 0; i < books.length; i++) {
@@ -2681,7 +2683,7 @@ async function loadLibrary() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Читачі (' + (readers ? readers.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openLibraryReader()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="libraryReaderSearch" placeholder="🔍 Пошук читачів..." oninput="filterLibraryReaders()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="libraryReaderSearch" placeholder="Пошук читачів..." oninput="filterLibraryReaders()"></div>';
         html += '<div id="libraryReadersList" style="max-height:300px;overflow-y:auto;">';
         if (readers && readers.length > 0) {
             for (var i = 0; i < readers.length; i++) {
@@ -2772,7 +2774,7 @@ async function viewLibraryBook(bookId) {
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (book.description || 'Немає опису') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '📖 Книга');
+        await showAlert(html, 'info', 'Книга');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -2800,7 +2802,7 @@ async function viewLibraryReader(readerId) {
         html += '<div><strong>Дата реєстрації:</strong> ' + (reader.joined_at ? new Date(reader.joined_at).toLocaleDateString('uk-UA') : '—') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '👤 Читач');
+        await showAlert(html, 'info', 'Читач');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -2978,7 +2980,7 @@ document.getElementById('libraryLoanForm')?.addEventListener('submit', async fun
 // ============================================
 async function loadSchool() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🎓 Школа';
+    document.getElementById('pageTitle').textContent = 'Школа';
     document.getElementById('pageSubtitle').textContent = 'Управління учнями та класами';
 
     try {
@@ -2992,7 +2994,7 @@ async function loadSchool() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Учні (' + (students ? students.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openSchoolStudent()"><i class="fas fa-plus"></i> Додати</button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="schoolStudentSearch" placeholder="🔍 Пошук учнів..." oninput="filterSchoolStudents()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="schoolStudentSearch" placeholder="Пошук учнів..." oninput="filterSchoolStudents()"></div>';
         html += '<div id="schoolStudentsList" style="max-height:300px;overflow-y:auto;">';
         if (students && students.length > 0) {
             for (var i = 0; i < students.length; i++) {
@@ -3086,7 +3088,7 @@ async function viewSchoolStudent(studentId) {
         html += '<div style="grid-column:span 2;"><strong>Адреса:</strong> ' + (student.address || '—') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '🎓 Учень');
+        await showAlert(html, 'info', 'Учень');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -3226,11 +3228,9 @@ document.getElementById('schoolClassForm')?.addEventListener('submit', async fun
 // ============================================
 // МОДУЛЬ: РЕСТОРАН / КАФЕ (ПОВНА ВЕРСІЯ)
 // ============================================
-var selectedOrderItems = [];
-
 async function loadRestaurant() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🍽️ Ресторан / Кафе';
+    document.getElementById('pageTitle').textContent = 'Ресторан / Кафе';
     document.getElementById('pageSubtitle').textContent = 'Управління меню, замовленнями та бронюваннями';
 
     try {
@@ -3244,13 +3244,13 @@ async function loadRestaurant() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Меню (' + (menu ? menu.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openRestaurantMenuItem()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="restaurantMenuSearch" placeholder="🔍 Пошук страв..." oninput="filterRestaurantMenu()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="restaurantMenuSearch" placeholder="Пошук страв..." oninput="filterRestaurantMenu()"></div>';
         html += '<div id="restaurantMenuList" style="max-height:300px;overflow-y:auto;">';
         if (menu && menu.length > 0) {
             for (var i = 0; i < menu.length; i++) {
                 var m = menu[i];
                 html += '<div class="restaurant-menu-item" data-name="' + (m.name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="viewRestaurantMenuItem(\'' + m.id + '\')">';
-                html += '<div><strong>' + m.name + '</strong><div style="font-size:0.75rem;color:var(--muted);">' + (m.price || 0) + ' грн · ' + (m.category || '') + (m.is_available ? ' ✅' : ' ❌') + '</div></div>';
+                html += '<div><strong>' + m.name + '</strong><div style="font-size:0.75rem;color:var(--muted);">' + (m.price || 0) + ' грн · ' + (m.category || '') + (m.is_available !== false ? ' (в наявності)' : ' (немає)') + '</div></div>';
                 html += '<div><button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteRestaurantMenuItem(\'' + m.id + '\')"><i class="fas fa-trash"></i></button></div>';
                 html += '</div>';
             }
@@ -3262,7 +3262,7 @@ async function loadRestaurant() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Замовлення (' + (orders ? orders.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openRestaurantOrder()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="restaurantOrderSearch" placeholder="🔍 Пошук замовлень..." oninput="filterRestaurantOrders()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="restaurantOrderSearch" placeholder="Пошук замовлень..." oninput="filterRestaurantOrders()"></div>';
         html += '<div id="restaurantOrdersList" style="max-height:300px;overflow-y:auto;">';
         if (orders && orders.length > 0) {
             for (var i = 0; i < orders.length; i++) {
@@ -3284,15 +3284,15 @@ async function loadRestaurant() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Бронювання (' + (bookings ? bookings.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openRestaurantBooking()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="restaurantBookingSearch" placeholder="🔍 Пошук бронювань..." oninput="filterRestaurantBookings()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="restaurantBookingSearch" placeholder="Пошук бронювань..." oninput="filterRestaurantBookings()"></div>';
         html += '<div id="restaurantBookingsList" style="max-height:300px;overflow-y:auto;">';
         if (bookings && bookings.length > 0) {
             for (var i = 0; i < bookings.length; i++) {
                 var b = bookings[i];
                 var statusLabels = {
-                    'confirmed': '✅ Підтверджено',
-                    'cancelled': '❌ Скасовано',
-                    'completed': '✅ Виконано'
+                    'confirmed': 'Підтверджено',
+                    'cancelled': 'Скасовано',
+                    'completed': 'Виконано'
                 };
                 var statusClass = b.status === 'confirmed' ? 'badge-success' : b.status === 'cancelled' ? 'badge-danger' : 'badge-secondary';
                 html += '<div class="restaurant-booking-item" data-name="' + (b.customer_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewRestaurantBooking(\'' + b.id + '\')">';
@@ -3328,8 +3328,6 @@ function filterRestaurantOrders() {
     var query = document.getElementById('restaurantOrderSearch').value.toLowerCase().trim();
     var items = document.querySelectorAll('.restaurant-order-item');
     items.forEach(function(item) {
-        var id = item.getAttribute('data-id') || '';
-        // Просто показуємо всі, бо пошук по id не дуже корисний
         item.style.display = 'block';
     });
 }
@@ -3365,16 +3363,16 @@ async function viewRestaurantMenuItem(itemId) {
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">';
         html += '<div><strong>Ціна:</strong> ' + (item.price || 0) + ' грн</div>';
         html += '<div><strong>Категорія:</strong> ' + (item.category || '—') + '</div>';
-        html += '<div><strong>Доступно:</strong> ' + (item.is_available ? '✅ Так' : '❌ Ні') + '</div>';
+        html += '<div><strong>Доступно:</strong> ' + (item.is_available !== false ? 'Так' : 'Ні') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (item.description || 'Немає опису') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Інгредієнти:</strong> ' + (item.ingredients || '—') + '</div>';
         html += '</div></div>';
         
         html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">';
-        html += '<button class="btn btn-teal" onclick="closeModal(\'alertModal\');toggleRestaurantItemAvailability(\'' + item.id + '\', ' + (item.is_available ? 'false' : 'true') + ')"><i class="fas fa-sync"></i> ' + (item.is_available ? 'Зняти з продажу' : 'Додати в продаж') + '</button>';
+        html += '<button class="btn btn-teal" onclick="closeModal(\'alertModal\');toggleRestaurantItemAvailability(\'' + item.id + '\', ' + (item.is_available !== false ? 'false' : 'true') + ')"><i class="fas fa-sync"></i> ' + (item.is_available !== false ? 'Зняти з продажу' : 'Додати в продаж') + '</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '🍽️ Страва');
+        await showAlert(html, 'info', 'Страва');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -3411,7 +3409,7 @@ async function viewRestaurantBooking(bookingId) {
         html += '<button class="btn btn-success" onclick="closeModal(\'alertModal\');updateRestaurantBookingStatus(\'' + booking.id + '\', \'completed\')"><i class="fas fa-check-double"></i> Виконано</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '📅 Бронювання');
+        await showAlert(html, 'info', 'Бронювання');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -3496,7 +3494,7 @@ async function deleteRestaurantMenuItem(id) {
     }
 }
 
-// ===== СТВОРЕННЯ ЗАМОВЛЕННЯ (З ВИБОРОМ СТРАВ І ЧАЙОВИМИ) =====
+// ===== СТВОРЕННЯ ЗАМОВЛЕННЯ =====
 function openRestaurantOrder() {
     document.getElementById('restaurantOrderModal').classList.add('active');
     document.getElementById('restaurantOrderId').value = '';
@@ -3681,7 +3679,7 @@ document.getElementById('restaurantOrderForm')?.addEventListener('submit', async
             status: 'new'
         });
         
-        await showToast('Замовлення створено! 🎉', 'success');
+        await showToast('Замовлення створено!', 'success');
         closeModal('restaurantOrderModal');
         document.getElementById('restaurantOrderForm').reset();
         selectedOrderItems = [];
@@ -3733,22 +3731,22 @@ async function viewRestaurantOrder(orderId) {
         html += '<p style="color:var(--text-secondary);font-size:0.85rem;">Змінити статус:</p>';
         
         var statuses = [
-            { value: 'new', label: '🆕 Прийнято' },
-            { value: 'in_progress', label: '🔄 В процесі' },
-            { value: 'completed', label: '✅ Виконано' },
-            { value: 'cancelled', label: '❌ Скасовано' }
+            { value: 'new', label: 'Прийнято' },
+            { value: 'in_progress', label: 'В процесі' },
+            { value: 'completed', label: 'Виконано' },
+            { value: 'cancelled', label: 'Скасовано' }
         ];
         
         for (var k = 0; k < statuses.length; k++) {
             var s = statuses[k];
             var isActive = s.value === order.status;
             html += '<button class="btn ' + (isActive ? 'btn-gold' : 'btn-outline') + '" onclick="updateRestaurantOrderStatus(\'' + orderId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + (isActive ? 'opacity:0.7;' : '') + '">';
-            html += s.label + (isActive ? ' ✅' : '');
+            html += s.label + (isActive ? ' (поточний)' : '');
             html += '</button>';
         }
         html += '</div>';
         
-        await showAlert(html, 'info', '📋 Деталі замовлення');
+        await showAlert(html, 'info', 'Деталі замовлення');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -3823,11 +3821,11 @@ document.getElementById('restaurantBookingForm')?.addEventListener('submit', asy
 });
 
 // ============================================
-// МОДУЛЬ: ГОТЕЛЬ (З ПОШУКОМ І КАРТОЧКАМИ)
+// МОДУЛЬ: ГОТЕЛЬ
 // ============================================
 async function loadHotel() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🏨 Готель';
+    document.getElementById('pageTitle').textContent = 'Готель';
     document.getElementById('pageSubtitle').textContent = 'Управління номерами та бронюваннями';
 
     try {
@@ -3841,14 +3839,14 @@ async function loadHotel() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Номери (' + (rooms ? rooms.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openHotelRoom()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="hotelRoomSearch" placeholder="🔍 Пошук номерів..." oninput="filterHotelRooms()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="hotelRoomSearch" placeholder="Пошук номерів..." oninput="filterHotelRooms()"></div>';
         html += '<div id="hotelRoomsList" style="max-height:300px;overflow-y:auto;">';
         if (rooms && rooms.length > 0) {
             for (var i = 0; i < rooms.length; i++) {
                 var r = rooms[i];
                 html += '<div class="hotel-room-item" data-number="' + (r.number || '').toLowerCase() + '" data-type="' + (r.type || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewHotelRoom(\'' + r.id + '\')">';
                 html += '<div><strong>№' + r.number + '</strong> — ' + (r.type || 'Стандарт') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (r.price || 0) + ' грн · ' + (r.is_available ? '✅ Вільний' : '❌ Зайнятий') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (r.price || 0) + ' грн · ' + (r.is_available ? 'Вільний' : 'Зайнятий') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -3859,7 +3857,7 @@ async function loadHotel() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Бронювання (' + (bookings ? bookings.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openHotelBooking()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="hotelBookingSearch" placeholder="🔍 Пошук бронювань..." oninput="filterHotelBookings()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="hotelBookingSearch" placeholder="Пошук бронювань..." oninput="filterHotelBookings()"></div>';
         html += '<div id="hotelBookingsList" style="max-height:300px;overflow-y:auto;">';
         if (bookings && bookings.length > 0) {
             for (var i = 0; i < bookings.length; i++) {
@@ -3926,7 +3924,7 @@ async function viewHotelRoom(roomId) {
         html += '<div><strong>Тип:</strong> ' + (room.type || 'Стандарт') + '</div>';
         html += '<div><strong>Ціна:</strong> ' + (room.price || 0) + ' грн</div>';
         html += '<div><strong>Місткість:</strong> ' + (room.capacity || 1) + ' ос.</div>';
-        html += '<div><strong>Статус:</strong> ' + (room.is_available ? '✅ Вільний' : '❌ Зайнятий') + '</div>';
+        html += '<div><strong>Статус:</strong> ' + (room.is_available ? 'Вільний' : 'Зайнятий') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (room.description || 'Немає опису') + '</div>';
         html += '</div></div>';
         
@@ -3934,7 +3932,7 @@ async function viewHotelRoom(roomId) {
         html += '<button class="btn btn-teal" onclick="closeModal(\'alertModal\');toggleHotelRoomStatus(\'' + room.id + '\', ' + (room.is_available ? 'false' : 'true') + ')"><i class="fas fa-sync"></i> ' + (room.is_available ? 'Зайняти' : 'Звільнити') + '</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '🏨 Номер');
+        await showAlert(html, 'info', 'Номер');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -3964,7 +3962,7 @@ async function viewHotelBooking(bookingId) {
         html += '<div><strong>Статус:</strong> ' + (booking.status || 'confirmed') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '📅 Бронювання');
+        await showAlert(html, 'info', 'Бронювання');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4089,11 +4087,11 @@ document.getElementById('hotelBookingForm')?.addEventListener('submit', async fu
 });
 
 // ============================================
-// МОДУЛЬ: СПОРТЗАЛ (З ПІБ І КАРТОЧКАМИ)
+// МОДУЛЬ: СПОРТЗАЛ
 // ============================================
 async function loadGym() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '💪 Спортзал';
+    document.getElementById('pageTitle').textContent = 'Спортзал';
     document.getElementById('pageSubtitle').textContent = 'Управління абонементами та тренуваннями';
 
     try {
@@ -4107,7 +4105,7 @@ async function loadGym() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Абонементи (' + (memberships ? memberships.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openGymMembership()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="gymMembershipSearch" placeholder="🔍 Пошук абонементів..." oninput="filterGymMemberships()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="gymMembershipSearch" placeholder="Пошук абонементів..." oninput="filterGymMemberships()"></div>';
         html += '<div id="gymMembershipsList" style="max-height:300px;overflow-y:auto;">';
         if (memberships && memberships.length > 0) {
             for (var i = 0; i < memberships.length; i++) {
@@ -4188,7 +4186,7 @@ async function viewGymMembership(membershipId) {
         html += '<button class="btn btn-danger" onclick="closeModal(\'alertModal\');deleteGymMembership(\'' + membership.id + '\')"><i class="fas fa-trash"></i> Видалити</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '💪 Абонемент');
+        await showAlert(html, 'info', 'Абонемент');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4301,7 +4299,7 @@ document.getElementById('gymTrainingForm')?.addEventListener('submit', async fun
 // ============================================
 async function loadBeauty() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '💅 Салон краси';
+    document.getElementById('pageTitle').textContent = 'Салон краси';
     document.getElementById('pageSubtitle').textContent = 'Управління послугами та записами';
 
     try {
@@ -4315,7 +4313,7 @@ async function loadBeauty() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Послуги (' + (services ? services.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openBeautyService()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="beautyServiceSearch" placeholder="🔍 Пошук послуг..." oninput="filterBeautyServices()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="beautyServiceSearch" placeholder="Пошук послуг..." oninput="filterBeautyServices()"></div>';
         html += '<div id="beautyServicesList" style="max-height:300px;overflow-y:auto;">';
         if (services && services.length > 0) {
             for (var i = 0; i < services.length; i++) {
@@ -4333,7 +4331,7 @@ async function loadBeauty() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openBeautyAppointment()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="beautyAppointmentSearch" placeholder="🔍 Пошук записів..." oninput="filterBeautyAppointments()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="beautyAppointmentSearch" placeholder="Пошук записів..." oninput="filterBeautyAppointments()"></div>';
         html += '<div id="beautyAppointmentsList" style="max-height:300px;overflow-y:auto;">';
         if (appointments && appointments.length > 0) {
             for (var i = 0; i < appointments.length; i++) {
@@ -4403,7 +4401,7 @@ async function viewBeautyService(serviceId) {
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (service.description || 'Немає опису') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '💄 Послуга');
+        await showAlert(html, 'info', 'Послуга');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4433,7 +4431,7 @@ async function viewBeautyAppointment(appointmentId) {
         html += '<div><strong>Статус:</strong> ' + (appointment.status || 'scheduled') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '📅 Запис');
+        await showAlert(html, 'info', 'Запис');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4550,7 +4548,7 @@ document.getElementById('beautyAppointmentForm')?.addEventListener('submit', asy
 // ============================================
 async function loadAuto() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🔧 Автосервіс';
+    document.getElementById('pageTitle').textContent = 'Автосервіс';
     document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та запчастинами';
 
     try {
@@ -4564,7 +4562,7 @@ async function loadAuto() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Замовлення (' + (orders ? orders.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openAutoOrder()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="autoOrderSearch" placeholder="🔍 Пошук замовлень..." oninput="filterAutoOrders()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="autoOrderSearch" placeholder="Пошук замовлень..." oninput="filterAutoOrders()"></div>';
         html += '<div id="autoOrdersList" style="max-height:300px;overflow-y:auto;">';
         if (orders && orders.length > 0) {
             for (var i = 0; i < orders.length; i++) {
@@ -4583,7 +4581,7 @@ async function loadAuto() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Запчастини (' + (parts ? parts.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openAutoPart()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="autoPartSearch" placeholder="🔍 Пошук запчастин..." oninput="filterAutoParts()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="autoPartSearch" placeholder="Пошук запчастин..." oninput="filterAutoParts()"></div>';
         html += '<div id="autoPartsList" style="max-height:300px;overflow-y:auto;">';
         if (parts && parts.length > 0) {
             for (var i = 0; i < parts.length; i++) {
@@ -4661,7 +4659,7 @@ async function viewAutoOrder(orderId) {
         html += '<button class="btn btn-danger" onclick="closeModal(\'alertModal\');updateAutoOrderStatus(\'' + order.id + '\', \'cancelled\')"><i class="fas fa-times"></i> Скасувати</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '🔧 Замовлення');
+        await showAlert(html, 'info', 'Замовлення');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4688,7 +4686,7 @@ async function viewAutoPart(partId) {
         html += '<div><strong>Постачальник:</strong> ' + (part.supplier || '—') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '🔧 Запчастина');
+        await showAlert(html, 'info', 'Запчастина');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4795,7 +4793,7 @@ document.getElementById('autoPartForm')?.addEventListener('submit', async functi
 // ============================================
 async function loadRealty() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🏠 Нерухомість';
+    document.getElementById('pageTitle').textContent = 'Нерухомість';
     document.getElementById('pageSubtitle').textContent = 'Управління об\'єктами та угодами';
 
     try {
@@ -4809,7 +4807,7 @@ async function loadRealty() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Об\'єкти (' + (properties ? properties.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openRealtyProperty()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="realtyPropertySearch" placeholder="🔍 Пошук об\'єктів..." oninput="filterRealtyProperties()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="realtyPropertySearch" placeholder="Пошук об\'єктів..." oninput="filterRealtyProperties()"></div>';
         html += '<div id="realtyPropertiesList" style="max-height:300px;overflow-y:auto;">';
         if (properties && properties.length > 0) {
             for (var i = 0; i < properties.length; i++) {
@@ -4827,7 +4825,7 @@ async function loadRealty() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Угоди (' + (deals ? deals.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openRealtyDeal()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="realtyDealSearch" placeholder="🔍 Пошук угод..." oninput="filterRealtyDeals()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="realtyDealSearch" placeholder="Пошук угод..." oninput="filterRealtyDeals()"></div>';
         html += '<div id="realtyDealsList" style="max-height:300px;overflow-y:auto;">';
         if (deals && deals.length > 0) {
             for (var i = 0; i < deals.length; i++) {
@@ -4899,7 +4897,7 @@ async function viewRealtyProperty(propertyId) {
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (property.description || 'Немає опису') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '🏠 Об\'єкт');
+        await showAlert(html, 'info', 'Об\'єкт');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -4935,7 +4933,7 @@ async function viewRealtyDeal(dealId) {
         html += '<button class="btn btn-danger" onclick="closeModal(\'alertModal\');updateRealtyDealStatus(\'' + deal.id + '\', \'cancelled\')"><i class="fas fa-times"></i> Скасувати</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '📄 Угода');
+        await showAlert(html, 'info', 'Угода');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -5071,7 +5069,7 @@ document.getElementById('realtyDealForm')?.addEventListener('submit', async func
 // ============================================
 async function loadLogistics() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '📦 Логістика';
+    document.getElementById('pageTitle').textContent = 'Логістика';
     document.getElementById('pageSubtitle').textContent = 'Управління вантажами та маршрутами';
 
     try {
@@ -5082,7 +5080,7 @@ async function loadLogistics() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Вантажі (' + (orders ? orders.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openLogisticsOrder()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="logisticsOrderSearch" placeholder="🔍 Пошук вантажів..." oninput="filterLogisticsOrders()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="logisticsOrderSearch" placeholder="Пошук вантажів..." oninput="filterLogisticsOrders()"></div>';
         html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>№</th><th>Клієнт</th><th>Вага</th><th>Статус</th><th>Дата доставки</th><th>Дії</th></tr></thead><tbody>';
         if (orders && orders.length > 0) {
             for (var i = 0; i < orders.length; i++) {
@@ -5176,7 +5174,7 @@ async function deleteLogisticsOrder(orderId) {
 // ============================================
 async function loadDelivery() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🚚 Доставка';
+    document.getElementById('pageTitle').textContent = 'Доставка';
     document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та кур\'єрами';
 
     try {
@@ -5187,7 +5185,7 @@ async function loadDelivery() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Замовлення (' + (orders ? orders.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openDeliveryOrder()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="deliveryOrderSearch" placeholder="🔍 Пошук замовлень..." oninput="filterDeliveryOrders()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="deliveryOrderSearch" placeholder="Пошук замовлень..." oninput="filterDeliveryOrders()"></div>';
         html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>№</th><th>Клієнт</th><th>Кур\'єр</th><th>Статус</th><th>Час доставки</th><th>Дії</th></tr></thead><tbody>';
         if (orders && orders.length > 0) {
             for (var i = 0; i < orders.length; i++) {
@@ -5281,7 +5279,7 @@ async function deleteDeliveryOrder(orderId) {
 // ============================================
 async function loadIT() {
     var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '💻 IT / GameDev';
+    document.getElementById('pageTitle').textContent = 'IT / GameDev';
     document.getElementById('pageSubtitle').textContent = 'Управління проектами та задачами';
 
     try {
@@ -5295,7 +5293,7 @@ async function loadIT() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Проекти (' + (projects ? projects.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openITProject()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="itProjectSearch" placeholder="🔍 Пошук проектів..." oninput="filterITProjects()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="itProjectSearch" placeholder="Пошук проектів..." oninput="filterITProjects()"></div>';
         html += '<div id="itProjectsList" style="max-height:300px;overflow-y:auto;">';
         if (projects && projects.length > 0) {
             for (var i = 0; i < projects.length; i++) {
@@ -5313,7 +5311,7 @@ async function loadIT() {
         html += '<div class="card">';
         html += '<div class="card-header"><h3 class="card-title">Баги (' + (bugs ? bugs.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openITBug()"><i class="fas fa-plus"></i></button></div>';
-        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="itBugSearch" placeholder="🔍 Пошук багів..." oninput="filterITBugs()"></div>';
+        html += '<div style="margin-bottom:0.75rem;"><input type="text" class="form-control" id="itBugSearch" placeholder="Пошук багів..." oninput="filterITBugs()"></div>';
         html += '<div id="itBugsList" style="max-height:300px;overflow-y:auto;">';
         if (bugs && bugs.length > 0) {
             for (var i = 0; i < bugs.length; i++) {
@@ -5382,7 +5380,7 @@ async function viewITProject(projectId) {
         html += '<div style="grid-column:span 2;"><strong>Repo:</strong> ' + (project.repo_url ? '<a href="' + project.repo_url + '" target="_blank" style="color:var(--teal);">' + project.repo_url + '</a>' : '—') + '</div>';
         html += '</div></div>';
         
-        await showAlert(html, 'info', '💻 Проект');
+        await showAlert(html, 'info', 'Проект');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -5417,7 +5415,7 @@ async function viewITBug(bugId) {
         html += '<button class="btn btn-danger" onclick="closeModal(\'alertModal\');updateITBugStatus(\'' + bug.id + '\', \'closed\')"><i class="fas fa-times"></i> Закрити</button>';
         html += '</div>';
         
-        await showAlert(html, 'info', '🐛 Баг');
+        await showAlert(html, 'info', 'Баг');
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -5692,7 +5690,7 @@ for (var m = 0; m < modals.length; m++) {
 
 // ===== ВИДАЛЕННЯ АККАУНТА =====
 async function deleteUserAccount() {
-    var confirmed = await showConfirm('Ви впевнені, що хочете видалити свій акаунт? Це незворотна дія!', '⚠️ Увага');
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити свій акаунт? Це незворотна дія!', 'Увага');
     if (!confirmed) return;
     var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
     if (!confirmed2) return;
