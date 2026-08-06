@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АДМІН-ПАНЕЛЬ (З КАСТОМНИМИ МОДАЛКАМИ)
+// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ)
 // ============================================
 
 async function loadStats() {
@@ -75,19 +75,25 @@ async function loadUsers() {
         if (users && users.length > 0) {
             for (var i = 0; i < users.length; i++) {
                 var user = users[i];
+                var isAdmin = user.role === 'admin';
+                
                 html += 
                     '<tr>' +
                         '<td><strong>' + (user.full_name || 'Без імені') + '</strong></td>' +
                         '<td>' + user.email + '</td>' +
-                        '<td><span class="badge ' + (user.role === 'admin' ? 'badge-danger' : 'badge-primary') + '">' + (user.role || 'user') + '</span></td>' +
+                        '<td><span class="badge ' + (isAdmin ? 'badge-danger' : 'badge-primary') + '">' + (user.role || 'user') + '</span></td>' +
                         '<td>' +
-                            (user.role !== 'admin' ? 
-                                '<button class="btn btn-sm btn-teal" onclick="editUser(\'' + user.id + '\')">' +
-                                    '<i class="fas fa-edit"></i>' +
+                            (isAdmin ? 
+                                '<button class="btn btn-sm btn-warning" onclick="removeAdmin(\'' + user.id + '\')" title="Зняти адміністратора">' +
+                                    '<i class="fas fa-user-minus"></i>' +
+                                '</button>' :
+                                '<button class="btn btn-sm btn-teal" onclick="makeAdmin(\'' + user.id + '\')" title="Зробити адміністратором">' +
+                                    '<i class="fas fa-user-crown"></i>' +
                                 '</button>' +
                                 '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + user.id + '\')">' +
                                     '<i class="fas fa-trash"></i>' +
-                                '</button>' : '—') +
+                                '</button>'
+                            ) +
                         '</td>' +
                     '</tr>';
             }
@@ -545,6 +551,33 @@ async function loadOverview() {
     await loadRecentLogs();
 }
 
+// ===== УПРАВЛІННЯ РОЛЯМИ (АДМІН) =====
+async function makeAdmin(userId) {
+    var confirmed = await showConfirm('Зробити цього користувача адміністратором? Він зможе створювати безліміт організацій.', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.setUserRole(userId, 'admin');
+        await showToast('Користувача підвищено до адміністратора!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function removeAdmin(userId) {
+    var confirmed = await showConfirm('Зняти роль адміністратора з цього користувача?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.setUserRole(userId, 'user');
+        await showToast('Роль адміністратора знято!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 async function editUser(id) {
     var newRole = await showPrompt('Введіть роль (user/admin):', 'user', 'Зміна ролі');
     if (newRole === null) return;
@@ -634,5 +667,4 @@ document.querySelectorAll('.modal').forEach(function(modal) {
 
     await loadStats();
     await loadOverview();
-    console.log('✅ Admin panel loaded');
 })();
