@@ -1009,34 +1009,50 @@
         </div>
     </div>
 
-    <div class="modal" id="clinicAppointmentModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Створити запис</h2>
-                <button class="modal-close" onclick="closeModal('clinicAppointmentModal')">&times;</button>
-            </div>
-            <form id="clinicAppointmentForm">
-                <input type="hidden" id="clinicAppointmentId">
-                <div class="form-group">
-                    <label class="form-label">Пацієнт</label>
-                    <select class="form-control" id="clinicAppointmentPatient" required></select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Лікар</label>
-                    <input type="text" class="form-control" id="clinicAppointmentDoctor" placeholder="ПІБ лікаря">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Дата та час</label>
-                    <input type="datetime-local" class="form-control" id="clinicAppointmentDate" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Причина</label>
-                    <textarea class="form-control" id="clinicAppointmentReason" rows="2" placeholder="Причина візиту"></textarea>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">Записати</button>
-            </form>
+<!-- МОДАЛКА СТВОРЕННЯ ЗАПИСУ (З ВИБОРОМ ПАЦІЄНТА) -->
+<div class="modal" id="clinicAppointmentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Створити запис</h2>
+            <button class="modal-close" onclick="closeModal('clinicAppointmentModal')">&times;</button>
         </div>
+        <form id="clinicAppointmentForm">
+            <input type="hidden" id="clinicAppointmentId">
+            
+            <div class="form-group">
+                <label class="form-label">Пацієнт <span style="color:var(--gold);">*</span></label>
+                <select class="form-control" id="clinicAppointmentPatient" required>
+                    <option value="">Оберіть пацієнта...</option>
+                </select>
+                <small style="color:var(--muted);">Якщо пацієнта немає в списку - спочатку додайте його</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Лікар</label>
+                <input type="text" class="form-control" id="clinicAppointmentDoctor" placeholder="ПІБ лікаря">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Дата та час <span style="color:var(--gold);">*</span></label>
+                <input type="datetime-local" class="form-control" id="clinicAppointmentDate" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Причина</label>
+                <textarea class="form-control" id="clinicAppointmentReason" rows="2" placeholder="Причина візиту"></textarea>
+            </div>
+            
+            <div style="display:flex;gap:0.75rem;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('clinicAppointmentModal')" style="flex:1;">
+                    <i class="fas fa-times"></i> Скасувати
+                </button>
+                <button type="submit" class="btn btn-gold" style="flex:1;">
+                    <i class="fas fa-calendar-plus"></i> Записати
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- МОДАЛКИ ДЛЯ МАГАЗИНУ -->
     <div class="modal" id="shopProductModal">
