@@ -143,7 +143,6 @@
         .btn-teal:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(70,201,184,0.28);}
         .btn-ghost{border-color:var(--ink-line);color:var(--text-onink);}
         .btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
-        .btn-sm{padding:0.3rem 0.8rem;font-size:0.75rem;}
         .org-grid{
             display:grid;
             grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
@@ -201,20 +200,6 @@
             font-weight:600;
             color:var(--gold);
         }
-        .create-org-card{
-            border:2px dashed var(--ink-line);
-            background:transparent;
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            justify-content:center;
-            min-height:200px;
-            cursor:pointer;
-            transition:all .3s;
-        }
-        .create-org-card:hover{border-color:var(--gold);background:rgba(242,169,59,0.05);}
-        .create-org-card i{font-size:3rem;color:var(--muted);margin-bottom:1rem;}
-        .create-org-card h4{color:var(--muted);}
         .empty-state{
             text-align:center;
             padding:4rem 2rem;
@@ -283,8 +268,6 @@
         .btn-block{width:100%;justify-content:center;}
         .text-muted{color:var(--muted);}
         .text-center{text-align:center;}
-        .mt-2{margin-top:0.5rem;}
-        .mb-2{margin-bottom:0.5rem;}
         .flex{display:flex;}
         .gap-1{gap:0.5rem;}
         .flex-wrap{flex-wrap:wrap;}
@@ -546,145 +529,56 @@
                 emptyState.style.display = 'none';
 
                 var iconMap = {
-                    'shop': 'fa-store',
-                    'library': 'fa-book',
-                    'company': 'fa-building',
-                    'school': 'fa-graduation-cap',
-                    'clinic': 'fa-heartbeat',
-                    'restaurant': 'fa-utensils',
-                    'cafe': 'fa-coffee',
-                    'hotel': 'fa-hotel',
-                    'gym': 'fa-dumbbell',
-                    'beauty': 'fa-spa',
-                    'auto': 'fa-car',
-                    'realty': 'fa-home',
-                    'it': 'fa-code',
-                    'marketing': 'fa-chart-line',
-                    'legal': 'fa-gavel',
-                    'finance': 'fa-coins',
-                    'education': 'fa-graduation-cap',
-                    'medical': 'fa-heartbeat',
-                    'sport': 'fa-running',
-                    'art': 'fa-palette',
-                    'music': 'fa-music',
-                    'photo': 'fa-camera',
-                    'video': 'fa-video',
-                    'construction': 'fa-hard-hat',
-                    'repair': 'fa-tools',
-                    'cleaning': 'fa-broom',
-                    'delivery': 'fa-truck',
-                    'logistics': 'fa-shipping-fast',
-                    'agriculture': 'fa-tractor',
-                    'tourism': 'fa-plane',
-                    'event': 'fa-calendar-check',
-                    'charity': 'fa-hand-holding-heart',
-                    'government': 'fa-landmark',
-                    'gamedev': 'fa-gamepad',
-                    'indie': 'fa-rocket',
-                    'publishing': 'fa-newspaper',
-                    'animation': 'fa-film',
-                    'vr': 'fa-vr-cardboard',
-                    'esports': 'fa-trophy',
-                    'streaming': 'fa-broadcast',
-                    'podcast': 'fa-microphone',
-                    'blogging': 'fa-blog',
-                    'social': 'fa-share-alt',
-                    'startup': 'fa-lightbulb',
-                    'agency': 'fa-ad',
-                    'consulting': 'fa-handshake',
-                    'freelance': 'fa-user-tie',
-                    'remote': 'fa-globe',
-                    'coworking': 'fa-building',
-                    'incubator': 'fa-seedling',
-                    'accelerator': 'fa-rocket',
-                    'venture': 'fa-chart-pie',
-                    'nonprofit': 'fa-heart',
-                    'community': 'fa-users',
-                    'religious': 'fa-church',
-                    'cultural': 'fa-landmark',
-                    'research': 'fa-flask',
-                    'science': 'fa-atom',
-                    'space': 'fa-rocket',
-                    'robotics': 'fa-robot',
-                    'ai': 'fa-brain',
-                    'blockchain': 'fa-link',
-                    'crypto': 'fa-coins',
-                    'defi': 'fa-chart-line',
-                    'nft': 'fa-image',
-                    'metaverse': 'fa-vr-cardboard',
-                    'web3': 'fa-globe',
-                    'other': 'fa-cubes'
+                    'shop': 'fa-store', 'library': 'fa-book', 'company': 'fa-building',
+                    'school': 'fa-graduation-cap', 'clinic': 'fa-heartbeat',
+                    'restaurant': 'fa-utensils', 'cafe': 'fa-coffee', 'hotel': 'fa-hotel',
+                    'gym': 'fa-dumbbell', 'beauty': 'fa-spa', 'auto': 'fa-car',
+                    'realty': 'fa-home', 'it': 'fa-code', 'marketing': 'fa-chart-line',
+                    'legal': 'fa-gavel', 'finance': 'fa-coins', 'education': 'fa-graduation-cap',
+                    'medical': 'fa-heartbeat', 'sport': 'fa-running', 'art': 'fa-palette',
+                    'music': 'fa-music', 'photo': 'fa-camera', 'video': 'fa-video',
+                    'construction': 'fa-hard-hat', 'repair': 'fa-tools', 'cleaning': 'fa-broom',
+                    'delivery': 'fa-truck', 'logistics': 'fa-shipping-fast',
+                    'agriculture': 'fa-tractor', 'tourism': 'fa-plane', 'event': 'fa-calendar-check',
+                    'charity': 'fa-hand-holding-heart', 'government': 'fa-landmark',
+                    'gamedev': 'fa-gamepad', 'indie': 'fa-rocket', 'publishing': 'fa-newspaper',
+                    'animation': 'fa-film', 'vr': 'fa-vr-cardboard', 'esports': 'fa-trophy',
+                    'streaming': 'fa-broadcast', 'podcast': 'fa-microphone', 'blogging': 'fa-blog',
+                    'social': 'fa-share-alt', 'startup': 'fa-lightbulb', 'agency': 'fa-ad',
+                    'consulting': 'fa-handshake', 'freelance': 'fa-user-tie', 'remote': 'fa-globe',
+                    'coworking': 'fa-building', 'incubator': 'fa-seedling', 'accelerator': 'fa-rocket',
+                    'venture': 'fa-chart-pie', 'nonprofit': 'fa-heart', 'community': 'fa-users',
+                    'religious': 'fa-church', 'cultural': 'fa-landmark', 'research': 'fa-flask',
+                    'science': 'fa-atom', 'space': 'fa-rocket', 'robotics': 'fa-robot',
+                    'ai': 'fa-brain', 'blockchain': 'fa-link', 'crypto': 'fa-coins',
+                    'defi': 'fa-chart-line', 'nft': 'fa-image', 'metaverse': 'fa-vr-cardboard',
+                    'web3': 'fa-globe', 'other': 'fa-cubes'
                 };
 
                 var typeLabels = {
-                    'shop': 'Магазин',
-                    'library': 'Бібліотека',
-                    'company': 'Компанія',
-                    'school': 'Школа',
-                    'clinic': 'Клініка',
-                    'restaurant': 'Ресторан',
-                    'cafe': 'Кафе',
-                    'hotel': 'Готель',
-                    'gym': 'Спортзал',
-                    'beauty': 'Салон краси',
-                    'auto': 'Автосервіс',
-                    'realty': 'Нерухомість',
-                    'it': 'IT-компанія',
-                    'marketing': 'Маркетинг',
-                    'legal': 'Юридична',
-                    'finance': 'Фінанси',
-                    'education': 'Освіта',
-                    'medical': 'Медицина',
-                    'sport': 'Спорт',
-                    'art': 'Мистецтво',
-                    'music': 'Музика',
-                    'photo': 'Фото',
-                    'video': 'Відео',
-                    'construction': 'Будівництво',
-                    'repair': 'Ремонт',
-                    'cleaning': 'Клінінг',
-                    'delivery': 'Доставка',
-                    'logistics': 'Логістика',
-                    'agriculture': 'Сільське господарство',
-                    'tourism': 'Туризм',
-                    'event': 'Івент',
-                    'charity': 'Благодійність',
-                    'government': 'Державна',
-                    'gamedev': 'GameDev',
-                    'indie': 'Інді-розробка',
-                    'publishing': 'Видавництво',
-                    'animation': 'Анімація',
-                    'vr': 'VR/AR',
-                    'esports': 'Кіберспорт',
-                    'streaming': 'Стримінг',
-                    'podcast': 'Подкаст',
-                    'blogging': 'Блогінг',
-                    'social': 'Соцмережі',
-                    'startup': 'Стартап',
-                    'agency': 'Агентство',
-                    'consulting': 'Консалтинг',
-                    'freelance': 'Фриланс',
-                    'remote': 'Віддалена робота',
-                    'coworking': 'Коворкінг',
-                    'incubator': 'Інкубатор',
-                    'accelerator': 'Акселератор',
-                    'venture': 'Венчур',
-                    'nonprofit': 'Некомерційна',
-                    'community': 'Спільнота',
-                    'religious': 'Релігійна',
-                    'cultural': 'Культурна',
-                    'research': 'Дослідження',
-                    'science': 'Наука',
-                    'space': 'Космос',
-                    'robotics': 'Робототехніка',
-                    'ai': 'ШІ',
-                    'blockchain': 'Блокчейн',
-                    'crypto': 'Криптовалюта',
-                    'defi': 'DeFi',
-                    'nft': 'NFT',
-                    'metaverse': 'Метавсесвіт',
-                    'web3': 'Web3',
-                    'other': 'Інше'
+                    'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
+                    'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
+                    'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
+                    'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
+                    'it': 'IT-компанія', 'marketing': 'Маркетинг', 'legal': 'Юридична',
+                    'finance': 'Фінанси', 'education': 'Освіта', 'medical': 'Медицина',
+                    'sport': 'Спорт', 'art': 'Мистецтво', 'music': 'Музика',
+                    'photo': 'Фото', 'video': 'Відео', 'construction': 'Будівництво',
+                    'repair': 'Ремонт', 'cleaning': 'Клінінг', 'delivery': 'Доставка',
+                    'logistics': 'Логістика', 'agriculture': 'Сільське господарство',
+                    'tourism': 'Туризм', 'event': 'Івент', 'charity': 'Благодійність',
+                    'government': 'Державна', 'gamedev': 'GameDev', 'indie': 'Інді-розробка',
+                    'publishing': 'Видавництво', 'animation': 'Анімація', 'vr': 'VR/AR',
+                    'esports': 'Кіберспорт', 'streaming': 'Стримінг', 'podcast': 'Подкаст',
+                    'blogging': 'Блогінг', 'social': 'Соцмережі', 'startup': 'Стартап',
+                    'agency': 'Агентство', 'consulting': 'Консалтинг', 'freelance': 'Фриланс',
+                    'remote': 'Віддалена робота', 'coworking': 'Коворкінг', 'incubator': 'Інкубатор',
+                    'accelerator': 'Акселератор', 'venture': 'Венчур', 'nonprofit': 'Некомерційна',
+                    'community': 'Спільнота', 'religious': 'Релігійна', 'cultural': 'Культурна',
+                    'research': 'Дослідження', 'science': 'Наука', 'space': 'Космос',
+                    'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
+                    'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
+                    'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
                 };
 
                 orgs.forEach(function(org) {
@@ -692,15 +586,11 @@
                     var card = document.createElement('div');
                     card.className = 'org-card';
                     card.innerHTML = 
-                        '<div class="org-icon">' +
-                            '<i class="fas ' + iconClass + '"></i>' +
-                        '</div>' +
+                        '<div class="org-icon"><i class="fas ' + iconClass + '"></i></div>' +
                         '<h3>' + org.name + '</h3>' +
                         '<p>' + (org.description || 'Немає опису') + '</p>' +
                         '<span class="org-type">' + (typeLabels[org.type] || org.type) + '</span>' +
-                        '<div class="org-join-code">' +
-                            '<i class="fas fa-key"></i> Код: <span class="join-code">' + (org.join_code || '---') + '</span>' +
-                        '</div>';
+                        '<div class="org-join-code"><i class="fas fa-key"></i> Код: <span class="join-code">' + (org.join_code || '---') + '</span></div>';
                     card.addEventListener('click', function() {
                         window.location.href = '/org?id=' + org.id;
                     });
@@ -708,7 +598,6 @@
                 });
 
             } catch (error) {
-                console.error('Load organizations error:', error);
                 showAlert('Помилка завантаження організацій: ' + error.message, 'error');
             }
         }
@@ -735,7 +624,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
             try {
-                var result = await db.createOrganization({
+                await db.createOrganization({
                     name: name,
                     type: type,
                     description: description || '',
@@ -749,7 +638,6 @@
                 await loadOrganizations();
 
             } catch (error) {
-                console.error('Create organization error:', error);
                 showAlert('Помилка: ' + error.message, 'error');
             }
 
@@ -760,12 +648,9 @@
         document.getElementById('joinOrgForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // ВАЖЛИВО: приводимо до нижнього регістру!
             var code = document.getElementById('joinCode').value.trim().toLowerCase();
             var message = document.getElementById('joinMessage').value.trim();
             var user = auth.getCurrentUser();
-
-            console.log('🔍 Код для пошуку:', code);
 
             if (!code) {
                 showAlert('Введіть код організації', 'warning');
@@ -778,8 +663,6 @@
 
             try {
                 var org = await db.getOrganizationByJoinCode(code);
-                
-                console.log('📦 Результат пошуку:', org);
 
                 if (!org) {
                     showAlert('Організацію з таким кодом не знайдено. Перевірте код.', 'warning');
@@ -790,7 +673,7 @@
 
                 var members = await db.getOrganizationMembers(org.id);
                 var alreadyMember = members.some(function(m) { return m.user_id === user.id; });
-                
+
                 if (alreadyMember) {
                     showAlert('Ви вже перебуваєте в цій організації', 'warning');
                     submitBtn.disabled = false;
@@ -805,7 +688,6 @@
                 document.getElementById('joinOrgForm').reset();
 
             } catch (error) {
-                console.error('Join organization error:', error);
                 showAlert('Помилка: ' + error.message, 'error');
             }
 
@@ -824,9 +706,7 @@
         (async function init() {
             var isAuth = await auth.requireAuth();
             if (!isAuth) return;
-
             await loadDashboard();
-            console.log('✅ Dashboard loaded');
         })();
     </script>
 </body>
