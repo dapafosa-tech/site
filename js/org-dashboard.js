@@ -1950,7 +1950,7 @@ async function deleteFile(fileId) {
 }
 
 // ============================================
-// МОДУЛЬ: КЛІНІКА (З ПОШУКОМ ПАЦІЄНТІВ)
+// МОДУЛЬ: КЛІНІКА (ВИПРАВЛЕНА ВЕРСІЯ)
 // ============================================
 async function loadClinic() {
     var container = document.getElementById('sectionContent');
@@ -1960,28 +1960,22 @@ async function loadClinic() {
     try {
         var patients = await db.getClinicPatients(currentOrgId);
         var appointments = await db.getClinicAppointments(currentOrgId);
-        allPatients = patients || [];
 
         var html = '';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
         
-        // ЛІВА КОЛОНКА - ПАЦІЄНТИ
+        // ===== ЛІВА КОЛОНКА - ПАЦІЄНТИ =====
         html += '<div class="card">';
         html += '<div class="card-header">';
         html += '<h3 class="card-title">Пацієнти (' + (patients ? patients.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openClinicPatient()"><i class="fas fa-plus"></i> Додати</button>';
         html += '</div>';
-        
-        html += '<div style="margin-bottom:0.75rem;display:flex;gap:0.5rem;">';
-        html += '<input type="text" class="form-control" id="patientSearch" placeholder="🔍 Пошук пацієнтів..." style="flex:1;" oninput="filterPatients()">';
-        html += '</div>';
-        
         html += '<div id="clinicPatientsList" style="max-height:300px;overflow-y:auto;">';
         
         if (patients && patients.length > 0) {
             for (var i = 0; i < patients.length; i++) {
                 var p = patients[i];
-                html += '<div class="patient-item" data-name="' + (p.full_name || '').toLowerCase() + '" data-phone="' + (p.phone || '') + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
                 html += '<div><strong>' + (p.full_name || 'Без імені') + '</strong>';
                 html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
                 html += '<div><button class="btn btn-sm btn-danger" onclick="deleteClinicPatient(\'' + p.id + '\')"><i class="fas fa-trash"></i></button></div>';
@@ -1992,7 +1986,7 @@ async function loadClinic() {
         }
         html += '</div></div>';
 
-        // ПРАВА КОЛОНКА - ЗАПИСИ
+        // ===== ПРАВА КОЛОНКА - ЗАПИСИ =====
         html += '<div class="card">';
         html += '<div class="card-header">';
         html += '<h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
@@ -2022,22 +2016,7 @@ async function loadClinic() {
     }
 }
 
-function filterPatients() {
-    var searchInput = document.getElementById('patientSearch');
-    if (!searchInput) return;
-    var query = searchInput.value.toLowerCase().trim();
-    var items = document.querySelectorAll('.patient-item');
-    items.forEach(function(item) {
-        var name = item.getAttribute('data-name') || '';
-        var phone = item.getAttribute('data-phone') || '';
-        if (name.indexOf(query) !== -1 || phone.indexOf(query) !== -1) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
-    });
-}
-
+// ===== ДОДАТИ ПАЦІЄНТА =====
 function openClinicPatient() {
     document.getElementById('clinicPatientModal').classList.add('active');
     document.getElementById('clinicPatientId').value = '';
@@ -2080,77 +2059,47 @@ document.getElementById('clinicPatientForm')?.addEventListener('submit', async f
     }
 });
 
+// ===== СТВОРИТИ ЗАПИС (З ВИБОРОМ ПАЦІЄНТА) =====
 function openClinicAppointment() {
     document.getElementById('clinicAppointmentModal').classList.add('active');
     document.getElementById('clinicAppointmentId').value = '';
     document.getElementById('clinicAppointmentDoctor').value = '';
     document.getElementById('clinicAppointmentDate').value = '';
     document.getElementById('clinicAppointmentReason').value = '';
-    document.getElementById('clinicAppointmentPatientSearch').value = '';
-    document.getElementById('clinicAppointmentPatientId').value = '';
-    document.getElementById('clinicAppointmentPatientList').innerHTML = '';
-    document.getElementById('clinicAppointmentPatientList').style.display = 'none';
+    loadClinicPatientsSelect();
 }
 
-function searchPatientsForAppointment() {
-    var query = document.getElementById('clinicAppointmentPatientSearch').value.toLowerCase().trim();
-    var list = document.getElementById('clinicAppointmentPatientList');
-    if (!query || query.length < 2) {
-        list.style.display = 'none';
-        list.innerHTML = '';
-        return;
-    }
-    var filtered = allPatients.filter(function(p) {
-        var name = (p.full_name || '').toLowerCase();
-        var phone = (p.phone || '');
-        return name.indexOf(query) !== -1 || phone.indexOf(query) !== -1;
-    });
-    if (filtered.length === 0) {
-        list.style.display = 'block';
-        list.innerHTML = '<div style="padding:0.5rem;color:var(--muted);text-align:center;">Пацієнтів не знайдено. <br><button class="btn btn-sm btn-gold" onclick="closeModal(\'clinicAppointmentModal\');openClinicPatient();">Створити нового</button></div>';
-        return;
-    }
-    var html = '';
-    for (var i = 0; i < filtered.length; i++) {
-        var p = filtered[i];
-        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="selectPatientForAppointment(\'' + p.id + '\', \'' + (p.full_name || '') + '\', \'' + (p.phone || '') + '\')">';
-        html += '<div><strong>' + p.full_name + '</strong>';
-        html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
-        html += '<span style="color:var(--teal);font-size:0.8rem;"><i class="fas fa-chevron-right"></i></span>';
-        html += '</div>';
-    }
-    list.style.display = 'block';
-    list.innerHTML = html;
-}
-
-function selectPatientForAppointment(id, name, phone) {
-    document.getElementById('clinicAppointmentPatientId').value = id;
-    document.getElementById('clinicAppointmentPatientSearch').value = name + (phone ? ' (' + phone + ')' : '');
-    document.getElementById('clinicAppointmentPatientList').style.display = 'none';
-    document.getElementById('clinicAppointmentPatientList').innerHTML = '';
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    var searchInput = document.getElementById('clinicAppointmentPatientSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', searchPatientsForAppointment);
-        searchInput.addEventListener('focus', function() {
-            if (this.value.length >= 2) {
-                searchPatientsForAppointment();
+async function loadClinicPatientsSelect() {
+    try {
+        var patients = await db.getClinicPatients(currentOrgId);
+        var select = document.getElementById('clinicAppointmentPatient');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">Оберіть пацієнта...</option>';
+        if (patients && patients.length > 0) {
+            for (var i = 0; i < patients.length; i++) {
+                var option = document.createElement('option');
+                option.value = patients[i].id;
+                option.textContent = patients[i].full_name + (patients[i].phone ? ' (' + patients[i].phone + ')' : '');
+                select.appendChild(option);
             }
-        });
+        } else {
+            select.innerHTML = '<option value="">Немає пацієнтів. Спочатку додайте пацієнта.</option>';
+        }
+    } catch (error) {
+        console.error('Load patients error:', error);
     }
-});
+}
 
 document.getElementById('clinicAppointmentForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    var patientId = document.getElementById('clinicAppointmentPatientId').value;
+    var patientId = document.getElementById('clinicAppointmentPatient').value;
     var doctorName = document.getElementById('clinicAppointmentDoctor').value.trim();
     var date = document.getElementById('clinicAppointmentDate').value;
     var reason = document.getElementById('clinicAppointmentReason').value.trim();
 
     if (!patientId) {
-        await showAlert('Оберіть пацієнта (почніть вводити ім\'я)', 'warning');
+        await showAlert('Оберіть пацієнта зі списку', 'warning');
         return;
     }
     if (!date) {
@@ -2159,17 +2108,20 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
     }
 
     try {
-        var patient = null;
-        for (var i = 0; i < allPatients.length; i++) {
-            if (allPatients[i].id === patientId) {
-                patient = allPatients[i];
+        // Отримуємо ім'я пацієнта
+        var patients = await db.getClinicPatients(currentOrgId);
+        var patientName = '';
+        for (var i = 0; i < patients.length; i++) {
+            if (patients[i].id === patientId) {
+                patientName = patients[i].full_name;
                 break;
             }
         }
+        
         await db.createClinicAppointment({
             organization_id: currentOrgId,
             patient_id: patientId,
-            patient_name: patient ? patient.full_name : null,
+            patient_name: patientName || null,
             doctor_name: doctorName || 'Лікар',
             appointment_date: date,
             reason: reason || null,
