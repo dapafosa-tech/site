@@ -2170,7 +2170,6 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
     }
 
     try {
-        // Отримуємо ім'я пацієнта
         var patients = await db.getClinicPatients(currentOrgId);
         var patientName = '';
         for (var i = 0; i < patients.length; i++) {
@@ -2187,9 +2186,9 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
             doctor_name: doctorName || 'Лікар',
             appointment_date: date,
             reason: reason || null,
-            status: 'scheduled'
+            status: 'scheduled'  // Початковий статус
         });
-        await showToast('Запис створено!', 'success');
+        await showToast('Запис створено! Статус: ⏳ Заплановано', 'success');
         closeModal('clinicAppointmentModal');
         document.getElementById('clinicAppointmentForm').reset();
         loadClinic();
@@ -2198,18 +2197,6 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
-
-async function deleteClinicPatient(patientId) {
-    var confirmed = await showConfirm('Видалити пацієнта? Всі його записи також будуть видалені.', 'Підтвердження');
-    if (!confirmed) return;
-    try {
-        await db.supabaseQuery('clinic_patients?id=eq.' + patientId, { method: 'DELETE' });
-        await showToast('Пацієнта видалено', 'success');
-        loadClinic();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
 
 // ============================================
 // МОДУЛЬ: МАГАЗИН
