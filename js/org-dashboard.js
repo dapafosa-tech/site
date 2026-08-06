@@ -1792,7 +1792,7 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
         var fileName = Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + fileExt;
         
         // ПРАВИЛЬНИЙ URL - використовуємо public
-        var uploadUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
+        var uploadUrl = SUPABASE_URL + '/storage/v1/object/org_files/' + fileName;
         
         console.log('📤 Завантаження на URL:', uploadUrl);
         console.log('📄 Файл:', file.name, file.size, 'bytes');
