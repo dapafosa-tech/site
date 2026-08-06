@@ -28,8 +28,6 @@
             min-height:100vh;
             display:flex;
         }
-        .display{font-family:'Space Grotesk',sans-serif;}
-        .mono{font-family:'IBM Plex Mono',monospace;}
         .sidebar{
             position:fixed;
             left:0;top:0;
@@ -62,6 +60,31 @@
             font-weight:600;
             transform:rotate(-6deg);
         }
+        .sidebar .user-info{
+            padding:1rem;
+            background:var(--ink);
+            border-radius:var(--radius);
+            margin-bottom:2rem;
+            display:flex;
+            align-items:center;
+            gap:1rem;
+        }
+        .sidebar .user-info .avatar{
+            width:40px;height:40px;
+            border-radius:50%;
+            background:var(--teal);
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:700;
+            font-size:1rem;
+            overflow:hidden;
+            flex-shrink:0;
+        }
+        .sidebar .user-info .avatar img{width:100%;height:100%;object-fit:cover;}
+        .sidebar .user-info .name{font-weight:600;font-size:0.95rem;}
+        .sidebar .user-info .email{font-size:0.8rem;color:var(--muted);}
         .sidebar .nav-menu{list-style:none;}
         .sidebar .nav-menu li{margin-bottom:0.25rem;}
         .sidebar .nav-menu a{
@@ -79,6 +102,13 @@
         .sidebar .nav-menu a:hover{background:var(--ink);color:var(--text-onink);}
         .sidebar .nav-menu a.active{background:var(--gold);color:var(--ink);}
         .sidebar .nav-menu a i{width:20px;text-align:center;}
+        .sidebar .nav-menu .logout-btn{
+            margin-top:2rem;
+            border-top:1px solid var(--ink-line);
+            padding-top:1rem;
+        }
+        .sidebar .nav-menu .logout-btn a{color:#E2503E;}
+        .sidebar .nav-menu .logout-btn a:hover{background:#2A1A1A;}
         .main-content{
             margin-left:260px;
             padding:2rem;
@@ -95,47 +125,14 @@
         }
         .page-header h1{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;}
         .page-header p{color:var(--muted);}
-        .admin-badge{
-            background:#E2503E;
-            color:white;
-            padding:0.25rem 0.75rem;
-            border-radius:999px;
-            font-size:0.7rem;
-            font-weight:600;
-            text-transform:uppercase;
-        }
-        .stats-grid{
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-            gap:1.5rem;
-            margin-bottom:2rem;
-        }
-        .stat-card{
-            background:var(--ink-soft);
-            border:1px solid var(--ink-line);
-            border-left:4px solid var(--gold);
-            padding:1.5rem;
-            border-radius:var(--radius);
-        }
-        .stat-card .stat-value{font-size:2rem;font-weight:700;color:var(--gold);}
-        .stat-card .stat-label{color:var(--muted);font-size:0.9rem;margin-top:0.25rem;}
-        .card{
-            background:var(--ink-soft);
-            border:1px solid var(--ink-line);
-            border-radius:var(--radius);
-            padding:1.5rem;
-            margin-bottom:2rem;
-        }
-        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--ink-line);}
-        .card-title{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:600;}
         .btn{
             display:inline-flex;
             align-items:center;
             gap:8px;
-            padding:0.5rem 1.2rem;
+            padding:0.6rem 1.5rem;
             border-radius:6px;
             font-weight:600;
-            font-size:0.85rem;
+            font-size:0.9rem;
             cursor:pointer;
             border:1px solid transparent;
             transition:transform .15s,box-shadow .15s;
@@ -146,18 +143,89 @@
         .btn-teal:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(70,201,184,0.28);}
         .btn-danger{background:#E2503E;color:white;}
         .btn-danger:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(226,80,62,0.28);}
+        .btn-warning{background:#F59E0B;color:var(--ink);}
+        .btn-warning:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(245,158,11,0.28);}
+        .btn-ghost{border-color:var(--ink-line);color:var(--text-onink);}
+        .btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
         .btn-sm{padding:0.3rem 0.8rem;font-size:0.75rem;}
         .btn-outline{border-color:var(--ink-line);color:var(--text-onink);background:transparent;}
         .btn-outline:hover{border-color:var(--teal);color:var(--teal);}
-        .table{width:100%;border-collapse:collapse;font-size:0.9rem;}
-        .table th{text-align:left;padding:0.75rem 1rem;border-bottom:2px solid var(--ink-line);color:var(--muted);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;}
-        .table td{padding:0.75rem 1rem;border-bottom:1px solid var(--ink-line);}
+        .grid-4{
+            display:grid;
+            grid-template-columns:repeat(4,1fr);
+            gap:1.5rem;
+            margin-bottom:2rem;
+        }
+        .stat-card{
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            padding:1.5rem;
+            border-radius:var(--radius);
+            text-align:center;
+        }
+        .stat-card .stat-value{
+            font-size:2.5rem;
+            font-weight:700;
+            color:var(--gold);
+            font-family:'Space Grotesk',sans-serif;
+        }
+        .stat-card .stat-label{
+            color:var(--muted);
+            font-size:0.9rem;
+            margin-top:0.25rem;
+        }
+        .card{
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius);
+            padding:1.5rem;
+            margin-bottom:1.5rem;
+        }
+        .card-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:1.5rem;
+            padding-bottom:1rem;
+            border-bottom:1px solid var(--ink-line);
+        }
+        .card-title{
+            font-family:'Space Grotesk',sans-serif;
+            font-size:1.25rem;
+            font-weight:600;
+        }
+        .table{
+            width:100%;
+            border-collapse:collapse;
+            font-size:0.9rem;
+        }
+        .table th{
+            text-align:left;
+            padding:0.75rem 1rem;
+            border-bottom:2px solid var(--ink-line);
+            color:var(--muted);
+            font-weight:600;
+            font-size:0.8rem;
+            text-transform:uppercase;
+            letter-spacing:0.05em;
+        }
+        .table td{
+            padding:0.75rem 1rem;
+            border-bottom:1px solid var(--ink-line);
+        }
         .table tr:hover{background:rgba(255,255,255,0.02);}
-        .badge{display:inline-block;padding:0.2rem 0.7rem;border-radius:999px;font-size:0.7rem;font-weight:600;}
-        .badge-success{background:#46C9B820;color:#46C9B8;}
+        .badge{
+            display:inline-block;
+            padding:0.2rem 0.7rem;
+            border-radius:999px;
+            font-size:0.7rem;
+            font-weight:600;
+        }
+        .badge-primary{background:var(--gold);color:var(--ink);}
         .badge-danger{background:#E2503E20;color:#E2503E;}
+        .badge-success{background:#46C9B820;color:#46C9B8;}
         .badge-warning{background:#F59E0B20;color:#F59E0B;}
-        .badge-primary{background:#4f46e520;color:#4f46e5;}
+        .badge-secondary{background:var(--ink-line);color:var(--muted);}
         .modal{
             display:none;
             position:fixed;
@@ -180,13 +248,24 @@
             max-height:90vh;
             overflow-y:auto;
         }
-        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+        .modal-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:1.5rem;
+        }
         .modal-header h2{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;}
-        .modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);transition:color .3s;}
+        .modal-close{
+            background:none;border:none;
+            font-size:1.5rem;
+            cursor:pointer;
+            color:var(--muted);
+            transition:color .3s;
+        }
         .modal-close:hover{color:var(--text-onink);}
-        .form-group{margin-bottom:1.5rem;}
-        .form-label{display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;}
-        .form-control{
+        .modal .form-group{margin-bottom:1.5rem;}
+        .modal .form-label{display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;}
+        .modal .form-control{
             width:100%;
             padding:0.75rem 1rem;
             background:var(--ink);
@@ -196,23 +275,25 @@
             font-family:'IBM Plex Sans',sans-serif;
             font-size:1rem;
         }
-        .form-control:focus{outline:none;border-color:var(--gold);}
-        .form-control:disabled{opacity:0.5;cursor:not-allowed;}
-        select.form-control{
-            appearance:none;
-            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B93A6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat:no-repeat;
-            background-position:right 1rem center;
-            padding-right:2.5rem;
-        }
+        .modal .form-control:focus{outline:none;border-color:var(--gold);}
+        .text-muted{color:var(--muted);}
+        .text-center{text-align:center;}
+        .text-danger{color:#E2503E;}
+        .mt-3{margin-top:1.5rem;}
+        .mb-2{margin-bottom:0.5rem;}
+        .flex{display:flex;}
+        .gap-1{gap:0.5rem;}
+        .flex-wrap{flex-wrap:wrap;}
+        .items-center{align-items:center;}
+        .justify-between{justify-content:space-between;}
         @media(max-width:768px){
             .sidebar{display:none;}
             .main-content{margin-left:0;padding:1rem;}
             .page-header h1{font-size:1.5rem;}
-            .stats-grid{grid-template-columns:1fr 1fr;}
+            .grid-4{grid-template-columns:1fr 1fr;}
         }
         @media(max-width:480px){
-            .stats-grid{grid-template-columns:1fr;}
+            .grid-4{grid-template-columns:1fr;}
         }
     </style>
 </head>
@@ -223,51 +304,58 @@
             <span>Typebiz</span>
         </div>
 
+        <div class="user-info">
+            <div class="avatar" id="userAvatar">A</div>
+            <div>
+                <div class="name" id="userName">Адміністратор</div>
+                <div class="email" id="userEmail">---</div>
+            </div>
+        </div>
+
         <ul class="nav-menu">
             <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад</a></li>
-            <li><a href="#" class="active" onclick="loadSection('overview')"><i class="fas fa-crown"></i> Адмін-панель</a></li>
-            <li><a href="#" onclick="loadSection('users')"><i class="fas fa-users"></i> Користувачі</a></li>
-            <li><a href="#" onclick="loadSection('orgs')"><i class="fas fa-building"></i> Організації</a></li>
-            <li><a href="#" onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чати</a></li>
-            <li><a href="#" onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
-            <li><a href="#" onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
-            <li><a href="#" onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
-            <li><a href="#" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
+            <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Огляд</a></li>
+            <li><a onclick="loadSection('users')"><i class="fas fa-users"></i> Користувачі</a></li>
+            <li><a onclick="loadSection('orgs')"><i class="fas fa-building"></i> Організації</a></li>
+            <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чати</a></li>
+            <li><a onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
+            <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
+            <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
+            <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
     </aside>
 
-    <main class="main-content" id="mainContent">
+    <main class="main-content">
         <div class="page-header">
             <div>
-                <h1>Адміністративна панель</h1>
-                <p>Керування системою та користувачами</p>
+                <h1>Адмін-панель</h1>
+                <p>Управління системою</p>
             </div>
-            <span class="admin-badge"><i class="fas fa-shield-alt"></i> Адмін</span>
         </div>
 
-        <div class="stats-grid" id="statsGrid">
+        <div class="grid-4" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-value" id="totalUsers">0</div>
                 <div class="stat-label">Користувачів</div>
             </div>
-            <div class="stat-card" style="border-color: var(--teal);">
+            <div class="stat-card">
                 <div class="stat-value" id="totalOrgs">0</div>
                 <div class="stat-label">Організацій</div>
             </div>
-            <div class="stat-card" style="border-color: #F59E0B;">
+            <div class="stat-card">
                 <div class="stat-value" id="totalMessages">0</div>
-                <div class="stat-label">Повідомлень у чатах</div>
+                <div class="stat-label">Повідомлень</div>
             </div>
-            <div class="stat-card" style="border-color: #E2503E;">
+            <div class="stat-card">
                 <div class="stat-value" id="totalVacations">0</div>
-                <div class="stat-label">Заявок на відпустку</div>
+                <div class="stat-label">Відпусток</div>
             </div>
         </div>
 
         <div id="adminContent">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Останні дії в системі</h3>
+                    <h3 class="card-title">Останні дії</h3>
                 </div>
                 <div id="recentLogs">
                     <p class="text-muted">Завантаження...</p>
@@ -280,11 +368,11 @@
     <div class="modal" id="chatModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="chatModalTitle">Чат організації</h2>
+                <h2 id="chatModalTitle">Чат</h2>
                 <button class="modal-close" onclick="closeModal('chatModal')">&times;</button>
             </div>
-            <div id="chatMessagesContainer" style="max-height:400px;overflow-y:auto;margin-bottom:1rem;padding:0.5rem;background:var(--ink);border-radius:6px;border:1px solid var(--ink-line);">
-                <p class="text-muted">Завантаження повідомлень...</p>
+            <div id="chatMessagesContainer">
+                <p class="text-muted">Завантаження...</p>
             </div>
         </div>
     </div>
@@ -293,10 +381,10 @@
     <div class="modal" id="vacationModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="vacationModalTitle">Відпустки організації</h2>
+                <h2 id="vacationModalTitle">Відпустки</h2>
                 <button class="modal-close" onclick="closeModal('vacationModal')">&times;</button>
             </div>
-            <div id="vacationContainer" style="max-height:400px;overflow-y:auto;">
+            <div id="vacationContainer">
                 <p class="text-muted">Завантаження...</p>
             </div>
         </div>
