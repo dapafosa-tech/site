@@ -311,6 +311,7 @@ async function loadMembers() {
         var members = await db.getOrganizationMembers(currentOrgId);
         var ranks = await db.getOrganizationRanks(currentOrgId);
         var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
 
         var html = 
             '<div class="card">' +
@@ -323,6 +324,7 @@ async function loadMembers() {
                             '<tr>' +
                                 '<th>Користувач</th>' +
                                 '<th>Посада</th>' +
+                                '<th>Відділ</th>' +
                                 '<th>Дата вступу</th>' +
                                 '<th>Дії</th>' +
                             '</tr>' +
@@ -335,6 +337,8 @@ async function loadMembers() {
                 try {
                     var userData = await db.supabaseQuery('users?id=eq.' + member.user_id);
                     var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : 'Невідомо';
+                    
+                    // Знаходимо посаду
                     var rank = null;
                     if (ranks) {
                         for (var r = 0; r < ranks.length; r++) {
@@ -344,25 +348,71 @@ async function loadMembers() {
                             }
                         }
                     }
-                    var isLeader = currentOrg && currentOrg.leader_id === member.user_id;
+                    
+                    // Знаходимо відділ
+                    var employee = null;
+                    var employees = await db.getOrganizationEmployees(currentOrgId);
+                    for (var e = 0; e < employees.length; e++) {
+                        if (employees[e].user_id === member.user_id && employees[e].organization_id === currentOrgId) {
+                            employee = employees[e];
+                            break;
+                        }
+                    }
+                    
+                    var departmentName = '—';
+                    if (employee && employee.department_id) {
+                        var depts = await db.getOrganizationDepartments(currentOrgId);
+                        for (var d = 0; d < depts.length; d++) {
+                            if (depts[d].id === employee.department_id) {
+                                departmentName = depts[d].name;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    var isLeaderUser = currentOrg && currentOrg.leader_id === member.user_id;
+                    var isCurrentUser = member.user_id === (user ? user.id : null);
+
+                    // ТІЛЬКИ ЛІДЕР МОЖЕ КЕРУВАТИ
+                    var canManage = isLeader && !isLeaderUser && !isCurrentUser;
 
                     html += 
                         '<tr>' +
-                            '<td><strong>' + userName + (isLeader ? ' 👑' : '') + '</strong></td>' +
+                            '<td><strong>' + userName + (isLeaderUser ? ' 👑' : '') + (isCurrentUser ? ' (ви)' : '') + '</strong></td>' +
                             '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' ⭐' : '') + '</span>' : 'Без посади') + '</td>' +
+                            '<td>' + departmentName + '</td>' +
                             '<td>' + new Date(member.joined_at).toLocaleDateString('uk-UA') + '</td>' +
-                            '<td>' + (!isLeader && currentOrg && currentOrg.leader_id === (user ? user.id : null) ? 
-                                '<button class="btn btn-sm btn-teal" onclick="openAssignRank(\'' + member.id + '\', \'' + userName + '\')">' +
-                                    '<i class="fas fa-crown"></i>' +
-                                '</button>' +
-                                '<button class="btn btn-sm btn-danger" onclick="removeMember(\'' + member.id + '\')">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' : '—') + '</td>' +
+                            '<td>' + 
+                                '<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">' +
+                                    // КНОПКА: ЗМІНИТИ ПОСАДУ
+                                    (canManage ? 
+                                        '<button class="btn btn-sm btn-teal" onclick="openAssignRank(\'' + member.id + '\', \'' + userName + '\')" title="Змінити посаду">' +
+                                            '<i class="fas fa-crown"></i>' +
+                                        '</button>' : '') +
+                                    // КНОПКА: ЗНЯТИ ПОСАДУ (тільки якщо є посада і вона не дефолтна)
+                                    (canManage && rank && !rank.is_default ? 
+                                        '<button class="btn btn-sm btn-warning" onclick="removeRankFromMember(\'' + member.id + '\')" title="Зняти посаду">' +
+                                            '<i class="fas fa-times-circle"></i>' +
+                                        '</button>' : '') +
+                                    // КНОПКА: ВИДАЛИТИ З ВІДДІЛУ (тільки якщо є відділ)
+                                    (canManage && employee && employee.department_id ? 
+                                        '<button class="btn btn-sm btn-warning" onclick="removeFromDepartment(\'' + employee.id + '\')" title="Видалити з відділу">' +
+                                            '<i class="fas fa-user-slash"></i>' +
+                                        '</button>' : '') +
+                                    // КНОПКА: ВИГНАТИ З ОРГАНІЗАЦІЇ
+                                    (canManage ? 
+                                        '<button class="btn btn-sm btn-danger" onclick="removeMember(\'' + member.id + '\', \'' + userName + '\')" title="Вигнати з організації">' +
+                                            '<i class="fas fa-user-minus"></i>' +
+                                        '</button>' : '') +
+                                '</div>' +
+                            '</td>' +
                         '</tr>';
-                } catch (e) {}
+                } catch (e) {
+                    console.error('Error loading member:', e);
+                }
             }
         } else {
-            html += '<tr><td colspan="4" class="text-center text-muted">Немає учасників</td></tr>';
+            html += '<tr><td colspan="5" class="text-center text-muted">Немає учасників</td></tr>';
         }
 
         html += 
@@ -373,6 +423,7 @@ async function loadMembers() {
 
         container.innerHTML = html;
     } catch (error) {
+        console.error('Load members error:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
 }
