@@ -214,13 +214,10 @@ async function deleteOrganization(id) {
     });
 }
 
-// ===== ПОШУК ОРГАНІЗАЦІЇ ПО КОДУ (ВИПРАВЛЕНО) =====
 async function getOrganizationByJoinCode(code) {
-    // Приводимо до нижнього регістру (бо в БД зберігається в нижньому)
     var cleanCode = code.trim().toLowerCase();
     console.log('🔍 Пошук за кодом:', cleanCode);
     
-    // Шукаємо точний збіг
     var result = await supabaseQuery('organizations?join_code=eq.' + cleanCode);
     
     if (result && result.length > 0) {
@@ -228,7 +225,6 @@ async function getOrganizationByJoinCode(code) {
         return result[0];
     }
     
-    // Якщо не знайшли - пробуємо пошук по частині (якщо код без дефісів)
     if (!cleanCode.includes('-')) {
         var allOrgs = await supabaseQuery('organizations?select=id,name,join_code');
         if (allOrgs) {
@@ -800,7 +796,7 @@ async function createLibraryReader(data) {
     });
 }
 
-// ===== ШКОЛА =====
+// ===== ШКОЛА (ВИПРАВЛЕНО) =====
 async function getSchoolStudents(orgId) {
     return supabaseQuery('school_students?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -808,7 +804,17 @@ async function getSchoolStudents(orgId) {
 async function createSchoolStudent(data) {
     return supabaseQuery('school_students', {
         method: 'POST',
-        body: JSON.stringify({ id: generateUUID(), ...data }),
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: data.organization_id,
+            full_name: data.full_name,
+            class_id: data.class_id || null,
+            birth_date: data.birth_date || null,
+            parent_phone: data.parent_phone || null,
+            parent_email: data.parent_email || null,
+            address: data.address || null,
+            created_at: new Date().toISOString()
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
@@ -820,7 +826,15 @@ async function getSchoolClasses(orgId) {
 async function createSchoolClass(data) {
     return supabaseQuery('school_classes', {
         method: 'POST',
-        body: JSON.stringify({ id: generateUUID(), ...data }),
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: data.organization_id,
+            name: data.name,
+            teacher_id: data.teacher_id || null,
+            teacher_name: data.teacher_name || null,
+            room: data.room || null,
+            created_at: new Date().toISOString()
+        }),
         headers: { 'Prefer': 'return=representation' }
     });
 }
