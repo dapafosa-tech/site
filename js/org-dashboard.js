@@ -2600,10 +2600,12 @@ document.getElementById('shopSaleForm')?.addEventListener('submit', async functi
             }
         }
         var price = product ? product.price : 0;
+        var productName = product ? product.name : 'Товар'; // ← ОТРИМУЄМО НАЗВУ
         
         await db.createShopSale({
             organization_id: currentOrgId,
             product_id: productId,
+            product_name: productName, // ← ДОДАЄМО ЦЕЙ РЯДОК
             quantity: quantity,
             price: price,
             total: price * quantity,
