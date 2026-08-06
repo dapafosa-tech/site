@@ -8,8 +8,8 @@ if (typeof SUPABASE_URL === 'undefined') {
 }
 
 // КОНФІГУРАЦІЯ RESEND
-var RESEND_API_KEY = 're_ваш_ключ_з_resend'; // Замініть на реальний ключ
-var RESEND_FROM_EMAIL = 'noreply@ваш-домен.com'; // Замініть на ваш домен
+var RESEND_API_KEY = 're_ZRwkHL2Z_M9a1YsU7BCEEuzY7vNN4jnCF'; // Замініть на реальний ключ
+var RESEND_FROM_EMAIL = 'Typebiz <onboarding@resend.dev>'; // Замініть на ваш домен
 
 var currentUser = null;
 
