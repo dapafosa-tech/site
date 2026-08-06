@@ -1,13 +1,15 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД
+// TYPEBIZ - ДАШБОРД (З КАСТОМНИМИ МОДАЛКАМИ)
 // ============================================
 
 function logoutUser() {
-    if (confirm('Вы уверены, что хотите выйти?')) {
-        localStorage.removeItem('userData');
-        localStorage.removeItem('isGuest');
-        window.location.href = '/login';
-    }
+    showConfirm('Ви впевнені, що хочете вийти?', 'Вихід').then(function(confirmed) {
+        if (confirmed) {
+            localStorage.removeItem('userData');
+            localStorage.removeItem('isGuest');
+            window.location.href = '/login';
+        }
+    });
 }
 
 function openCreateOrg() {
@@ -22,21 +24,19 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
-// ===== ЗАГРУЗКА =====
 async function loadDashboard() {
-    const user = auth.getCurrentUser();
+    var user = auth.getCurrentUser();
     if (!user) {
         window.location.href = '/login';
         return;
     }
 
-    document.getElementById('userName').textContent = user.full_name || 'Пользователь';
+    document.getElementById('userName').textContent = user.full_name || 'Користувач';
     document.getElementById('userEmail').textContent = user.email;
 
-    // Аватарка
-    const avatarEl = document.getElementById('userAvatar');
+    var avatarEl = document.getElementById('userAvatar');
     if (user.avatar_url) {
-        avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="Avatar">`;
+        avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
     } else {
         avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
     }
@@ -50,9 +50,9 @@ async function loadDashboard() {
 
 async function loadOrganizations() {
     try {
-        const orgs = await db.getUserAllOrganizations();
-        const grid = document.getElementById('orgGrid');
-        const emptyState = document.getElementById('emptyState');
+        var orgs = await db.getUserAllOrganizations();
+        var grid = document.getElementById('orgGrid');
+        var emptyState = document.getElementById('emptyState');
 
         grid.innerHTML = '';
 
@@ -63,274 +63,270 @@ async function loadOrganizations() {
 
         emptyState.style.display = 'none';
 
-        const iconMap = {
-            'shop': { icon: 'fa-store', class: 'shop' },
-            'library': { icon: 'fa-book', class: 'library' },
-            'company': { icon: 'fa-building', class: 'company' },
-            'school': { icon: 'fa-graduation-cap', class: 'other' },
-            'clinic': { icon: 'fa-heartbeat', class: 'other' },
-            'restaurant': { icon: 'fa-utensils', class: 'other' },
-            'cafe': { icon: 'fa-coffee', class: 'other' },
-            'hotel': { icon: 'fa-hotel', class: 'other' },
-            'gym': { icon: 'fa-dumbbell', class: 'other' },
-            'beauty': { icon: 'fa-spa', class: 'other' },
-            'auto': { icon: 'fa-car', class: 'other' },
-            'realty': { icon: 'fa-home', class: 'other' },
-            'it': { icon: 'fa-code', class: 'other' },
-            'marketing': { icon: 'fa-chart-line', class: 'other' },
-            'legal': { icon: 'fa-gavel', class: 'other' },
-            'finance': { icon: 'fa-coins', class: 'other' },
-            'education': { icon: 'fa-graduation-cap', class: 'other' },
-            'medical': { icon: 'fa-heartbeat', class: 'other' },
-            'sport': { icon: 'fa-running', class: 'other' },
-            'art': { icon: 'fa-palette', class: 'other' },
-            'music': { icon: 'fa-music', class: 'other' },
-            'photo': { icon: 'fa-camera', class: 'other' },
-            'video': { icon: 'fa-video', class: 'other' },
-            'construction': { icon: 'fa-hard-hat', class: 'other' },
-            'repair': { icon: 'fa-tools', class: 'other' },
-            'cleaning': { icon: 'fa-broom', class: 'other' },
-            'delivery': { icon: 'fa-truck', class: 'other' },
-            'logistics': { icon: 'fa-shipping-fast', class: 'other' },
-            'agriculture': { icon: 'fa-tractor', class: 'other' },
-            'tourism': { icon: 'fa-plane', class: 'other' },
-            'event': { icon: 'fa-calendar-check', class: 'other' },
-            'charity': { icon: 'fa-hand-holding-heart', class: 'other' },
-            'government': { icon: 'fa-landmark', class: 'other' },
-            'gamedev': { icon: 'fa-gamepad', class: 'other' },
-            'indie': { icon: 'fa-rocket', class: 'other' },
-            'publishing': { icon: 'fa-newspaper', class: 'other' },
-            'animation': { icon: 'fa-film', class: 'other' },
-            'vr': { icon: 'fa-vr-cardboard', class: 'other' },
-            'esports': { icon: 'fa-trophy', class: 'other' },
-            'streaming': { icon: 'fa-broadcast', class: 'other' },
-            'podcast': { icon: 'fa-microphone', class: 'other' },
-            'blogging': { icon: 'fa-blog', class: 'other' },
-            'social': { icon: 'fa-share-alt', class: 'other' },
-            'startup': { icon: 'fa-lightbulb', class: 'other' },
-            'agency': { icon: 'fa-ad', class: 'other' },
-            'consulting': { icon: 'fa-handshake', class: 'other' },
-            'freelance': { icon: 'fa-user-tie', class: 'other' },
-            'remote': { icon: 'fa-globe', class: 'other' },
-            'coworking': { icon: 'fa-building', class: 'other' },
-            'incubator': { icon: 'fa-seedling', class: 'other' },
-            'accelerator': { icon: 'fa-rocket', class: 'other' },
-            'venture': { icon: 'fa-chart-pie', class: 'other' },
-            'nonprofit': { icon: 'fa-heart', class: 'other' },
-            'community': { icon: 'fa-users', class: 'other' },
-            'religious': { icon: 'fa-church', class: 'other' },
-            'cultural': { icon: 'fa-landmark', class: 'other' },
-            'research': { icon: 'fa-flask', class: 'other' },
-            'science': { icon: 'fa-atom', class: 'other' },
-            'space': { icon: 'fa-rocket', class: 'other' },
-            'robotics': { icon: 'fa-robot', class: 'other' },
-            'ai': { icon: 'fa-brain', class: 'other' },
-            'blockchain': { icon: 'fa-link', class: 'other' },
-            'crypto': { icon: 'fa-coins', class: 'other' },
-            'defi': { icon: 'fa-chart-line', class: 'other' },
-            'nft': { icon: 'fa-image', class: 'other' },
-            'metaverse': { icon: 'fa-vr-cardboard', class: 'other' },
-            'web3': { icon: 'fa-globe', class: 'other' },
-            'other': { icon: 'fa-cubes', class: 'other' }
+        var iconMap = {
+            'shop': 'fa-store',
+            'library': 'fa-book',
+            'company': 'fa-building',
+            'school': 'fa-graduation-cap',
+            'clinic': 'fa-heartbeat',
+            'restaurant': 'fa-utensils',
+            'cafe': 'fa-coffee',
+            'hotel': 'fa-hotel',
+            'gym': 'fa-dumbbell',
+            'beauty': 'fa-spa',
+            'auto': 'fa-car',
+            'realty': 'fa-home',
+            'it': 'fa-code',
+            'marketing': 'fa-chart-line',
+            'legal': 'fa-gavel',
+            'finance': 'fa-coins',
+            'education': 'fa-graduation-cap',
+            'medical': 'fa-heartbeat',
+            'sport': 'fa-running',
+            'art': 'fa-palette',
+            'music': 'fa-music',
+            'photo': 'fa-camera',
+            'video': 'fa-video',
+            'construction': 'fa-hard-hat',
+            'repair': 'fa-tools',
+            'cleaning': 'fa-broom',
+            'delivery': 'fa-truck',
+            'logistics': 'fa-shipping-fast',
+            'agriculture': 'fa-tractor',
+            'tourism': 'fa-plane',
+            'event': 'fa-calendar-check',
+            'charity': 'fa-hand-holding-heart',
+            'government': 'fa-landmark',
+            'gamedev': 'fa-gamepad',
+            'indie': 'fa-rocket',
+            'publishing': 'fa-newspaper',
+            'animation': 'fa-film',
+            'vr': 'fa-vr-cardboard',
+            'esports': 'fa-trophy',
+            'streaming': 'fa-broadcast',
+            'podcast': 'fa-microphone',
+            'blogging': 'fa-blog',
+            'social': 'fa-share-alt',
+            'startup': 'fa-lightbulb',
+            'agency': 'fa-ad',
+            'consulting': 'fa-handshake',
+            'freelance': 'fa-user-tie',
+            'remote': 'fa-globe',
+            'coworking': 'fa-building',
+            'incubator': 'fa-seedling',
+            'accelerator': 'fa-rocket',
+            'venture': 'fa-chart-pie',
+            'nonprofit': 'fa-heart',
+            'community': 'fa-users',
+            'religious': 'fa-church',
+            'cultural': 'fa-landmark',
+            'research': 'fa-flask',
+            'science': 'fa-atom',
+            'space': 'fa-rocket',
+            'robotics': 'fa-robot',
+            'ai': 'fa-brain',
+            'blockchain': 'fa-link',
+            'crypto': 'fa-coins',
+            'defi': 'fa-chart-line',
+            'nft': 'fa-image',
+            'metaverse': 'fa-vr-cardboard',
+            'web3': 'fa-globe',
+            'other': 'fa-cubes'
         };
 
-        const typeLabels = {
+        var typeLabels = {
             'shop': 'Магазин',
-            'library': 'Библиотека',
-            'company': 'Компания',
+            'library': 'Бібліотека',
+            'company': 'Компанія',
             'school': 'Школа',
-            'clinic': 'Клиника',
+            'clinic': 'Клініка',
             'restaurant': 'Ресторан',
             'cafe': 'Кафе',
-            'hotel': 'Отель',
+            'hotel': 'Готель',
             'gym': 'Спортзал',
-            'beauty': 'Салон красоты',
-            'auto': 'Автосервис',
-            'realty': 'Недвижимость',
-            'it': 'IT-компания',
+            'beauty': 'Салон краси',
+            'auto': 'Автосервіс',
+            'realty': 'Нерухомість',
+            'it': 'IT-компанія',
             'marketing': 'Маркетинг',
-            'legal': 'Юридическая',
-            'finance': 'Финансы',
-            'education': 'Образование',
+            'legal': 'Юридична',
+            'finance': 'Фінанси',
+            'education': 'Освіта',
             'medical': 'Медицина',
             'sport': 'Спорт',
-            'art': 'Искусство',
-            'music': 'Музыка',
+            'art': 'Мистецтво',
+            'music': 'Музика',
             'photo': 'Фото',
-            'video': 'Видео',
-            'construction': 'Строительство',
+            'video': 'Відео',
+            'construction': 'Будівництво',
             'repair': 'Ремонт',
-            'cleaning': 'Клининг',
+            'cleaning': 'Клінінг',
             'delivery': 'Доставка',
-            'logistics': 'Логистика',
-            'agriculture': 'Сельское хозяйство',
+            'logistics': 'Логістика',
+            'agriculture': 'Сільське господарство',
             'tourism': 'Туризм',
-            'event': 'Ивент',
-            'charity': 'Благотворительность',
-            'government': 'Государственная',
+            'event': 'Івент',
+            'charity': 'Благодійність',
+            'government': 'Державна',
             'gamedev': 'GameDev',
-            'indie': 'Инди-разработка',
-            'publishing': 'Издательство',
-            'animation': 'Анимация',
+            'indie': 'Інді-розробка',
+            'publishing': 'Видавництво',
+            'animation': 'Анімація',
             'vr': 'VR/AR',
-            'esports': 'Киберспорт',
-            'streaming': 'Стриминг',
+            'esports': 'Кіберспорт',
+            'streaming': 'Стримінг',
             'podcast': 'Подкаст',
-            'blogging': 'Блоггинг',
-            'social': 'Соцсети',
+            'blogging': 'Блогінг',
+            'social': 'Соцмережі',
             'startup': 'Стартап',
             'agency': 'Агентство',
             'consulting': 'Консалтинг',
             'freelance': 'Фриланс',
-            'remote': 'Удалённая работа',
-            'coworking': 'Коворкинг',
-            'incubator': 'Инкубатор',
+            'remote': 'Віддалена робота',
+            'coworking': 'Коворкінг',
+            'incubator': 'Інкубатор',
             'accelerator': 'Акселератор',
             'venture': 'Венчур',
-            'nonprofit': 'Некоммерческая',
-            'community': 'Сообщество',
-            'religious': 'Религиозная',
-            'cultural': 'Культурная',
-            'research': 'Исследования',
+            'nonprofit': 'Некомерційна',
+            'community': 'Спільнота',
+            'religious': 'Релігійна',
+            'cultural': 'Культурна',
+            'research': 'Дослідження',
             'science': 'Наука',
             'space': 'Космос',
-            'robotics': 'Робототехника',
-            'ai': 'ИИ',
+            'robotics': 'Робототехніка',
+            'ai': 'ШІ',
             'blockchain': 'Блокчейн',
             'crypto': 'Криптовалюта',
             'defi': 'DeFi',
             'nft': 'NFT',
-            'metaverse': 'Метавселенная',
+            'metaverse': 'Метавсесвіт',
             'web3': 'Web3',
-            'other': 'Другое'
+            'other': 'Інше'
         };
 
-        orgs.forEach(org => {
-            const iconData = iconMap[org.type] || iconMap['other'];
-            const card = document.createElement('div');
+        orgs.forEach(function(org) {
+            var iconClass = iconMap[org.type] || 'fa-cubes';
+            var card = document.createElement('div');
             card.className = 'org-card';
-            card.innerHTML = `
-                <div class="org-icon ${iconData.class}">
-                    <i class="fas ${iconData.icon}"></i>
-                </div>
-                <h3>${org.name}</h3>
-                <p>${org.description || 'Нет описания'}</p>
-                <span class="org-type">${typeLabels[org.type] || org.type}</span>
-                <div class="org-join-code">
-                    <i class="fas fa-key"></i> Код: <span class="join-code">${org.join_code || '---'}</span>
-                </div>
-            `;
-            card.addEventListener('click', () => {
-                window.location.href = `/org?id=${org.id}`;
+            card.innerHTML = 
+                '<div class="org-icon">' +
+                    '<i class="fas ' + iconClass + '"></i>' +
+                '</div>' +
+                '<h3>' + org.name + '</h3>' +
+                '<p>' + (org.description || 'Немає опису') + '</p>' +
+                '<span class="org-type">' + (typeLabels[org.type] || org.type) + '</span>' +
+                '<div class="org-join-code">' +
+                    '<i class="fas fa-key"></i> Код: <span class="join-code">' + (org.join_code || '---') + '</span>' +
+                '</div>';
+            card.addEventListener('click', function() {
+                window.location.href = '/org?id=' + org.id;
             });
             grid.appendChild(card);
         });
 
     } catch (error) {
         console.error('Load organizations error:', error);
-        alert('Ошибка загрузки организаций: ' + error.message);
+        showAlert('Помилка завантаження організацій: ' + error.message, 'error');
     }
 }
 
-// ===== СОЗДАНИЕ ОРГАНИЗАЦИИ =====
-document.getElementById('createOrgForm').addEventListener('submit', async (e) => {
+document.getElementById('createOrgForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const name = document.getElementById('orgName').value.trim();
-    const type = document.getElementById('orgType').value;
-    const description = document.getElementById('orgDesc').value.trim();
+    var name = document.getElementById('orgName').value.trim();
+    var type = document.getElementById('orgType').value;
+    var description = document.getElementById('orgDesc').value.trim();
 
     if (!name) {
-        alert('Введите название организации');
+        showAlert('Введіть назву організації', 'warning');
         return;
     }
 
     if (!type) {
-        alert('Выберите тип организации');
+        showAlert('Оберіть тип організації', 'warning');
         return;
     }
 
-    const submitBtn = e.target.querySelector('button[type="submit"]');
+    var submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
     try {
         await db.createOrganization({
-            name,
-            type,
+            name: name,
+            type: type,
             description: description || '',
             is_active: true,
             settings: {}
         });
 
-        alert('Организация создана! 🎉');
+        showToast('Організацію створено! 🎉', 'success');
         closeModal('createOrgModal');
         document.getElementById('createOrgForm').reset();
         await loadOrganizations();
 
     } catch (error) {
         console.error('Create organization error:', error);
-        alert('Ошибка: ' + error.message);
+        showAlert('Помилка: ' + error.message, 'error');
     }
 
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать организацию';
+    submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Створити організацію';
 });
 
-// ===== ВСТУПЛЕНИЕ ПО КОДУ =====
-document.getElementById('joinOrgForm').addEventListener('submit', async (e) => {
+document.getElementById('joinOrgForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const code = document.getElementById('joinCode').value.trim().toUpperCase();
-    const message = document.getElementById('joinMessage').value.trim();
-    const user = auth.getCurrentUser();
+    var code = document.getElementById('joinCode').value.trim().toUpperCase();
+    var message = document.getElementById('joinMessage').value.trim();
+    var user = auth.getCurrentUser();
 
     if (!code) {
-        alert('Введите код организации');
+        showAlert('Введіть код організації', 'warning');
         return;
     }
 
-    const submitBtn = e.target.querySelector('button[type="submit"]');
+    var submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
 
     try {
-        const org = await db.getOrganizationByJoinCode(code);
+        var org = await db.getOrganizationByJoinCode(code);
         
         if (!org) {
-            alert('Организация с таким кодом не найдена');
+            showAlert('Організацію з таким кодом не знайдено', 'warning');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить заявку';
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
             return;
         }
 
-        const members = await db.getOrganizationMembers(org.id);
-        const alreadyMember = members.some(m => m.user_id === user.id);
+        var members = await db.getOrganizationMembers(org.id);
+        var alreadyMember = members.some(function(m) { return m.user_id === user.id; });
         
         if (alreadyMember) {
-            alert('Вы уже состоите в этой организации');
+            showAlert('Ви вже перебуваєте в цій організації', 'warning');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить заявку';
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
             return;
         }
 
         await db.createJoinRequest(org.id, user.id, message);
 
-        alert('Заявка отправлена! Лидер организации рассмотрит её.');
+        showToast('Заявку відправлено! Лідер організації розгляне її.', 'success');
         closeModal('joinOrgModal');
         document.getElementById('joinOrgForm').reset();
 
     } catch (error) {
         console.error('Join organization error:', error);
-        alert('Ошибка: ' + error.message);
+        showAlert('Помилка: ' + error.message, 'error');
     }
 
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить заявку';
+    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
 });
 
-// Закрытие модалок по клику вне
-document.querySelectorAll('.modal').forEach(modal => {
+document.querySelectorAll('.modal').forEach(function(modal) {
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
             this.classList.remove('active');
@@ -338,9 +334,8 @@ document.querySelectorAll('.modal').forEach(modal => {
     });
 });
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
 (async function init() {
-    const isAuth = await auth.requireAuth();
+    var isAuth = await auth.requireAuth();
     if (!isAuth) return;
 
     await loadDashboard();
