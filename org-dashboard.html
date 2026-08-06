@@ -274,6 +274,10 @@
             <li><a onclick="loadSection('departments')"><i class="fas fa-sitemap"></i> Відділи</a></li>
             <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чат</a></li>
             <li><a onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
+            <li><a onclick="loadSection('events')"><i class="fas fa-calendar-alt"></i> Події</a></li>
+            <li><a onclick="loadSection('tasks')"><i class="fas fa-tasks"></i> Завдання</a></li>
+            <li><a onclick="loadSection('polls')"><i class="fas fa-poll"></i> Опитування</a></li>
+            <li><a onclick="loadSection('files')"><i class="fas fa-folder"></i> Файли</a></li>
             <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Налаштування</a></li>
         </ul>
     </aside>
@@ -431,6 +435,127 @@
                 </div>
                 <button type="submit" class="btn btn-gold btn-block">
                     <i class="fas fa-save"></i> Призначити
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення події -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити подію</h2>
+                <button class="modal-close" onclick="closeModal('eventModal')">&times;</button>
+            </div>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label class="form-label">Назва події</label>
+                    <input type="text" class="form-control" id="eventTitle" placeholder="Назва" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="eventDesc" rows="3" placeholder="Опис"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата початку</label>
+                    <input type="datetime-local" class="form-control" id="eventStart" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата закінчення</label>
+                    <input type="datetime-local" class="form-control" id="eventEnd" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Місце</label>
+                    <input type="text" class="form-control" id="eventLocation" placeholder="Місце проведення">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення завдання -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="taskModalTitle">Створити завдання</h2>
+                <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskEditId">
+                <div class="form-group">
+                    <label class="form-label">Назва завдання</label>
+                    <input type="text" class="form-control" id="taskTitle" placeholder="Назва" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="taskDesc" rows="3" placeholder="Опис"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Відповідальний</label>
+                    <select class="form-control" id="taskAssign">
+                        <option value="">Не призначено</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дедлайн</label>
+                    <input type="date" class="form-control" id="taskDue">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пріоритет</label>
+                    <select class="form-control" id="taskPriority">
+                        <option value="low">🟢 Низький</option>
+                        <option value="medium" selected>🟡 Середній</option>
+                        <option value="high">🔴 Високий</option>
+                        <option value="urgent">🔥 Терміновий</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <span id="taskSubmitText">Створити</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення опитування -->
+    <div class="modal" id="pollModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити опитування</h2>
+                <button class="modal-close" onclick="closeModal('pollModal')">&times;</button>
+            </div>
+            <form id="pollForm">
+                <div class="form-group">
+                    <label class="form-label">Назва опитування</label>
+                    <input type="text" class="form-control" id="pollTitle" placeholder="Назва" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="pollDesc" rows="3" placeholder="Опис"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Варіанти відповідей</label>
+                    <textarea class="form-control" id="pollOptions" rows="4" placeholder="Варіант 1&#10;Варіант 2&#10;Варіант 3" required></textarea>
+                    <small style="color:var(--muted);">Кожен варіант з нового рядка</small>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка завантаження файлу -->
+    <div class="modal" id="fileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Завантажити файл</h2>
+                <button class="modal-close" onclick="closeModal('fileModal')">&times;</button>
+            </div>
+            <form id="fileForm">
+                <div class="form-group">
+                    <label class="form-label">Файл</label>
+                    <input type="file" class="form-control" id="fileInput" required style="padding:0.5rem;background:var(--ink);border:1px solid var(--ink-line);border-radius:6px;color:var(--text-onink);">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-upload"></i> Завантажити
                 </button>
             </form>
         </div>
