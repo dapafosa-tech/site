@@ -679,8 +679,10 @@ async function deleteUser(id) {
 }
 
 // ============================================
-// МОДУЛЬ: КЛІНІКА
+// ВСІ МОДУЛІ - ФУНКЦІЇ ДЛЯ РОБОТИ З БАЗОЮ
 // ============================================
+
+// ===== КЛІНІКА =====
 async function getClinicPatients(orgId) {
     return supabaseQuery('clinic_patients?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -705,9 +707,7 @@ async function createClinicAppointment(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: МАГАЗИН
-// ============================================
+// ===== МАГАЗИН =====
 async function getShopProducts(orgId) {
     return supabaseQuery('shop_products?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -732,9 +732,7 @@ async function createShopSale(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: БІБЛІОТЕКА
-// ============================================
+// ===== БІБЛІОТЕКА =====
 async function getLibraryBooks(orgId) {
     return supabaseQuery('library_books?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -771,9 +769,7 @@ async function createLibraryReader(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: ШКОЛА
-// ============================================
+// ===== ШКОЛА =====
 async function getSchoolStudents(orgId) {
     return supabaseQuery('school_students?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -806,9 +802,7 @@ async function createSchoolGrade(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: РЕСТОРАН
-// ============================================
+// ===== РЕСТОРАН =====
 async function getRestaurantMenu(orgId) {
     return supabaseQuery('restaurant_menu?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -833,9 +827,7 @@ async function createRestaurantOrder(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: ГОТЕЛЬ
-// ============================================
+// ===== ГОТЕЛЬ =====
 async function getHotelRooms(orgId) {
     return supabaseQuery('hotel_rooms?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -860,9 +852,7 @@ async function createHotelBooking(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: СПОРТЗАЛ
-// ============================================
+// ===== СПОРТЗАЛ =====
 async function getGymMemberships(orgId) {
     return supabaseQuery('gym_memberships?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -887,9 +877,7 @@ async function createGymTraining(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: САЛОН КРАСИ
-// ============================================
+// ===== САЛОН КРАСИ =====
 async function getBeautyServices(orgId) {
     return supabaseQuery('beauty_services?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -914,9 +902,7 @@ async function createBeautyAppointment(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: АВТОСЕРВІС
-// ============================================
+// ===== АВТОСЕРВІС =====
 async function getAutoOrders(orgId) {
     return supabaseQuery('auto_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -941,9 +927,7 @@ async function createAutoPart(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: НЕРУХОМІСТЬ
-// ============================================
+// ===== НЕРУХОМІСТЬ =====
 async function getRealtyProperties(orgId) {
     return supabaseQuery('realty_properties?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -968,9 +952,7 @@ async function createRealtyDeal(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: ЛОГІСТИКА
-// ============================================
+// ===== ЛОГІСТИКА =====
 async function getLogisticsOrders(orgId) {
     return supabaseQuery('logistics_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -983,9 +965,7 @@ async function createLogisticsOrder(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: ДОСТАВКА
-// ============================================
+// ===== ДОСТАВКА =====
 async function getDeliveryOrders(orgId) {
     return supabaseQuery('delivery_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -998,9 +978,7 @@ async function createDeliveryOrder(data) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: IT / GAMEDEV
-// ============================================
+// ===== IT / GAMEDEV =====
 async function getItProjects(orgId) {
     return supabaseQuery('it_projects?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
