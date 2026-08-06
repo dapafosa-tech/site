@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - РОБОТА З БАЗОЮ ДАНИХ
+// TYPEBIZ - РОБОТА З БАЗОЮ ДАНИХ (ПОВНА ВЕРСІЯ)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -678,7 +678,356 @@ async function deleteUser(id) {
     });
 }
 
-// ===== ЕКСПОРТ =====
+// ============================================
+// МОДУЛЬ: КЛІНІКА
+// ============================================
+async function getClinicPatients(orgId) {
+    return supabaseQuery('clinic_patients?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createClinicPatient(data) {
+    return supabaseQuery('clinic_patients', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getClinicAppointments(orgId) {
+    return supabaseQuery('clinic_appointments?organization_id=eq.' + orgId + '&order=appointment_date.desc');
+}
+
+async function createClinicAppointment(data) {
+    return supabaseQuery('clinic_appointments', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: МАГАЗИН
+// ============================================
+async function getShopProducts(orgId) {
+    return supabaseQuery('shop_products?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createShopProduct(data) {
+    return supabaseQuery('shop_products', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getShopSales(orgId) {
+    return supabaseQuery('shop_sales?organization_id=eq.' + orgId + '&order=sale_date.desc');
+}
+
+async function createShopSale(data) {
+    return supabaseQuery('shop_sales', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: БІБЛІОТЕКА
+// ============================================
+async function getLibraryBooks(orgId) {
+    return supabaseQuery('library_books?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createLibraryBook(data) {
+    return supabaseQuery('library_books', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getLibraryLoans(orgId) {
+    return supabaseQuery('library_loans?organization_id=eq.' + orgId + '&order=loan_date.desc');
+}
+
+async function createLibraryLoan(data) {
+    return supabaseQuery('library_loans', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getLibraryReaders(orgId) {
+    return supabaseQuery('library_readers?organization_id=eq.' + orgId + '&order=joined_at.desc');
+}
+
+async function createLibraryReader(data) {
+    return supabaseQuery('library_readers', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: ШКОЛА
+// ============================================
+async function getSchoolStudents(orgId) {
+    return supabaseQuery('school_students?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createSchoolStudent(data) {
+    return supabaseQuery('school_students', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getSchoolClasses(orgId) {
+    return supabaseQuery('school_classes?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createSchoolClass(data) {
+    return supabaseQuery('school_classes', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function createSchoolGrade(data) {
+    return supabaseQuery('school_grades', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: РЕСТОРАН
+// ============================================
+async function getRestaurantMenu(orgId) {
+    return supabaseQuery('restaurant_menu?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createRestaurantMenuItem(data) {
+    return supabaseQuery('restaurant_menu', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getRestaurantOrders(orgId) {
+    return supabaseQuery('restaurant_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createRestaurantOrder(data) {
+    return supabaseQuery('restaurant_orders', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: ГОТЕЛЬ
+// ============================================
+async function getHotelRooms(orgId) {
+    return supabaseQuery('hotel_rooms?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createHotelRoom(data) {
+    return supabaseQuery('hotel_rooms', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getHotelBookings(orgId) {
+    return supabaseQuery('hotel_bookings?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createHotelBooking(data) {
+    return supabaseQuery('hotel_bookings', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: СПОРТЗАЛ
+// ============================================
+async function getGymMemberships(orgId) {
+    return supabaseQuery('gym_memberships?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createGymMembership(data) {
+    return supabaseQuery('gym_memberships', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getGymTrainings(orgId) {
+    return supabaseQuery('gym_trainings?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createGymTraining(data) {
+    return supabaseQuery('gym_trainings', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: САЛОН КРАСИ
+// ============================================
+async function getBeautyServices(orgId) {
+    return supabaseQuery('beauty_services?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createBeautyService(data) {
+    return supabaseQuery('beauty_services', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getBeautyAppointments(orgId) {
+    return supabaseQuery('beauty_appointments?organization_id=eq.' + orgId + '&order=appointment_date.desc');
+}
+
+async function createBeautyAppointment(data) {
+    return supabaseQuery('beauty_appointments', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: АВТОСЕРВІС
+// ============================================
+async function getAutoOrders(orgId) {
+    return supabaseQuery('auto_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createAutoOrder(data) {
+    return supabaseQuery('auto_orders', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getAutoParts(orgId) {
+    return supabaseQuery('auto_parts?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createAutoPart(data) {
+    return supabaseQuery('auto_parts', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: НЕРУХОМІСТЬ
+// ============================================
+async function getRealtyProperties(orgId) {
+    return supabaseQuery('realty_properties?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createRealtyProperty(data) {
+    return supabaseQuery('realty_properties', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getRealtyDeals(orgId) {
+    return supabaseQuery('realty_deals?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createRealtyDeal(data) {
+    return supabaseQuery('realty_deals', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: ЛОГІСТИКА
+// ============================================
+async function getLogisticsOrders(orgId) {
+    return supabaseQuery('logistics_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createLogisticsOrder(data) {
+    return supabaseQuery('logistics_orders', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: ДОСТАВКА
+// ============================================
+async function getDeliveryOrders(orgId) {
+    return supabaseQuery('delivery_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createDeliveryOrder(data) {
+    return supabaseQuery('delivery_orders', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: IT / GAMEDEV
+// ============================================
+async function getItProjects(orgId) {
+    return supabaseQuery('it_projects?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createItProject(data) {
+    return supabaseQuery('it_projects', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getItBugs(orgId) {
+    return supabaseQuery('it_bugs?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createItBug(data) {
+    return supabaseQuery('it_bugs', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// ЕКСПОРТ ВСІХ ФУНКЦІЙ
+// ============================================
 window.db = {
     supabaseQuery: supabaseQuery,
     createOrganization: createOrganization,
@@ -737,5 +1086,69 @@ window.db = {
     getNotifications: getNotifications,
     markNotificationRead: markNotificationRead,
     updateUser: updateUser,
-    deleteUser: deleteUser
+    deleteUser: deleteUser,
+    // КЛІНІКА
+    getClinicPatients: getClinicPatients,
+    createClinicPatient: createClinicPatient,
+    getClinicAppointments: getClinicAppointments,
+    createClinicAppointment: createClinicAppointment,
+    // МАГАЗИН
+    getShopProducts: getShopProducts,
+    createShopProduct: createShopProduct,
+    getShopSales: getShopSales,
+    createShopSale: createShopSale,
+    // БІБЛІОТЕКА
+    getLibraryBooks: getLibraryBooks,
+    createLibraryBook: createLibraryBook,
+    getLibraryLoans: getLibraryLoans,
+    createLibraryLoan: createLibraryLoan,
+    getLibraryReaders: getLibraryReaders,
+    createLibraryReader: createLibraryReader,
+    // ШКОЛА
+    getSchoolStudents: getSchoolStudents,
+    createSchoolStudent: createSchoolStudent,
+    getSchoolClasses: getSchoolClasses,
+    createSchoolClass: createSchoolClass,
+    createSchoolGrade: createSchoolGrade,
+    // РЕСТОРАН
+    getRestaurantMenu: getRestaurantMenu,
+    createRestaurantMenuItem: createRestaurantMenuItem,
+    getRestaurantOrders: getRestaurantOrders,
+    createRestaurantOrder: createRestaurantOrder,
+    // ГОТЕЛЬ
+    getHotelRooms: getHotelRooms,
+    createHotelRoom: createHotelRoom,
+    getHotelBookings: getHotelBookings,
+    createHotelBooking: createHotelBooking,
+    // СПОРТЗАЛ
+    getGymMemberships: getGymMemberships,
+    createGymMembership: createGymMembership,
+    getGymTrainings: getGymTrainings,
+    createGymTraining: createGymTraining,
+    // САЛОН КРАСИ
+    getBeautyServices: getBeautyServices,
+    createBeautyService: createBeautyService,
+    getBeautyAppointments: getBeautyAppointments,
+    createBeautyAppointment: createBeautyAppointment,
+    // АВТОСЕРВІС
+    getAutoOrders: getAutoOrders,
+    createAutoOrder: createAutoOrder,
+    getAutoParts: getAutoParts,
+    createAutoPart: createAutoPart,
+    // НЕРУХОМІСТЬ
+    getRealtyProperties: getRealtyProperties,
+    createRealtyProperty: createRealtyProperty,
+    getRealtyDeals: getRealtyDeals,
+    createRealtyDeal: createRealtyDeal,
+    // ЛОГІСТИКА
+    getLogisticsOrders: getLogisticsOrders,
+    createLogisticsOrder: createLogisticsOrder,
+    // ДОСТАВКА
+    getDeliveryOrders: getDeliveryOrders,
+    createDeliveryOrder: createDeliveryOrder,
+    // IT
+    getItProjects: getItProjects,
+    createItProject: createItProject,
+    getItBugs: getItBugs,
+    createItBug: createItBug
 };
