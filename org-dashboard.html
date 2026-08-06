@@ -1,606 +1,1915 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Організація — Typebiz</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        :root {
-            --ink: #0F1115;
-            --ink-soft: #171A21;
-            --ink-line: #2A2E38;
-            --gold: #F2A93B;
-            --gold-dim: #C98A2A;
-            --teal: #46C9B8;
-            --stamp-red: #E2503E;
-            --text-onink: #E7E4DA;
-            --muted: #8B93A6;
-            --text-onpaper: #181A1F;
-            --radius: 10px;
-            --radius-sm: 6px;
-        }
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{
-            font-family:'IBM Plex Sans',sans-serif;
-            background:var(--ink);
-            color:var(--text-onink);
-            min-height:100vh;
-            display:flex;
-        }
-        .display{font-family:'Space Grotesk',sans-serif;}
-        .mono{font-family:'IBM Plex Mono',monospace;}
-        .sidebar{
-            position:fixed;
-            left:0;top:0;
-            width:260px;
-            height:100%;
-            background:var(--ink-soft);
-            border-right:1px solid var(--ink-line);
-            padding:1.5rem;
-            overflow-y:auto;
-            z-index:100;
-        }
-        .sidebar .logo{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            font-weight:700;
-            font-size:1.25rem;
-            margin-bottom:2rem;
-        }
-        .sidebar .logo .tab{
-            width:26px;height:26px;
-            border-radius:4px;
-            background:var(--gold);
-            color:var(--ink);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-family:'IBM Plex Mono';
-            font-size:0.7rem;
-            font-weight:600;
-            transform:rotate(-6deg);
-        }
-        .sidebar .org-info{
-            padding:1rem;
-            background:var(--ink);
-            border-radius:var(--radius);
-            margin-bottom:2rem;
-        }
-        .sidebar .org-info .org-name{font-weight:600;font-size:1rem;}
-        .sidebar .org-info .org-type{font-size:0.8rem;color:var(--muted);}
-        .sidebar .org-info .org-code{font-size:0.8rem;color:var(--muted);margin-top:0.25rem;font-family:'IBM Plex Mono',monospace;}
-        .sidebar .nav-menu{list-style:none;}
-        .sidebar .nav-menu li{margin-bottom:0.25rem;}
-        .sidebar .nav-menu a{
-            display:flex;
-            align-items:center;
-            gap:0.75rem;
-            padding:0.75rem 1rem;
-            border-radius:var(--radius-sm);
-            color:var(--muted);
-            text-decoration:none;
-            transition:all .3s;
-            font-weight:500;
-            cursor:pointer;
-        }
-        .sidebar .nav-menu a:hover{background:var(--ink);color:var(--text-onink);}
-        .sidebar .nav-menu a.active{background:var(--gold);color:var(--ink);}
-        .sidebar .nav-menu a i{width:20px;text-align:center;}
-        .main-content{
-            margin-left:260px;
-            padding:2rem;
-            min-height:100vh;
-            width:100%;
-        }
-        .back-link{
-            color:var(--teal);
-            text-decoration:none;
-            display:inline-flex;
-            align-items:center;
-            gap:0.5rem;
-            margin-bottom:1rem;
-        }
-        .back-link:hover{color:var(--gold);}
-        .page-header{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-bottom:2rem;
-            flex-wrap:wrap;
-            gap:1rem;
-        }
-        .page-header h1{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;}
-        .page-header p{color:var(--muted);}
-        .stat-card{
-            background:var(--ink-soft);
-            border:1px solid var(--ink-line);
-            border-left:4px solid var(--gold);
-            padding:1.5rem;
-            border-radius:var(--radius);
-        }
-        .stat-card .stat-value{font-size:2rem;font-weight:700;color:var(--gold);}
-        .stat-card .stat-label{color:var(--muted);font-size:0.9rem;margin-top:0.25rem;}
-        .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;}
-        .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
-        .card{
-            background:var(--ink-soft);
-            border:1px solid var(--ink-line);
-            border-radius:var(--radius);
-            padding:1.5rem;
-            margin-top:1.5rem;
-        }
-        .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--ink-line);}
-        .card-title{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:600;}
-        .btn{
-            display:inline-flex;
-            align-items:center;
-            gap:8px;
-            padding:0.5rem 1.2rem;
-            border-radius:6px;
-            font-weight:600;
-            font-size:0.85rem;
-            cursor:pointer;
-            border:1px solid transparent;
-            transition:transform .15s,box-shadow .15s;
-        }
-        .btn-gold{background:var(--gold);color:var(--ink);}
-        .btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(242,169,59,0.28);}
-        .btn-teal{background:var(--teal);color:var(--ink);}
-        .btn-teal:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(70,201,184,0.28);}
-        .btn-danger{background:#E2503E;color:white;}
-        .btn-danger:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(226,80,62,0.28);}
-        .btn-sm{padding:0.3rem 0.8rem;font-size:0.75rem;}
-        .btn-outline{border-color:var(--ink-line);color:var(--text-onink);background:transparent;}
-        .btn-outline:hover{border-color:var(--teal);color:var(--teal);}
-        .btn-block{width:100%;justify-content:center;}
-        .btn:disabled{opacity:0.6;cursor:not-allowed;}
-        .table{width:100%;border-collapse:collapse;font-size:0.9rem;}
-        .table th{text-align:left;padding:0.75rem 1rem;border-bottom:2px solid var(--ink-line);color:var(--muted);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;}
-        .table td{padding:0.75rem 1rem;border-bottom:1px solid var(--ink-line);}
-        .table tr:hover{background:rgba(255,255,255,0.02);}
-        .badge{display:inline-block;padding:0.2rem 0.7rem;border-radius:999px;font-size:0.7rem;font-weight:600;}
-        .badge-pending{background:#F59E0B20;color:#F59E0B;}
-        .badge-approved{background:#46C9B820;color:#46C9B8;}
-        .badge-rejected{background:#E2503E20;color:#E2503E;}
-        .badge-warning{background:#F59E0B20;color:#F59E0B;}
-        .badge-success{background:#46C9B820;color:#46C9B8;}
-        .badge-danger{background:#E2503E20;color:#E2503E;}
-        .badge-secondary{background:var(--ink-line);color:var(--muted);}
-        .modal{
-            display:none;
-            position:fixed;
-            top:0;left:0;
-            width:100%;height:100%;
-            background:rgba(0,0,0,0.7);
-            backdrop-filter:blur(4px);
-            z-index:9999;
-            align-items:center;
-            justify-content:center;
-        }
-        .modal.active{display:flex;}
-        .modal-content{
-            background:var(--ink-soft);
-            border:1px solid var(--ink-line);
-            border-radius:var(--radius);
-            padding:2rem;
-            max-width:520px;
-            width:90%;
-            max-height:90vh;
-            overflow-y:auto;
-        }
-        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
-        .modal-header h2{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;}
-        .modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);transition:color .3s;}
-        .modal-close:hover{color:var(--text-onink);}
-        .form-group{margin-bottom:1.5rem;}
-        .form-label{display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;}
-        .form-control{
-            width:100%;
-            padding:0.75rem 1rem;
-            background:var(--ink);
-            border:1px solid var(--ink-line);
-            border-radius:6px;
-            color:var(--text-onink);
-            font-family:'IBM Plex Sans',sans-serif;
-            font-size:1rem;
-            transition:border-color .2s;
-        }
-        .form-control:focus{outline:none;border-color:var(--gold);}
-        .form-control::placeholder{color:var(--muted);}
-        .form-control:disabled{opacity:0.5;cursor:not-allowed;}
-        select.form-control{
-            appearance:none;
-            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B93A6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat:no-repeat;
-            background-position:right 1rem center;
-            padding-right:2.5rem;
-        }
-        textarea.form-control{resize:vertical;min-height:80px;}
-        .color-picker{display:flex;gap:0.5rem;flex-wrap:wrap;}
-        .color-picker .color-option{
-            width:30px;height:30px;
-            border-radius:50%;
-            cursor:pointer;
-            border:2px solid transparent;
-            transition:all .3s;
-        }
-        .color-picker .color-option:hover{transform:scale(1.1);}
-        .color-picker .color-option.selected{border-color:var(--gold);}
-        .mt-3{margin-top:1.5rem;}
-        .mb-2{margin-bottom:1rem;}
-        .text-center{text-align:center;}
-        .text-muted{color:var(--muted);}
-        .text-gold{color:var(--gold);}
-        .flex{display:flex;}
-        .flex-wrap{flex-wrap:wrap;}
-        .gap-1{gap:0.5rem;}
-        .gap-2{gap:1rem;}
-        .items-center{align-items:center;}
-        @media(max-width:768px){
-            .sidebar{display:none;}
-            .main-content{margin-left:0;padding:1rem;}
-            .page-header h1{font-size:1.5rem;}
-            .grid-4{grid-template-columns:1fr 1fr;}
-            .grid-2{grid-template-columns:1fr;}
-        }
-        @media(max-width:480px){
-            .grid-4{grid-template-columns:1fr;}
-        }
-    </style>
-</head>
-<body>
-    <aside class="sidebar">
-        <div class="logo">
-            <span class="tab">Tb</span>
-            <span>Typebiz</span>
-        </div>
+// ============================================
+// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА ВЕРСІЯ)
+// ============================================
 
-        <div class="org-info" id="orgInfo">
-            <div class="org-name" id="orgName">Завантаження...</div>
-            <div class="org-type" id="orgType">---</div>
-            <div class="org-code" id="orgCode"><i class="fas fa-key"></i> Код: <span id="joinCode">---</span></div>
-        </div>
+var currentOrgId = null;
+var currentOrg = null;
 
-        <ul class="nav-menu">
-            <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад</a></li>
-            <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Огляд</a></li>
-            <li><a onclick="loadSection('members')"><i class="fas fa-users"></i> Учасники</a></li>
-            <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
-            <li><a onclick="loadSection('ranks')"><i class="fas fa-crown"></i> Посади</a></li>
-            <li><a onclick="loadSection('departments')"><i class="fas fa-sitemap"></i> Відділи</a></li>
-            <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чат</a></li>
-            <li><a onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
-            <li><a onclick="loadSection('events')"><i class="fas fa-calendar-alt"></i> Події</a></li>
-            <li><a onclick="loadSection('tasks')"><i class="fas fa-tasks"></i> Завдання</a></li>
-            <li><a onclick="loadSection('polls')"><i class="fas fa-poll"></i> Опитування</a></li>
-            <li><a onclick="loadSection('files')"><i class="fas fa-folder"></i> Файли</a></li>
-            <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Налаштування</a></li>
-        </ul>
-    </aside>
+var typeLabels = {
+    'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
+    'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
+    'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
+    'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
+    'it': 'IT-компанія', 'marketing': 'Маркетинг', 'legal': 'Юридична',
+    'finance': 'Фінанси', 'education': 'Освіта', 'medical': 'Медицина',
+    'sport': 'Спорт', 'art': 'Мистецтво', 'music': 'Музика',
+    'photo': 'Фото', 'video': 'Відео', 'construction': 'Будівництво',
+    'repair': 'Ремонт', 'cleaning': 'Клінінг', 'delivery': 'Доставка',
+    'logistics': 'Логістика', 'agriculture': 'Сільське господарство',
+    'tourism': 'Туризм', 'event': 'Івент', 'charity': 'Благодійність',
+    'government': 'Державна', 'gamedev': 'GameDev', 'indie': 'Інді-розробка',
+    'publishing': 'Видавництво', 'animation': 'Анімація', 'vr': 'VR/AR',
+    'esports': 'Кіберспорт', 'streaming': 'Стримінг', 'podcast': 'Подкаст',
+    'blogging': 'Блогінг', 'social': 'Соцмережі', 'startup': 'Стартап',
+    'agency': 'Агентство', 'consulting': 'Консалтинг', 'freelance': 'Фриланс',
+    'remote': 'Віддалена робота', 'coworking': 'Коворкінг', 'incubator': 'Інкубатор',
+    'accelerator': 'Акселератор', 'venture': 'Венчур', 'nonprofit': 'Некомерційна',
+    'community': 'Спільнота', 'religious': 'Релігійна', 'cultural': 'Культурна',
+    'research': 'Дослідження', 'science': 'Наука', 'space': 'Космос',
+    'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
+    'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
+    'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
+};
 
-    <main class="main-content">
-        <a href="/dashboard" class="back-link">
-            <i class="fas fa-arrow-left"></i> До моїх організацій
-        </a>
+var statusLabels = {
+    'pending': '⏳ Очікує',
+    'approved': '✅ Схвалено',
+    'rejected': '❌ Відхилено'
+};
 
-        <div class="page-header">
-            <div>
-                <h1 id="pageTitle">Огляд</h1>
-                <p id="pageSubtitle">Управління організацією</p>
-            </div>
-        </div>
+var vacationStatusLabels = {
+    'pending': '⏳ Очікує',
+    'approved': '✅ Схвалено',
+    'rejected': '❌ Відхилено',
+    'cancelled': '🚫 Скасовано'
+};
 
-        <div id="sectionContent" class="section-content">
-            <div class="text-center text-muted">Завантаження...</div>
-        </div>
-    </main>
+var vacationTypeLabels = {
+    'annual': 'Щорічна',
+    'sick': 'Лікарняний',
+    'unpaid': 'Без збереження',
+    'maternity': 'Декретна',
+    'other': 'Інша'
+};
 
-    <!-- Модалка створення/редагування посади -->
-    <div class="modal" id="rankModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="rankModalTitle">Створити посаду</h2>
-                <button class="modal-close" onclick="closeModal('rankModal')">&times;</button>
-            </div>
-            <form id="rankForm">
-                <input type="hidden" id="rankEditId">
-                <div class="form-group">
-                    <label class="form-label">Назва посади</label>
-                    <input type="text" class="form-control" id="rankName" placeholder="Наприклад: Менеджер" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Колір</label>
-                    <div class="color-picker" id="colorPicker">
-                        <div class="color-option selected" style="background:#F2A93B" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#46C9B8" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#E2503E" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#F59E0B" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#3B82F6" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#8B5CF6" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#EC4899" onclick="selectColor(this)"></div>
-                        <div class="color-option" style="background:#14B8A6" onclick="selectColor(this)"></div>
-                    </div>
-                    <input type="hidden" id="rankColor" value="#F2A93B">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Права доступу</label>
-                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="all"> 🔑 Всі
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_members"> 👥 Учасники
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_ranks"> 👑 Посади
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_departments"> 🏢 Відділи
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_settings"> ⚙️ Налаштування
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_requests"> 📩 Заявки
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_vacations"> 🏖️ Відпустки
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="manage_chat"> 💬 Чат
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-onink);cursor:pointer;">
-                            <input type="checkbox" class="rank-permission" value="view"> 👀 Перегляд
-                        </label>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-save"></i> <span id="rankSubmitText">Створити</span>
-                </button>
-            </form>
-        </div>
-    </div>
+var taskStatusLabels = {
+    'new': '🆕 Нове',
+    'in_progress': '🔄 В роботі',
+    'review': '👀 На перевірці',
+    'done': '✅ Виконано',
+    'closed': '📌 Закрито'
+};
 
-    <!-- Модалка створення відділу -->
-    <div class="modal" id="departmentModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Створити відділ</h2>
-                <button class="modal-close" onclick="closeModal('departmentModal')">&times;</button>
-            </div>
-            <form id="departmentForm">
-                <div class="form-group">
-                    <label class="form-label">Назва відділу</label>
-                    <input type="text" class="form-control" id="deptName" placeholder="Наприклад: Відділ продажів" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="deptDesc" rows="3" placeholder="Опис відділу"></textarea>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-save"></i> Створити відділ
-                </button>
-            </form>
-        </div>
-    </div>
+var taskPriorityLabels = {
+    'low': '🟢 Низький',
+    'medium': '🟡 Середній',
+    'high': '🔴 Високий',
+    'urgent': '🔥 Терміновий'
+};
 
-    <!-- Модалка призначення посади -->
-    <div class="modal" id="assignRankModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Призначити посаду</h2>
-                <button class="modal-close" onclick="closeModal('assignRankModal')">&times;</button>
-            </div>
-            <form id="assignRankForm">
-                <input type="hidden" id="assignMemberId">
-                <div class="form-group">
-                    <label class="form-label">Користувач</label>
-                    <input type="text" class="form-control" id="assignUserName" disabled>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Посада</label>
-                    <select class="form-control" id="assignRankSelect" required>
-                        <option value="">Оберіть посаду...</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-save"></i> Призначити
-                </button>
-            </form>
-        </div>
-    </div>
+// ===== ІНІЦІАЛІЗАЦІЯ =====
+async function init() {
+    var isAuth = await auth.requireAuth();
+    if (!isAuth) return;
+    await loadOrganization();
+}
 
-    <!-- Модалка призначення у відділ -->
-    <div class="modal" id="assignEmployeeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Призначити співробітника у відділ</h2>
-                <button class="modal-close" onclick="closeModal('assignEmployeeModal')">&times;</button>
-            </div>
-            <form id="assignEmployeeForm">
-                <input type="hidden" id="assignDeptId">
-                <div class="form-group">
-                    <label class="form-label">Відділ</label>
-                    <input type="text" class="form-control" id="assignDeptName" disabled>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Співробітник</label>
-                    <select class="form-control" id="assignEmployeeSelect" required>
-                        <option value="">Оберіть співробітника...</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-save"></i> Призначити
-                </button>
-            </form>
-        </div>
-    </div>
+function getOrgIdFromUrl() {
+    var params = new URLSearchParams(window.location.search);
+    return params.get('id');
+}
 
-    <!-- Модалка створення події -->
-    <div class="modal" id="eventModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Створити подію</h2>
-                <button class="modal-close" onclick="closeModal('eventModal')">&times;</button>
-            </div>
-            <form id="eventForm">
-                <div class="form-group">
-                    <label class="form-label">Назва події</label>
-                    <input type="text" class="form-control" id="eventTitle" placeholder="Назва" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="eventDesc" rows="3" placeholder="Опис"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Дата початку</label>
-                    <input type="datetime-local" class="form-control" id="eventStart" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Дата закінчення</label>
-                    <input type="datetime-local" class="form-control" id="eventEnd" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Місце</label>
-                    <input type="text" class="form-control" id="eventLocation" placeholder="Місце проведення">
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">Створити</button>
-            </form>
-        </div>
-    </div>
+// ===== ЗАВАНТАЖЕННЯ ОРГАНІЗАЦІЇ =====
+async function loadOrganization() {
+    var orgId = getOrgIdFromUrl();
+    if (!orgId) {
+        window.location.href = '/dashboard';
+        return;
+    }
 
-    <!-- Модалка створення завдання -->
-    <div class="modal" id="taskModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="taskModalTitle">Створити завдання</h2>
-                <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
-            </div>
-            <form id="taskForm">
-                <input type="hidden" id="taskEditId">
-                <div class="form-group">
-                    <label class="form-label">Назва завдання</label>
-                    <input type="text" class="form-control" id="taskTitle" placeholder="Назва" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="taskDesc" rows="3" placeholder="Опис"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Відповідальний</label>
-                    <select class="form-control" id="taskAssign">
-                        <option value="">Не призначено</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Дедлайн</label>
-                    <input type="date" class="form-control" id="taskDue">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Пріоритет</label>
-                    <select class="form-control" id="taskPriority">
-                        <option value="low">🟢 Низький</option>
-                        <option value="medium" selected>🟡 Середній</option>
-                        <option value="high">🔴 Високий</option>
-                        <option value="urgent">🔥 Терміновий</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <span id="taskSubmitText">Створити</span>
-                </button>
-            </form>
-        </div>
-    </div>
+    currentOrgId = orgId;
+    
+    try {
+        currentOrg = await db.getOrganization(orgId);
+    } catch (error) {
+        await showAlert('Помилка завантаження організації', 'error');
+        window.location.href = '/dashboard';
+        return;
+    }
 
-    <!-- Модалка створення опитування -->
-    <div class="modal" id="pollModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Створити опитування</h2>
-                <button class="modal-close" onclick="closeModal('pollModal')">&times;</button>
-            </div>
-            <form id="pollForm">
-                <div class="form-group">
-                    <label class="form-label">Назва опитування</label>
-                    <input type="text" class="form-control" id="pollTitle" placeholder="Назва" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Опис</label>
-                    <textarea class="form-control" id="pollDesc" rows="3" placeholder="Опис"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Варіанти відповідей</label>
-                    <textarea class="form-control" id="pollOptions" rows="4" placeholder="Варіант 1&#10;Варіант 2&#10;Варіант 3" required></textarea>
-                    <small style="color:var(--muted);">Кожен варіант з нового рядка</small>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">Створити</button>
-            </form>
-        </div>
-    </div>
+    if (!currentOrg) {
+        await showAlert('Організацію не знайдено', 'error');
+        window.location.href = '/dashboard';
+        return;
+    }
 
-    <!-- Модалка завантаження файлу -->
-    <div class="modal" id="fileModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Завантажити файл</h2>
-                <button class="modal-close" onclick="closeModal('fileModal')">&times;</button>
-            </div>
-            <form id="fileForm">
-                <div class="form-group">
-                    <label class="form-label">Файл</label>
-                    <input type="file" class="form-control" id="fileInput" required style="padding:0.5rem;background:var(--ink);border:1px solid var(--ink-line);border-radius:6px;color:var(--text-onink);">
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-upload"></i> Завантажити
-                </button>
-            </form>
-        </div>
-    </div>
+    document.getElementById('orgName').textContent = currentOrg.name;
+    document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
+    document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
 
-    <!-- Модалка створення відпустки -->
-    <div class="modal" id="vacationModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Заявка на відпустку</h2>
-                <button class="modal-close" onclick="closeModal('vacationModal')">&times;</button>
-            </div>
-            <form id="vacationForm">
-                <div class="form-group">
-                    <label class="form-label">Дата початку</label>
-                    <input type="date" class="form-control" id="vacStart" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Дата закінчення</label>
-                    <input type="date" class="form-control" id="vacEnd" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Тип відпустки</label>
-                    <select class="form-control" id="vacType" required>
-                        <option value="annual">Щорічна</option>
-                        <option value="sick">Лікарняний</option>
-                        <option value="unpaid">Без збереження</option>
-                        <option value="maternity">Декретна</option>
-                        <option value="other">Інша</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Причина (необов'язково)</label>
-                    <textarea class="form-control" id="vacReason" rows="3" placeholder="Вкажіть причину"></textarea>
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-paper-plane"></i> Відправити заявку
-                </button>
-            </form>
-        </div>
-    </div>
+    // ПЕРЕВІРКА ПОСАДИ ДИРЕКТОРА
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var user = auth.getCurrentUser();
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var userMember = null;
+        for (var i = 0; i < members.length; i++) {
+            if (members[i].user_id === user.id) {
+                userMember = members[i];
+                break;
+            }
+        }
+        
+        if (userMember && !userMember.rank_id && currentOrg.leader_id === user.id) {
+            var directorRank = null;
+            for (var j = 0; j < ranks.length; j++) {
+                if (ranks[j].is_default) {
+                    directorRank = ranks[j];
+                    break;
+                }
+            }
+            if (directorRank) {
+                await db.updateMemberRank(userMember.id, directorRank.id);
+            }
+        }
+    } catch (e) {
+        // Продовжуємо без перевірки посади
+    }
 
-    <script src="/js/db.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/ui.js"></script>
-    <script src="/js/org-dashboard.js"></script>
-</body>
-</html>
+    loadSection('overview');
+}
+
+// ===== ЗАВАНТАЖЕННЯ РОЗДІЛІВ =====
+function loadSection(section) {
+    var links = document.querySelectorAll('.nav-menu a');
+    for (var i = 0; i < links.length; i++) {
+        links[i].classList.remove('active');
+    }
+    for (var j = 0; j < links.length; j++) {
+        var onclick = links[j].getAttribute('onclick') || '';
+        if (onclick.indexOf(section) !== -1) {
+            links[j].classList.add('active');
+        }
+    }
+
+    switch (section) {
+        case 'overview': loadOverview(); break;
+        case 'members': loadMembers(); break;
+        case 'requests': loadRequests(); break;
+        case 'ranks': loadRanks(); break;
+        case 'departments': loadDepartments(); break;
+        case 'chat': loadChat(); break;
+        case 'vacations': loadVacations(); break;
+        case 'events': loadEvents(); break;
+        case 'tasks': loadTasks(); break;
+        case 'polls': loadPolls(); break;
+        case 'files': loadFiles(); break;
+        case 'settings': loadSettings(); break;
+        default: loadOverview();
+    }
+}
+
+// ========== ОГЛЯД ==========
+async function loadOverview() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Огляд';
+    document.getElementById('pageSubtitle').textContent = 'Управління організацією "' + (currentOrg ? currentOrg.name : '') + '"';
+
+    try {
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var requests = await db.getJoinRequests(currentOrgId);
+        var tasks = await db.getTasks(currentOrgId);
+
+        var pendingCount = 0;
+        if (requests) {
+            for (var i = 0; i < requests.length; i++) {
+                if (requests[i].status === 'pending') pendingCount++;
+            }
+        }
+
+        var tasksCount = tasks ? tasks.length : 0;
+
+        container.innerHTML = 
+            '<div class="grid-4">' +
+                '<div class="stat-card">' +
+                    '<div class="stat-value">' + (members ? members.length : 0) + '</div>' +
+                    '<div class="stat-label">Учасників</div>' +
+                '</div>' +
+                '<div class="stat-card" style="border-color: var(--teal);">' +
+                    '<div class="stat-value">' + (ranks ? ranks.length : 0) + '</div>' +
+                    '<div class="stat-label">Посад</div>' +
+                '</div>' +
+                '<div class="stat-card" style="border-color: #F59E0B;">' +
+                    '<div class="stat-value">' + pendingCount + '</div>' +
+                    '<div class="stat-label">Очікують заявки</div>' +
+                '</div>' +
+                '<div class="stat-card" style="border-color: #3B82F6;">' +
+                    '<div class="stat-value">' + tasksCount + '</div>' +
+                    '<div class="stat-label">Завдань</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Інформація про організацію</h3>' +
+                '</div>' +
+                '<div class="grid-2">' +
+                    '<div>' +
+                        '<p><strong>Назва:</strong> ' + (currentOrg ? currentOrg.name : '') + '</p>' +
+                        '<p><strong>Тип:</strong> ' + (currentOrg ? (typeLabels[currentOrg.type] || currentOrg.type) : '') + '</p>' +
+                        '<p><strong>Опис:</strong> ' + (currentOrg ? (currentOrg.description || 'Немає опису') : '') + '</p>' +
+                    '</div>' +
+                    '<div>' +
+                        '<p><strong>Код вступу:</strong> <span style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;background:var(--ink);padding:0.2rem 0.8rem;border-radius:var(--radius-sm);color:var(--gold);text-transform:lowercase;">' + (currentOrg ? currentOrg.join_code || '---' : '---') + '</span></p>' +
+                        '<p><strong>Створено:</strong> ' + (currentOrg ? new Date(currentOrg.created_at).toLocaleDateString('uk-UA') : '') + '</p>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+// ========== УЧАСНИКИ ==========
+async function loadMembers() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Учасники';
+    document.getElementById('pageSubtitle').textContent = 'Управління учасниками організації';
+
+    try {
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Список учасників (' + (members ? members.length : 0) + ')</h3>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Користувач</th>' +
+                                '<th>Посада</th>' +
+                                '<th>Дата вступу</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (members && members.length > 0) {
+            for (var i = 0; i < members.length; i++) {
+                var member = members[i];
+                try {
+                    var userData = await db.supabaseQuery('users?id=eq.' + member.user_id);
+                    var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : 'Невідомо';
+                    var rank = null;
+                    if (ranks) {
+                        for (var r = 0; r < ranks.length; r++) {
+                            if (ranks[r].id === member.rank_id) {
+                                rank = ranks[r];
+                                break;
+                            }
+                        }
+                    }
+                    var isLeader = currentOrg && currentOrg.leader_id === member.user_id;
+
+                    html += 
+                        '<tr>' +
+                            '<td><strong>' + userName + (isLeader ? ' 👑' : '') + '</strong></td>' +
+                            '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' ⭐' : '') + '</span>' : 'Без посади') + '</td>' +
+                            '<td>' + new Date(member.joined_at).toLocaleDateString('uk-UA') + '</td>' +
+                            '<td>' + (!isLeader && currentOrg && currentOrg.leader_id === (user ? user.id : null) ? 
+                                '<button class="btn btn-sm btn-teal" onclick="openAssignRank(\'' + member.id + '\', \'' + userName + '\')">' +
+                                    '<i class="fas fa-crown"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-danger" onclick="removeMember(\'' + member.id + '\')">' +
+                                    '<i class="fas fa-times"></i>' +
+                                '</button>' : '—') + '</td>' +
+                        '</tr>';
+                } catch (e) {}
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає учасників</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+// ========== ЗАЯВКИ ==========
+async function loadRequests() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Заявки на вступ';
+    document.getElementById('pageSubtitle').textContent = 'Управління заявками';
+
+    try {
+        var requests = await db.getJoinRequests(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Заявки (' + (requests ? requests.length : 0) + ')</h3>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Користувач</th>' +
+                                '<th>Повідомлення</th>' +
+                                '<th>Статус</th>' +
+                                '<th>Дата</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (requests && requests.length > 0) {
+            for (var i = 0; i < requests.length; i++) {
+                var req = requests[i];
+                try {
+                    var userData = await db.supabaseQuery('users?id=eq.' + req.user_id);
+                    var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : 'Невідомо';
+
+                    var isPending = req.status === 'pending';
+                    var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+                    var statusClass = req.status === 'pending' ? 'badge-warning' : 
+                                      req.status === 'approved' ? 'badge-success' : 'badge-danger';
+
+                    html += 
+                        '<tr>' +
+                            '<td><strong>' + userName + '</strong></td>' +
+                            '<td>' + (req.message || 'Без повідомлення') + '</td>' +
+                            '<td><span class="badge ' + statusClass + '">' + (statusLabels[req.status] || req.status) + '</span></td>' +
+                            '<td>' + new Date(req.created_at).toLocaleDateString('uk-UA') + '</td>' +
+                            '<td>' + (isPending && isLeader ? 
+                                '<button class="btn btn-sm btn-teal" onclick="handleRequest(\'' + req.id + '\', \'approved\')">' +
+                                    '<i class="fas fa-check"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-danger" onclick="handleRequest(\'' + req.id + '\', \'rejected\')">' +
+                                    '<i class="fas fa-times"></i>' +
+                                '</button>' : (isPending ? '⏳' : '—')) + '</td>' +
+                        '</tr>';
+                } catch (e) {}
+            }
+        } else {
+            html += '<tr><td colspan="5" class="text-center text-muted">Немає заявок</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+async function handleRequest(requestId, status) {
+    try {
+        await db.updateJoinRequest(requestId, status);
+
+        if (status === 'approved') {
+            var request = await db.supabaseQuery('join_requests?id=eq.' + requestId);
+            if (request && request.length > 0) {
+                await db.addMemberToOrganization(request[0].organization_id, request[0].user_id);
+                await showToast('Заявку схвалено! Користувача додано.', 'success');
+            }
+        } else {
+            await showToast('Заявку відхилено.', 'warning');
+        }
+
+        loadRequests();
+        loadOverview();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function removeMember(memberId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього учасника?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.removeMemberFromOrganization(memberId);
+        await showToast('Учасника видалено', 'success');
+        loadMembers();
+        loadOverview();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ПОСАДИ ==========
+async function loadRanks() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Посади';
+    document.getElementById('pageSubtitle').textContent = 'Управління посадами в організації';
+
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var user = auth.getCurrentUser();
+        var canManage = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Посади (' + (ranks ? ranks.length : 0) + ')</h3>' +
+                    (canManage ? 
+                        '<button class="btn btn-gold btn-sm" onclick="openCreateRank()">' +
+                            '<i class="fas fa-plus"></i> Створити посаду' +
+                        '</button>' : '') +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Колір</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (ranks && ranks.length > 0) {
+            for (var i = 0; i < ranks.length; i++) {
+                var rank = ranks[i];
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + rank.name + (rank.is_default ? ' ⭐' : '') + '</strong></td>' +
+                        '<td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:' + rank.color + ';"></span> ' + rank.color + '</td>' +
+                        '<td>' + (canManage ? 
+                            '<button class="btn btn-sm btn-teal" onclick="openEditRank(\'' + rank.id + '\')">' +
+                                '<i class="fas fa-edit"></i>' +
+                            '</button>' : '') +
+                            (!rank.is_default && canManage ? 
+                                '<button class="btn btn-sm btn-danger" onclick="deleteRank(\'' + rank.id + '\')">' +
+                                    '<i class="fas fa-trash"></i>' +
+                                '</button>' : '') +
+                            (canManage && !rank.is_default ? 
+                                '<button class="btn btn-sm btn-outline" onclick="moveRank(\'' + rank.id + '\', \'up\')">' +
+                                    '<i class="fas fa-arrow-up"></i>' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-outline" onclick="moveRank(\'' + rank.id + '\', \'down\')">' +
+                                    '<i class="fas fa-arrow-down"></i>' +
+                                '</button>' : '') +
+                        '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="3" class="text-center text-muted">Немає посад</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreateRank() {
+    document.getElementById('rankModalTitle').textContent = 'Створити посаду';
+    document.getElementById('rankSubmitText').textContent = 'Створити';
+    document.getElementById('rankEditId').value = '';
+    document.getElementById('rankName').value = '';
+    document.getElementById('rankColor').value = '#F2A93B';
+    
+    var checkboxes = document.querySelectorAll('.rank-permission');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+    }
+    
+    var options = document.querySelectorAll('.color-option');
+    for (var j = 0; j < options.length; j++) {
+        options[j].classList.remove('selected');
+    }
+    var firstOption = document.querySelector('.color-option');
+    if (firstOption) firstOption.classList.add('selected');
+    
+    document.getElementById('rankModal').classList.add('active');
+}
+
+async function openEditRank(rankId) {
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var rank = null;
+        for (var i = 0; i < ranks.length; i++) {
+            if (ranks[i].id === rankId) {
+                rank = ranks[i];
+                break;
+            }
+        }
+        if (!rank) return;
+
+        document.getElementById('rankModalTitle').textContent = 'Редагувати посаду';
+        document.getElementById('rankSubmitText').textContent = 'Зберегти';
+        document.getElementById('rankEditId').value = rank.id;
+        document.getElementById('rankName').value = rank.name;
+        document.getElementById('rankColor').value = rank.color;
+        
+        var permissions = rank.permissions || {};
+        var checkboxes = document.querySelectorAll('.rank-permission');
+        for (var j = 0; j < checkboxes.length; j++) {
+            checkboxes[j].checked = permissions[checkboxes[j].value] === true;
+        }
+        
+        var options = document.querySelectorAll('.color-option');
+        for (var k = 0; k < options.length; k++) {
+            options[k].classList.toggle('selected', options[k].style.backgroundColor === rank.color);
+        }
+        
+        document.getElementById('rankModal').classList.add('active');
+    } catch (error) {
+        await showAlert('Помилка завантаження посади', 'error');
+    }
+}
+
+async function deleteRank(rankId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю посаду?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteRank(rankId);
+        await showToast('Посаду видалено', 'success');
+        loadRanks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function moveRank(rankId, direction) {
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var index = -1;
+        for (var i = 0; i < ranks.length; i++) {
+            if (ranks[i].id === rankId) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index === -1 || (direction === 'up' && index <= 0) || (direction === 'down' && index >= ranks.length - 1)) {
+            return;
+        }
+
+        var newIndex = direction === 'up' ? index - 1 : index + 1;
+        var tempOrder = ranks[index].order || index;
+        ranks[index].order = ranks[newIndex].order || newIndex;
+        ranks[newIndex].order = tempOrder;
+
+        await db.updateRank(ranks[index].id, { order: ranks[index].order });
+        await db.updateRank(ranks[newIndex].id, { order: ranks[newIndex].order });
+
+        await showToast('Посаду переміщено!', 'success');
+        loadRanks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+document.getElementById('rankForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var editId = document.getElementById('rankEditId').value;
+    var name = document.getElementById('rankName').value.trim();
+    var color = document.getElementById('rankColor').value;
+
+    var permissions = {};
+    var checkboxes = document.querySelectorAll('.rank-permission:checked');
+    for (var i = 0; i < checkboxes.length; i++) {
+        permissions[checkboxes[i].value] = true;
+    }
+
+    if (!name) {
+        await showAlert('Введіть назву посади', 'warning');
+        return;
+    }
+
+    try {
+        if (editId) {
+            await db.updateRank(editId, { name: name, color: color, permissions: permissions });
+            await showToast('Посаду оновлено!', 'success');
+        } else {
+            await db.createRank(currentOrgId, { name: name, color: color, permissions: permissions });
+            await showToast('Посаду створено!', 'success');
+        }
+
+        closeModal('rankModal');
+        loadRanks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function openAssignRank(memberId, userName) {
+    document.getElementById('assignMemberId').value = memberId;
+    document.getElementById('assignUserName').value = userName;
+
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var select = document.getElementById('assignRankSelect');
+        select.innerHTML = '<option value="">Оберіть посаду...</option>';
+
+        if (ranks && ranks.length > 0) {
+            for (var i = 0; i < ranks.length; i++) {
+                var option = document.createElement('option');
+                option.value = ranks[i].id;
+                option.textContent = ranks[i].name;
+                select.appendChild(option);
+            }
+        }
+
+        document.getElementById('assignRankModal').classList.add('active');
+    } catch (error) {
+        await showAlert('Помилка завантаження посад', 'error');
+    }
+}
+
+document.getElementById('assignRankForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var memberId = document.getElementById('assignMemberId').value;
+    var rankId = document.getElementById('assignRankSelect').value;
+
+    if (!rankId) {
+        await showAlert('Оберіть посаду', 'warning');
+        return;
+    }
+
+    try {
+        await db.updateMemberRank(memberId, rankId);
+        await showToast('Посаду призначено!', 'success');
+        closeModal('assignRankModal');
+        loadMembers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ========== ВІДДІЛИ ==========
+async function loadDepartments() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Відділи';
+    document.getElementById('pageSubtitle').textContent = 'Управління відділами організації';
+
+    try {
+        var depts = await db.getOrganizationDepartments(currentOrgId);
+        var user = auth.getCurrentUser();
+        var canManage = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Відділи (' + (depts ? depts.length : 0) + ')</h3>' +
+                    (canManage ? 
+                        '<button class="btn btn-gold btn-sm" onclick="openCreateDepartment()">' +
+                            '<i class="fas fa-plus"></i> Створити відділ' +
+                        '</button>' : '') +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Опис</th>' +
+                                '<th>Співробітники</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (depts && depts.length > 0) {
+            for (var i = 0; i < depts.length; i++) {
+                var dept = depts[i];
+                var employees = await db.getEmployeesByDepartment(dept.id);
+                var employeeNames = employees && employees.length > 0
+                    ? employees.map(function(e) { return (e.first_name + ' ' + e.last_name).trim(); }).join(', ')
+                    : 'Немає співробітників';
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + dept.name + '</strong></td>' +
+                        '<td>' + (dept.description || '—') + '</td>' +
+                        '<td><small>' + employeeNames + '</small></td>' +
+                        '<td>' + (canManage ? 
+                            '<button class="btn btn-sm btn-teal" onclick="openAssignEmployee(\'' + dept.id + '\', \'' + dept.name + '\')">' +
+                                '<i class="fas fa-user-plus"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteDepartment(\'' + dept.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' : '—') + '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає відділів</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreateDepartment() {
+    document.getElementById('departmentModal').classList.add('active');
+}
+
+document.getElementById('departmentForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var name = document.getElementById('deptName').value.trim();
+    var description = document.getElementById('deptDesc').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть назву відділу', 'warning');
+        return;
+    }
+
+    try {
+        await db.createDepartment({
+            organization_id: currentOrgId,
+            name: name,
+            description: description || ''
+        });
+        await showToast('Відділ створено!', 'success');
+        closeModal('departmentModal');
+        document.getElementById('departmentForm').reset();
+        loadDepartments();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteDepartment(deptId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цей відділ?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteDepartment(deptId);
+        await showToast('Відділ видалено', 'success');
+        loadDepartments();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function openAssignEmployee(departmentId, departmentName) {
+    document.getElementById('assignDeptId').value = departmentId;
+    document.getElementById('assignDeptName').value = departmentName;
+
+    var employees = await db.getOrganizationEmployees(currentOrgId);
+    var select = document.getElementById('assignEmployeeSelect');
+    select.innerHTML = '<option value="">Оберіть співробітника...</option>';
+
+    if (employees && employees.length > 0) {
+        var deptEmployees = await db.getEmployeesByDepartment(departmentId);
+        var deptEmployeeIds = deptEmployees.map(function(e) { return e.id; });
+
+        for (var i = 0; i < employees.length; i++) {
+            var emp = employees[i];
+            if (deptEmployeeIds.indexOf(emp.id) === -1) {
+                var option = document.createElement('option');
+                option.value = emp.id;
+                var fullName = [emp.first_name, emp.last_name, emp.middle_name].filter(function(s) { return s && s.trim(); }).join(' ');
+                option.textContent = fullName || 'Без імені';
+                select.appendChild(option);
+            }
+        }
+    }
+
+    if (select.options.length <= 1) {
+        select.innerHTML = '<option value="">Немає доступних співробітників</option>';
+    }
+
+    document.getElementById('assignEmployeeModal').classList.add('active');
+}
+
+document.getElementById('assignEmployeeForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var departmentId = document.getElementById('assignDeptId').value;
+    var employeeId = document.getElementById('assignEmployeeSelect').value;
+
+    if (!employeeId) {
+        await showAlert('Оберіть співробітника', 'warning');
+        return;
+    }
+
+    try {
+        await db.assignEmployeeToDepartment(employeeId, departmentId);
+        await showToast('Співробітника призначено у відділ!', 'success');
+        closeModal('assignEmployeeModal');
+        loadDepartments();
+        loadOverview();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ========== ЧАТ ==========
+async function loadChat() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Чат';
+    document.getElementById('pageSubtitle').textContent = 'Спілкування в організації';
+
+    try {
+        var messages = await db.getChatMessages(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Чат організації</h3>' +
+                    '<small style="color:var(--muted);font-size:0.7rem;">Використовуйте @ для згадування</small>' +
+                '</div>' +
+                '<div id="chatMessages" style="max-height:400px;overflow-y:auto;margin-bottom:1rem;padding:0.5rem;">';
+
+        if (messages && messages.length > 0) {
+            for (var i = messages.length - 1; i >= 0; i--) {
+                var msg = messages[i];
+                var userData = await db.supabaseQuery('users?id=eq.' + msg.user_id);
+                var userName = userData && userData.length > 0 
+                    ? (userData[0].full_name || userData[0].email || 'Невідомо') 
+                    : 'Невідомо';
+                var isOwn = msg.user_id === (user ? user.id : null);
+                var hasMention = msg.mentions && msg.mentions.indexOf(user ? user.id : null) !== -1;
+
+                html += 
+                    '<div style="display:flex;justify-content:' + (isOwn ? 'flex-end' : 'flex-start') + ';margin-bottom:0.5rem;">' +
+                        '<div style="max-width:70%;background:' + (isOwn ? 'var(--gold)' : 'var(--ink)') + ';color:' + (isOwn ? 'var(--ink)' : 'var(--text-onink)') + ';padding:0.5rem 1rem;border-radius:12px;border-bottom-' + (isOwn ? 'right' : 'left') + '-radius:4px;border:' + (isOwn ? 'none' : '1px solid var(--ink-line)') + ';">' +
+                            '<div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.2rem;">' +
+                                userName + ' · ' + new Date(msg.created_at).toLocaleTimeString('uk-UA') +
+                                (hasMention ? ' <span style="color:var(--teal);">@згадування</span>' : '') +
+                            '</div>' +
+                            '<div>' + msg.message + '</div>' +
+                            (isOwn ? 
+                                '<button class="btn btn-sm btn-danger" onclick="deleteChatMessage(\'' + msg.id + '\')" style="margin-top:0.25rem;padding:0.1rem 0.5rem;font-size:0.6rem;">' +
+                                    '<i class="fas fa-trash"></i>' +
+                                '</button>' : '') +
+                        '</div>' +
+                    '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted">Немає повідомлень. Напишіть першим!</div>';
+        }
+
+        html += 
+                '</div>' +
+                '<form id="chatForm" style="display:flex;gap:0.5rem;">' +
+                    '<input type="text" class="form-control" id="chatInput" placeholder="Введіть повідомлення... (використовуйте @ для згадування)" required>' +
+                    '<button type="submit" class="btn btn-gold">' +
+                        '<i class="fas fa-paper-plane"></i>' +
+                    '</button>' +
+                '</form>' +
+            '</div>';
+
+        container.innerHTML = html;
+
+        var messagesContainer = document.getElementById('chatMessages');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        document.getElementById('chatForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var input = document.getElementById('chatInput');
+            var message = input.value.trim();
+
+            if (!message) return;
+
+            var mentionRegex = /@(\S+)/g;
+            var mentions = [];
+            var match;
+            var allMembers = await db.getOrganizationMembers(currentOrgId);
+            
+            while ((match = mentionRegex.exec(message)) !== null) {
+                var username = match[1];
+                for (var m = 0; m < allMembers.length; m++) {
+                    var member = allMembers[m];
+                    var memberData = await db.supabaseQuery('users?id=eq.' + member.user_id);
+                    if (memberData && memberData.length > 0 && 
+                        (memberData[0].full_name && memberData[0].full_name.toLowerCase().indexOf(username.toLowerCase()) !== -1 || 
+                         memberData[0].email && memberData[0].email.toLowerCase().indexOf(username.toLowerCase()) !== -1)) {
+                        mentions.push(member.user_id);
+                        break;
+                    }
+                }
+            }
+
+            try {
+                await db.sendChatMessage(currentOrgId, (auth.getCurrentUser() ? auth.getCurrentUser().id : null), message, mentions);
+                input.value = '';
+                await loadChat();
+            } catch (error) {
+                await showAlert('Помилка відправки: ' + error.message, 'error');
+            }
+        });
+
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження чату</div>';
+    }
+}
+
+async function deleteChatMessage(messageId) {
+    var confirmed = await showConfirm('Видалити повідомлення?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteChatMessage(messageId);
+        await showToast('Повідомлення видалено', 'success');
+        await loadChat();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ВІДПУСТКИ ==========
+async function loadVacations() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Відпустки';
+    document.getElementById('pageSubtitle').textContent = 'Управління відпустками співробітників';
+
+    try {
+        var vacations = await db.getVacations(currentOrgId);
+        var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Відпустки (' + (vacations ? vacations.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreateVacation()">' +
+                        '<i class="fas fa-plus"></i> Створити заявку' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Співробітник</th>' +
+                                '<th>Період</th>' +
+                                '<th>Тип</th>' +
+                                '<th>Статус</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (vacations && vacations.length > 0) {
+            for (var i = 0; i < vacations.length; i++) {
+                var vac = vacations[i];
+                var userData = await db.supabaseQuery('users?id=eq.' + vac.user_id);
+                var userName = userData && userData.length > 0 
+                    ? (userData[0].full_name || userData[0].email || 'Невідомо') 
+                    : 'Невідомо';
+
+                var isPending = vac.status === 'pending';
+                var statusClass = vac.status === 'pending' ? 'badge-warning' : 
+                                   vac.status === 'approved' ? 'badge-success' : 
+                                   vac.status === 'rejected' ? 'badge-danger' : 'badge-secondary';
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + userName + '</strong></td>' +
+                        '<td>' + new Date(vac.start_date).toLocaleDateString('uk-UA') + ' - ' + new Date(vac.end_date).toLocaleDateString('uk-UA') + '</td>' +
+                        '<td>' + (vacationTypeLabels[vac.type] || vac.type) + '</td>' +
+                        '<td><span class="badge ' + statusClass + '">' + (vacationStatusLabels[vac.status] || vac.status) + '</span></td>' +
+                        '<td>' + (isPending && isLeader ? 
+                            '<button class="btn btn-sm btn-teal" onclick="approveVacation(\'' + vac.id + '\')">' +
+                                '<i class="fas fa-check"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="rejectVacation(\'' + vac.id + '\')">' +
+                                '<i class="fas fa-times"></i>' +
+                            '</button>' : '') +
+                            (vac.user_id === (user ? user.id : null) && vac.status === 'pending' ? 
+                                '<button class="btn btn-sm btn-danger" onclick="cancelVacation(\'' + vac.id + '\')">' +
+                                    '<i class="fas fa-ban"></i>' +
+                                '</button>' : '') + '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="5" class="text-center text-muted">Немає заявок на відпустку</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreateVacation() {
+    document.getElementById('vacationModal').classList.add('active');
+}
+
+document.getElementById('vacationForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var startDate = document.getElementById('vacStart').value;
+    var endDate = document.getElementById('vacEnd').value;
+    var type = document.getElementById('vacType').value;
+    var reason = document.getElementById('vacReason').value.trim();
+
+    if (!startDate || !endDate) {
+        await showAlert('Оберіть дати', 'warning');
+        return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+        await showAlert('Дата початку не може бути пізнішою за дату закінчення', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.createVacation({
+            organization_id: currentOrgId,
+            user_id: user ? user.id : null,
+            start_date: startDate,
+            end_date: endDate,
+            type: type,
+            reason: reason || '',
+            status: 'pending'
+        });
+
+        await showToast('Заявку на відпустку відправлено!', 'success');
+        closeModal('vacationModal');
+        document.getElementById('vacationForm').reset();
+        loadVacations();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function approveVacation(vacationId) {
+    var confirmed = await showConfirm('Схвалити заявку на відпустку?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.updateVacationStatus(vacationId, 'approved', user ? user.id : null);
+        await showToast('Заявку схвалено!', 'success');
+        loadVacations();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function rejectVacation(vacationId) {
+    var confirmed = await showConfirm('Відхилити заявку на відпустку?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.updateVacationStatus(vacationId, 'rejected', user ? user.id : null);
+        await showToast('Заявку відхилено', 'warning');
+        loadVacations();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function cancelVacation(vacationId) {
+    var confirmed = await showConfirm('Скасувати заявку на відпустку?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.updateVacationStatus(vacationId, 'cancelled');
+        await showToast('Заявку скасовано', 'success');
+        loadVacations();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ПОДІЇ (КАЛЕНДАР) ==========
+async function loadEvents() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Календар подій';
+    document.getElementById('pageSubtitle').textContent = 'Планування зустрічей та подій';
+
+    try {
+        var events = await db.getEvents(currentOrgId);
+        var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Події (' + (events ? events.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreateEvent()">' +
+                        '<i class="fas fa-plus"></i> Створити подію' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Дата</th>' +
+                                '<th>Місце</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (events && events.length > 0) {
+            for (var i = 0; i < events.length; i++) {
+                var ev = events[i];
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + ev.title + '</strong></td>' +
+                        '<td>' + new Date(ev.start_date).toLocaleString('uk-UA') + '</td>' +
+                        '<td>' + (ev.location || '—') + '</td>' +
+                        '<td>' + (isLeader ? 
+                            '<button class="btn btn-sm btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' : '—') + '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає подій</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreateEvent() {
+    document.getElementById('eventModal').classList.add('active');
+}
+
+document.getElementById('eventForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var title = document.getElementById('eventTitle').value.trim();
+    var description = document.getElementById('eventDesc').value.trim();
+    var startDate = document.getElementById('eventStart').value;
+    var endDate = document.getElementById('eventEnd').value;
+    var location = document.getElementById('eventLocation').value.trim();
+
+    if (!title || !startDate || !endDate) {
+        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
+        return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+        await showAlert('Дата початку не може бути пізнішою за дату закінчення', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.createEvent({
+            organization_id: currentOrgId,
+            title: title,
+            description: description || '',
+            start_date: startDate,
+            end_date: endDate,
+            location: location || '',
+            created_by: user ? user.id : null
+        });
+
+        await showToast('Подію створено!', 'success');
+        closeModal('eventModal');
+        document.getElementById('eventForm').reset();
+        loadEvents();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteEvent(eventId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю подію?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteEvent(eventId);
+        await showToast('Подію видалено', 'success');
+        loadEvents();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ЗАВДАННЯ ==========
+async function loadTasks() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Завдання';
+    document.getElementById('pageSubtitle').textContent = 'Управління задачами';
+
+    try {
+        var tasks = await db.getTasks(currentOrgId);
+        var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Завдання (' + (tasks ? tasks.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreateTask()">' +
+                        '<i class="fas fa-plus"></i> Створити завдання' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Відповідальний</th>' +
+                                '<th>Дедлайн</th>' +
+                                '<th>Статус</th>' +
+                                '<th>Пріоритет</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (tasks && tasks.length > 0) {
+            for (var i = 0; i < tasks.length; i++) {
+                var task = tasks[i];
+                var assignedUser = await db.supabaseQuery('users?id=eq.' + task.assigned_to);
+                var assignedName = assignedUser && assignedUser.length > 0 
+                    ? (assignedUser[0].full_name || assignedUser[0].email) 
+                    : 'Не призначено';
+                var isAssignee = task.assigned_to === (user ? user.id : null);
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + task.title + '</strong></td>' +
+                        '<td>' + assignedName + '</td>' +
+                        '<td>' + (task.due_date ? new Date(task.due_date).toLocaleDateString('uk-UA') : '—') + '</td>' +
+                        '<td><span class="badge ' + (task.status === 'done' ? 'badge-success' : task.status === 'in_progress' ? 'badge-warning' : 'badge-primary') + '">' + (taskStatusLabels[task.status] || task.status) + '</span></td>' +
+                        '<td><span class="badge ' + (task.priority === 'high' || task.priority === 'urgent' ? 'badge-danger' : task.priority === 'medium' ? 'badge-warning' : 'badge-success') + '">' + (taskPriorityLabels[task.priority] || task.priority) + '</span></td>' +
+                        '<td>' + (isLeader || isAssignee ? 
+                            '<button class="btn btn-sm btn-teal" onclick="editTask(\'' + task.id + '\')">' +
+                                '<i class="fas fa-edit"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteTask(\'' + task.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' : '—') + '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="6" class="text-center text-muted">Немає завдань</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+// ===== ЗАПОВНЕННЯ СПИСКУ ВІДПОВІДАЛЬНИХ У ЗАВДАННЯХ =====
+async function loadTaskAssignees() {
+    var members = await db.getOrganizationMembers(currentOrgId);
+    var select = document.getElementById('taskAssign');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Не призначено</option>';
+    
+    if (members && members.length > 0) {
+        for (var i = 0; i < members.length; i++) {
+            var member = members[i];
+            var userData = await db.supabaseQuery('users?id=eq.' + member.user_id);
+            if (userData && userData.length > 0) {
+                var option = document.createElement('option');
+                option.value = member.user_id;
+                option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
+                select.appendChild(option);
+            }
+        }
+    }
+}
+
+function openCreateTask() {
+    document.getElementById('taskModal').classList.add('active');
+    document.getElementById('taskEditId').value = '';
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDesc').value = '';
+    document.getElementById('taskDue').value = '';
+    document.getElementById('taskPriority').value = 'medium';
+    document.getElementById('taskSubmitText').textContent = 'Створити';
+    loadTaskAssignees();
+}
+
+async function editTask(taskId) {
+    try {
+        var tasks = await db.getTasks(currentOrgId);
+        var task = null;
+        for (var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id === taskId) {
+                task = tasks[i];
+                break;
+            }
+        }
+        if (!task) return;
+
+        document.getElementById('taskModal').classList.add('active');
+        document.getElementById('taskEditId').value = task.id;
+        document.getElementById('taskTitle').value = task.title;
+        document.getElementById('taskDesc').value = task.description || '';
+        document.getElementById('taskDue').value = task.due_date ? task.due_date.split('T')[0] : '';
+        document.getElementById('taskPriority').value = task.priority || 'medium';
+        document.getElementById('taskSubmitText').textContent = 'Зберегти';
+        await loadTaskAssignees();
+        if (task.assigned_to) {
+            document.getElementById('taskAssign').value = task.assigned_to;
+        }
+    } catch (error) {
+        await showAlert('Помилка завантаження завдання', 'error');
+    }
+}
+
+document.getElementById('taskForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var editId = document.getElementById('taskEditId').value;
+    var title = document.getElementById('taskTitle').value.trim();
+    var description = document.getElementById('taskDesc').value.trim();
+    var assignedTo = document.getElementById('taskAssign').value;
+    var dueDate = document.getElementById('taskDue').value;
+    var priority = document.getElementById('taskPriority').value;
+
+    if (!title) {
+        await showAlert('Введіть назву завдання', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        var data = {
+            organization_id: currentOrgId,
+            title: title,
+            description: description || '',
+            assigned_to: assignedTo || null,
+            created_by: user ? user.id : null,
+            due_date: dueDate || null,
+            priority: priority || 'medium'
+        };
+
+        if (editId) {
+            await db.updateTask(editId, data);
+            await showToast('Завдання оновлено!', 'success');
+        } else {
+            data.status = 'new';
+            await db.createTask(data);
+            await showToast('Завдання створено!', 'success');
+        }
+
+        closeModal('taskModal');
+        document.getElementById('taskForm').reset();
+        loadTasks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteTask(taskId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити це завдання?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteTask(taskId);
+        await showToast('Завдання видалено', 'success');
+        loadTasks();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ОПИТУВАННЯ ==========
+async function loadPolls() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Опитування';
+    document.getElementById('pageSubtitle').textContent = 'Збір думок та голосування';
+
+    try {
+        var polls = await db.getPolls(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Опитування (' + (polls ? polls.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openCreatePoll()">' +
+                        '<i class="fas fa-plus"></i> Створити опитування' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Варіанти</th>' +
+                                '<th>Статус</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (polls && polls.length > 0) {
+            for (var i = 0; i < polls.length; i++) {
+                var poll = polls[i];
+                var options = poll.options || [];
+                var optionLabels = options.join(', ');
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + poll.title + '</strong></td>' +
+                        '<td>' + optionLabels + '</td>' +
+                        '<td><span class="badge ' + (poll.is_active ? 'badge-success' : 'badge-secondary') + '">' + (poll.is_active ? 'Активне' : 'Завершене') + '</span></td>' +
+                        '<td>' +
+                            '<button class="btn btn-sm btn-teal" onclick="viewPoll(\'' + poll.id + '\')">' +
+                                '<i class="fas fa-eye"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deletePoll(\'' + poll.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає опитувань</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openCreatePoll() {
+    document.getElementById('pollModal').classList.add('active');
+    document.getElementById('pollEditId').value = '';
+    document.getElementById('pollTitle').value = '';
+    document.getElementById('pollDesc').value = '';
+    document.getElementById('pollOptions').value = '';
+    document.getElementById('pollSubmitText').textContent = 'Створити';
+}
+
+document.getElementById('pollForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var title = document.getElementById('pollTitle').value.trim();
+    var description = document.getElementById('pollDesc').value.trim();
+    var optionsText = document.getElementById('pollOptions').value.trim();
+
+    if (!title || !optionsText) {
+        await showAlert('Заповніть назву та варіанти відповідей', 'warning');
+        return;
+    }
+
+    var options = optionsText.split('\n').filter(function(o) { return o.trim(); });
+    if (options.length < 2) {
+        await showAlert('Додайте мінімум 2 варіанти відповідей', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.createPoll({
+            organization_id: currentOrgId,
+            title: title,
+            description: description || '',
+            options: options,
+            created_by: user ? user.id : null,
+            expires_at: null
+        });
+
+        await showToast('Опитування створено!', 'success');
+        closeModal('pollModal');
+        document.getElementById('pollForm').reset();
+        loadPolls();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function viewPoll(pollId) {
+    try {
+        var polls = await db.getPolls(currentOrgId);
+        var poll = null;
+        for (var i = 0; i < polls.length; i++) {
+            if (polls[i].id === pollId) {
+                poll = polls[i];
+                break;
+            }
+        }
+        if (!poll) return;
+
+        var results = await db.getPollResults(pollId);
+        var user = auth.getCurrentUser();
+        var hasVoted = results && results.some(function(v) { return v.user_id === (user ? user.id : null); });
+
+        var html = 
+            '<div style="background:var(--ink);border-radius:8px;padding:1rem;margin-bottom:1rem;">' +
+                '<h3 style="color:var(--gold);">' + poll.title + '</h3>' +
+                '<p style="color:var(--muted);">' + (poll.description || '') + '</p>' +
+            '</div>';
+
+        var options = poll.options || [];
+        var totalVotes = results ? results.length : 0;
+
+        html += '<div style="margin-top:1rem;">';
+        for (var j = 0; j < options.length; j++) {
+            var votes = results ? results.filter(function(v) { return v.option_index === j; }).length : 0;
+            var percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+            
+            html += 
+                '<div style="margin-bottom:0.75rem;">' +
+                    '<div style="display:flex;justify-content:space-between;font-size:0.85rem;">' +
+                        '<span>' + options[j] + '</span>' +
+                        '<span>' + votes + ' голосів (' + percent + '%)</span>' +
+                    '</div>' +
+                    '<div style="background:var(--ink);border-radius:4px;height:8px;overflow:hidden;">' +
+                        '<div style="background:var(--gold);height:100%;width:' + percent + '%;border-radius:4px;transition:width 0.5s;"></div>' +
+                    '</div>' +
+                '</div>';
+        }
+        html += '</div>';
+
+        if (!hasVoted && poll.is_active) {
+            html += 
+                '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    options.map(function(opt, idx) {
+                        return '<button class="btn btn-sm btn-teal" onclick="votePoll(\'' + pollId + '\', ' + idx + ')">' + opt + '</button>';
+                    }).join('') +
+                '</div>';
+        } else if (hasVoted) {
+            html += '<p style="color:var(--teal);margin-top:1rem;">✅ Ви вже проголосували</p>';
+        } else {
+            html += '<p style="color:var(--muted);margin-top:1rem;">⏳ Опитування завершено</p>';
+        }
+
+        await showAlert(html, 'info', '📊 Результати опитування');
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function votePoll(pollId, optionIndex) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете проголосувати за цей варіант?', 'Голосування');
+    if (!confirmed) return;
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.votePoll(pollId, user ? user.id : null, optionIndex);
+        await showToast('Голос зараховано!', 'success');
+        viewPoll(pollId);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function deletePoll(pollId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити це опитування?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.deletePoll(pollId);
+        await showToast('Опитування видалено', 'success');
+        loadPolls();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== ФАЙЛИ ==========
+async function loadFiles() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Файли';
+    document.getElementById('pageSubtitle').textContent = 'Сховище файлів організації';
+
+    try {
+        var files = await db.getFiles(currentOrgId);
+        var user = auth.getCurrentUser();
+
+        var html = 
+            '<div class="card">' +
+                '<div class="card-header">' +
+                    '<h3 class="card-title">Файли (' + (files ? files.length : 0) + ')</h3>' +
+                    '<button class="btn btn-gold btn-sm" onclick="openUploadFile()">' +
+                        '<i class="fas fa-upload"></i> Завантажити' +
+                    '</button>' +
+                '</div>' +
+                '<div style="overflow-x:auto;">' +
+                    '<table class="table">' +
+                        '<thead>' +
+                            '<tr>' +
+                                '<th>Назва</th>' +
+                                '<th>Розмір</th>' +
+                                '<th>Завантажив</th>' +
+                                '<th>Дії</th>' +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>';
+
+        if (files && files.length > 0) {
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var uploader = await db.supabaseQuery('users?id=eq.' + file.uploaded_by);
+                var uploaderName = uploader && uploader.length > 0 ? (uploader[0].full_name || uploader[0].email) : 'Невідомо';
+                var size = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : (file.size / 1024).toFixed(0) + ' KB';
+
+                html += 
+                    '<tr>' +
+                        '<td><strong>' + file.name + '</strong></td>' +
+                        '<td>' + size + '</td>' +
+                        '<td>' + uploaderName + '</td>' +
+                        '<td>' +
+                            '<a href="' + file.url + '" target="_blank" class="btn btn-sm btn-teal">' +
+                                '<i class="fas fa-download"></i>' +
+                            '</a>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteFile(\'' + file.id + '\')">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+            }
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає файлів</td></tr>';
+        }
+
+        html += 
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openUploadFile() {
+    document.getElementById('fileModal').classList.add('active');
+}
+
+document.getElementById('fileForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    var fileInput = document.getElementById('fileInput');
+    var file = fileInput.files[0];
+
+    if (!file) {
+        await showAlert('Оберіть файл', 'warning');
+        return;
+    }
+
+    try {
+        var user = auth.getCurrentUser();
+        var fileId = generateUUID();
+        var fileName = fileId + '_' + file.name;
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        var uploadResponse = await fetch(SUPABASE_URL + '/storage/v1/object/org_files/' + fileName, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            },
+            body: file
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('Не вдалося завантажити файл');
+        }
+
+        var fileUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
+
+        await db.createFile({
+            organization_id: currentOrgId,
+            name: file.name,
+            url: fileUrl,
+            size: file.size,
+            mime_type: file.type,
+            uploaded_by: user ? user.id : null
+        });
+
+        await showToast('Файл завантажено!', 'success');
+        closeModal('fileModal');
+        document.getElementById('fileForm').reset();
+        loadFiles();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteFile(fileId) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цей файл?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        var files = await db.getFiles(currentOrgId);
+        var file = null;
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].id === fileId) {
+                file = files[i];
+                break;
+            }
+        }
+
+        if (file) {
+            var fileName = file.url.split('/').pop();
+            await fetch(SUPABASE_URL + '/storage/v1/object/org_files/' + fileName, {
+                method: 'DELETE',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                }
+            });
+        }
+
+        await db.deleteFile(fileId);
+        await showToast('Файл видалено', 'success');
+        loadFiles();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ========== НАЛАШТУВАННЯ ==========
+async function loadSettings() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Налаштування';
+    document.getElementById('pageSubtitle').textContent = 'Управління налаштуваннями організації';
+
+    var user = auth.getCurrentUser();
+    var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+    container.innerHTML = 
+        '<div class="card">' +
+            '<h3 class="card-title mb-2">Налаштування організації</h3>' +
+            '<form id="settingsForm">' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Назва організації</label>' +
+                    '<input type="text" class="form-control" id="settingsName" value="' + (currentOrg ? currentOrg.name || '' : '') + '" required>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Опис</label>' +
+                    '<textarea class="form-control" id="settingsDesc" rows="3" placeholder="Короткий опис організації">' + (currentOrg ? currentOrg.description || '' : '') + '</textarea>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Код вступу</label>' +
+                    '<div style="display:flex;gap:0.5rem;align-items:center;">' +
+                        '<input type="text" class="form-control" id="settingsCode" value="' + (currentOrg ? currentOrg.join_code || '' : '') + '" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;text-transform:lowercase;" readonly>' +
+                        (isLeader ? 
+                            '<button type="button" class="btn btn-teal" onclick="regenerateCode()" title="Згенерувати новий код">' +
+                                '<i class="fas fa-sync"></i>' +
+                            '</button>' : '') +
+                    '</div>' +
+                    '<small style="color:var(--muted);">Код формату: abcd-abcd-abcd-abcd (латиниця, малі літери)</small>' +
+                '</div>' +
+                '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">' +
+                    '<button type="submit" class="btn btn-gold">' +
+                        '<i class="fas fa-save"></i> Зберегти налаштування' +
+                    '</button>' +
+                    (isLeader ? 
+                        '<button type="button" class="btn btn-danger" onclick="deleteOrganization()">' +
+                            '<i class="fas fa-trash"></i> Видалити організацію' +
+                        '</button>' : '') +
+                '</div>' +
+            '</form>' +
+        '</div>';
+
+    document.getElementById('settingsForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var name = document.getElementById('settingsName').value.trim();
+        var description = document.getElementById('settingsDesc').value.trim();
+
+        if (!name) {
+            await showAlert('Назва обов\'язкова', 'warning');
+            return;
+        }
+
+        try {
+            await db.updateOrganization(currentOrgId, { name: name, description: description });
+            await showToast('Налаштування збережено!', 'success');
+            currentOrg = await db.getOrganization(currentOrgId);
+            document.getElementById('orgName').textContent = currentOrg.name;
+        } catch (error) {
+            await showAlert('Помилка: ' + error.message, 'error');
+        }
+    });
+}
+
+async function regenerateCode() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете змінити код вступу?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        var newCode = generateJoinCode();
+        await db.updateOrganization(currentOrgId, { join_code: newCode });
+        await showToast('Код оновлено!', 'success');
+        currentOrg = await db.getOrganization(currentOrgId);
+        document.getElementById('settingsCode').value = currentOrg.join_code;
+        document.getElementById('joinCode').textContent = currentOrg.join_code;
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+function generateJoinCode() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz';
+    var parts = [];
+    for (var i = 0; i < 4; i++) {
+        var part = '';
+        for (var j = 0; j < 4; j++) {
+            part += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        parts.push(part);
+    }
+    return parts.join('-');
+}
+
+async function deleteOrganization() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити організацію? Це незворотна дія!', 'Увага');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteOrganization(currentOrgId);
+        await showToast('Організацію видалено', 'success');
+        window.location.href = '/dashboard';
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+function selectColor(el) {
+    var options = document.querySelectorAll('.color-option');
+    for (var i = 0; i < options.length; i++) {
+        options[i].classList.remove('selected');
+    }
+    el.classList.add('selected');
+    document.getElementById('rankColor').value = el.style.backgroundColor;
+}
+
+var modals = document.querySelectorAll('.modal');
+for (var m = 0; m < modals.length; m++) {
+    modals[m].addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+}
+
+init();
