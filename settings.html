@@ -1,48 +1,97 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Настройки — Typebiz</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Налаштування — Typebiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/style.css">
     <style>
-        body {
-            background: var(--gray-50);
-            padding: 2rem;
+        :root {
+            --ink: #0F1115;
+            --ink-soft: #171A21;
+            --ink-line: #2A2E38;
+            --gold: #F2A93B;
+            --teal: #46C9B8;
+            --text-onink: #E7E4DA;
+            --muted: #8B93A6;
+            --radius: 10px;
+            --radius-sm: 6px;
         }
-        .settings-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: var(--radius);
-            padding: 2rem;
-            box-shadow: var(--shadow);
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:'IBM Plex Sans',sans-serif;
+            background:var(--ink);
+            color:var(--text-onink);
+            min-height:100vh;
+            padding:2rem;
+            display:flex;
+            align-items:center;
+            justify-content:center;
         }
-        .settings-container .header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
+        .settings-container{
+            max-width:600px;
+            width:100%;
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius);
+            padding:2rem;
+            box-shadow:0 30px 60px rgba(0,0,0,0.5);
         }
-        .settings-container .header .back {
-            color: var(--primary);
-            text-decoration: none;
+        .header{
+            display:flex;
+            align-items:center;
+            gap:1rem;
+            margin-bottom:2rem;
         }
-        .settings-container .header h1 {
-            font-size: 1.5rem;
+        .header .back{
+            color:var(--teal);
+            text-decoration:none;
+            font-size:1.2rem;
         }
-        .settings-container .danger-zone {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--danger);
+        .header .back:hover{color:var(--gold);}
+        .header h1{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;}
+        .form-group{margin-bottom:1.5rem;}
+        .form-label{display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;}
+        .form-control{
+            width:100%;
+            padding:0.75rem 1rem;
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:6px;
+            color:var(--text-onink);
+            font-family:'IBM Plex Sans',sans-serif;
+            font-size:1rem;
         }
-        .settings-container .danger-zone h3 {
-            color: var(--danger);
+        .form-control:focus{outline:none;border-color:var(--gold);}
+        .btn{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:0.6rem 1.5rem;
+            border-radius:6px;
+            font-weight:600;
+            font-size:0.9rem;
+            cursor:pointer;
+            border:1px solid transparent;
+            transition:transform .15s,box-shadow .15s;
         }
-        @media (max-width: 768px) {
-            body { padding: 1rem; }
+        .btn-gold{background:var(--gold);color:var(--ink);}
+        .btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(242,169,59,0.28);}
+        .btn-danger{background:#E2503E;color:white;}
+        .btn-danger:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(226,80,62,0.28);}
+        .danger-zone{
+            margin-top:2rem;
+            padding-top:2rem;
+            border-top:2px solid #E2503E;
+        }
+        .danger-zone h3{color:#E2503E;font-family:'Space Grotesk',sans-serif;}
+        .danger-zone p{color:var(--muted);margin-bottom:1rem;}
+        .flex{display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;}
+        @media(max-width:480px){
+            body{padding:1rem;}
+            .settings-container{padding:1.5rem;}
         }
     </style>
 </head>
@@ -50,28 +99,28 @@
     <div class="settings-container">
         <div class="header">
             <a href="/dashboard" class="back"><i class="fas fa-arrow-left"></i></a>
-            <h1>Настройки</h1>
+            <h1>Налаштування</h1>
         </div>
 
         <form id="settingsForm">
             <div class="form-group">
-                <label class="form-label">Имя</label>
+                <label class="form-label">Ім'я</label>
                 <input type="text" class="form-control" id="fullName" required>
             </div>
             <div class="form-group">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="email" required>
             </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Сохранить
+            <button type="submit" class="btn btn-gold">
+                <i class="fas fa-save"></i> Зберегти
             </button>
         </form>
 
         <div class="danger-zone">
-            <h3><i class="fas fa-exclamation-triangle"></i> Опасная зона</h3>
-            <p style="color: var(--gray-500); margin-bottom: 1rem;">Удаление аккаунта приведет к потере всех данных</p>
+            <h3><i class="fas fa-exclamation-triangle"></i> Небезпечна зона</h3>
+            <p>Видалення акаунта призведе до втрати всіх даних</p>
             <button class="btn btn-danger" id="deleteBtn">
-                <i class="fas fa-trash"></i> Удалить аккаунт
+                <i class="fas fa-trash"></i> Видалити акаунт
             </button>
         </div>
     </div>
@@ -81,21 +130,20 @@
     <script src="/js/ui.js"></script>
     <script>
         (async function() {
-            const isAuth = await auth.requireAuth();
+            var isAuth = await auth.requireAuth();
             if (!isAuth) return;
 
-            const user = auth.getCurrentUser();
+            var user = auth.getCurrentUser();
             if (user) {
                 document.getElementById('fullName').value = user.full_name || '';
                 document.getElementById('email').value = user.email;
             }
 
-            // Сохранение
-            document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            document.getElementById('settingsForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                const fullName = document.getElementById('fullName').value.trim();
-                const email = document.getElementById('email').value.trim();
+                var fullName = document.getElementById('fullName').value.trim();
+                var email = document.getElementById('email').value.trim();
 
                 try {
                     await db.updateUser(user.id, {
@@ -107,26 +155,28 @@
                     user.email = email;
                     localStorage.setItem('userData', JSON.stringify(user));
                     
-                    alert('Настройки сохранены!');
+                    await showToast('Налаштування збережено!', 'success');
                 } catch (error) {
-                    alert('Ошибка: ' + error.message);
+                    await showAlert('Помилка: ' + error.message, 'error');
                 }
             });
 
-            // Удаление аккаунта
             document.getElementById('deleteBtn').addEventListener('click', async function() {
-                if (!confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо!')) return;
-                if (!confirm('Все ваши данные будут потеряны. Продолжить?')) return;
+                var confirmed = await showConfirm('Ви впевнені, що хочете видалити акаунт? Це незворотна дія!', 'Увага');
+                if (!confirmed) return;
+                
+                var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
+                if (!confirmed2) return;
 
                 try {
                     await db.deleteUser(user.id);
                     localStorage.removeItem('userData');
-                    alert('Аккаунт удален');
-                    setTimeout(() => {
+                    await showToast('Акаунт видалено', 'success');
+                    setTimeout(function() {
                         window.location.href = '/login';
                     }, 1500);
                 } catch (error) {
-                    alert('Ошибка: ' + error.message);
+                    await showAlert('Помилка: ' + error.message, 'error');
                 }
             });
         })();
