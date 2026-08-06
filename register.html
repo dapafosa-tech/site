@@ -17,6 +17,7 @@
             --text-onink: #E7E4DA;
             --muted: #8B93A6;
             --radius: 10px;
+            --radius-sm: 6px;
         }
         *{margin:0;padding:0;box-sizing:border-box;}
         body{
@@ -37,6 +38,8 @@
             max-width:440px;
             width:100%;
             box-shadow:0 30px 60px rgba(0,0,0,0.5);
+            max-height:95vh;
+            overflow-y:auto;
         }
         .logo{
             display:flex;
@@ -90,11 +93,9 @@
             font-size:1rem;
             transition:border-color .2s;
         }
-        .form-control:focus{
-            outline:none;
-            border-color:var(--gold);
-        }
+        .form-control:focus{outline:none;border-color:var(--gold);}
         .form-control::placeholder{color:var(--muted);}
+        .form-control:disabled{opacity:0.5;cursor:not-allowed;}
         .password-toggle{position:relative;}
         .password-toggle .toggle-btn{
             position:absolute;
@@ -154,7 +155,16 @@
             transform:translateY(-2px);
             box-shadow:0 8px 20px rgba(242,169,59,0.28);
         }
+        .btn-teal{
+            background:var(--teal);
+            color:var(--ink);
+        }
+        .btn-teal:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 20px rgba(70,201,184,0.28);
+        }
         .btn:disabled{opacity:0.6;cursor:not-allowed;}
+        .btn-sm{padding:0.4rem 1rem;font-size:0.85rem;width:auto;}
         .login-link{
             text-align:center;
             margin-top:1.5rem;
@@ -191,8 +201,27 @@
         .avatar-upload .avatar-preview:hover .overlay{opacity:1;}
         .avatar-upload .avatar-hint{font-size:0.8rem;color:var(--muted);margin-top:0.5rem;}
         #avatarInput{display:none;}
+        .email-row{display:flex;gap:0.5rem;align-items:center;}
+        .email-row .form-control{flex:1;}
+        .email-row .btn{width:auto;padding:0.6rem 1rem;font-size:0.85rem;white-space:nowrap;}
+        .code-row{display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;}
+        .code-row .form-control{flex:1;font-family:monospace;font-size:1.2rem;letter-spacing:4px;text-align:center;}
+        .code-row .btn{width:auto;padding:0.6rem 1rem;font-size:0.85rem;white-space:nowrap;}
+        .email-status{
+            display:block;
+            margin-top:0.25rem;
+            font-size:0.8rem;
+            color:var(--muted);
+        }
+        .email-status.success{color:var(--teal);}
+        .email-status.error{color:#E2503E;}
+        .email-status.info{color:var(--gold);}
         @media(max-width:480px){
             .register-container{padding:2rem 1.5rem;}
+            .email-row{flex-direction:column;}
+            .email-row .btn{width:100%;}
+            .code-row{flex-direction:column;}
+            .code-row .btn{width:100%;}
         }
     </style>
 </head>
@@ -207,6 +236,7 @@
         <p class="subtitle">Почніть керувати своєю організацією</p>
 
         <form id="registerForm" autocomplete="off" novalidate>
+            <!-- АВАТАРКА -->
             <div class="avatar-upload">
                 <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarInput').click()">
                     <i class="fas fa-user"></i>
@@ -221,9 +251,22 @@
                 <input type="text" id="fullName" class="form-control" placeholder="Іван Іванов" required autofocus>
             </div>
 
+            <!-- EMAIL З ВЕРИФІКАЦІЄЮ -->
             <div class="form-group">
                 <label class="form-label" for="email">Електронна пошта</label>
-                <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
+                <div class="email-row">
+                    <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
+                    <button type="button" class="btn btn-teal" id="sendCodeBtn" onclick="sendCode()">
+                        <i class="fas fa-paper-plane"></i> Код
+                    </button>
+                </div>
+                <div class="code-row" id="codeRow" style="display:none;">
+                    <input type="text" id="verificationCode" class="form-control" placeholder="Код" maxlength="6" autocomplete="off">
+                    <button type="button" class="btn btn-gold" id="verifyBtn" onclick="verifyCode()">
+                        <i class="fas fa-check"></i> Підтвердити
+                    </button>
+                </div>
+                <span class="email-status" id="emailStatus">Введіть email і натисніть "Код"</span>
             </div>
 
             <div class="form-group">
@@ -257,7 +300,7 @@
                 </label>
             </div>
 
-            <button type="submit" class="btn btn-gold" id="registerBtn">
+            <button type="submit" class="btn btn-gold" id="registerBtn" disabled>
                 <i class="fas fa-user-plus"></i> Створити акаунт
             </button>
         </form>
@@ -272,26 +315,27 @@
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
-        let selectedAvatarFile = null;
+        var selectedAvatarFile = null;
+        var isEmailVerified = false;
+        var currentEmail = '';
 
         function previewAvatar(event) {
-            const file = event.target.files[0];
+            var file = event.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
+            var reader = new FileReader();
             reader.onload = function(e) {
-                const preview = document.getElementById('avatarPreview');
-                preview.innerHTML = `
-                    <img src="${e.target.result}" alt="Аватар">
-                    <div class="overlay">Змінити фото</div>
-                `;
+                var preview = document.getElementById('avatarPreview');
+                preview.innerHTML = 
+                    '<img src="' + e.target.result + '" alt="Аватар">' +
+                    '<div class="overlay">Змінити фото</div>';
                 selectedAvatarFile = file;
             };
             reader.readAsDataURL(file);
         }
 
         function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            const icon = input.parentElement.querySelector('.toggle-btn i');
+            var input = document.getElementById(inputId);
+            var icon = input.parentElement.querySelector('.toggle-btn i');
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.className = 'fas fa-eye-slash';
@@ -301,8 +345,106 @@
             }
         }
 
+        function updateEmailStatus(message, type) {
+            var status = document.getElementById('emailStatus');
+            status.textContent = message;
+            status.className = 'email-status ' + type;
+        }
+
+        // ===== ВІДПРАВКА КОДУ =====
+        async function sendCode() {
+            var email = document.getElementById('email').value.trim();
+            var sendBtn = document.getElementById('sendCodeBtn');
+
+            if (!email) {
+                await showAlert('Введіть електронну пошту', 'warning');
+                return;
+            }
+
+            // Проста перевірка email
+            if (!email.includes('@') || !email.includes('.')) {
+                await showAlert('Введіть коректну електронну пошту', 'warning');
+                return;
+            }
+
+            currentEmail = email;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                var result = await auth.sendVerificationCode(email);
+                
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+
+                document.getElementById('codeRow').style.display = 'flex';
+                updateEmailStatus('✅ Код надіслано на вашу пошту! Перевірте спам.', 'success');
+                document.getElementById('verificationCode').focus();
+                
+                await showToast('Код підтвердження надіслано на email! 📨', 'success');
+
+            } catch (error) {
+                console.error('Send code error:', error);
+                updateEmailStatus('❌ ' + error.message, 'error');
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Код';
+        }
+
+        // ===== ПЕРЕВІРКА КОДУ =====
+        async function verifyCode() {
+            var code = document.getElementById('verificationCode').value.trim();
+            var verifyBtn = document.getElementById('verifyBtn');
+
+            if (!code || code.length < 6) {
+                await showAlert('Введіть 6-значний код', 'warning');
+                return;
+            }
+
+            if (!currentEmail) {
+                await showAlert('Спочатку надішліть код', 'warning');
+                return;
+            }
+
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                var result = await auth.verifyEmailCode(currentEmail, code);
+                
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+
+                isEmailVerified = true;
+                document.getElementById('codeRow').style.display = 'none';
+                updateEmailStatus('✅ Email підтверджено! 🎉', 'success');
+                document.getElementById('registerBtn').disabled = false;
+                document.getElementById('sendCodeBtn').disabled = true;
+                document.getElementById('email').disabled = true;
+                document.getElementById('verificationCode').disabled = true;
+                document.getElementById('verifyBtn').disabled = true;
+
+                await showToast('Email підтверджено! Тепер ви можете створити акаунт.', 'success');
+
+            } catch (error) {
+                console.error('Verify code error:', error);
+                updateEmailStatus('❌ ' + error.message, 'error');
+                await showAlert('Помилка: ' + error.message, 'error');
+                document.getElementById('verificationCode').value = '';
+                document.getElementById('verificationCode').focus();
+            }
+
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = '<i class="fas fa-check"></i> Підтвердити';
+        }
+
+        // Валідація пароля
         document.getElementById('password').addEventListener('input', function() {
-            const confirmInput = document.getElementById('confirmPassword');
+            var confirmInput = document.getElementById('confirmPassword');
             if (confirmInput.value && confirmInput.value !== this.value) {
                 confirmInput.style.borderColor = '#E2503E';
             } else if (confirmInput.value) {
@@ -311,7 +453,7 @@
         });
 
         document.getElementById('confirmPassword').addEventListener('input', function() {
-            const passwordInput = document.getElementById('password');
+            var passwordInput = document.getElementById('password');
             if (this.value && this.value !== passwordInput.value) {
                 this.style.borderColor = '#E2503E';
             } else if (this.value) {
@@ -321,23 +463,29 @@
             }
         });
 
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        // ===== РЕЄСТРАЦІЯ =====
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const fullName = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const terms = document.getElementById('terms').checked;
-            const submitBtn = document.getElementById('registerBtn');
+            var fullName = document.getElementById('fullName').value.trim();
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value;
+            var confirmPassword = document.getElementById('confirmPassword').value;
+            var terms = document.getElementById('terms').checked;
+            var submitBtn = document.getElementById('registerBtn');
 
             if (!fullName) {
-                await showAlert("Введіть ваше ім'я", 'warning');
+                await showAlert('Введіть ваше ім\'я', 'warning');
                 return;
             }
 
             if (!email) {
                 await showAlert('Введіть електронну пошту', 'warning');
+                return;
+            }
+
+            if (!isEmailVerified) {
+                await showAlert('Підтвердіть електронну пошту', 'warning');
                 return;
             }
 
@@ -360,7 +508,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
             try {
-                const result = await auth.registerUser(email, password, fullName);
+                var result = await auth.registerUser(email, password, fullName);
                 
                 if (!result.success) {
                     throw new Error(result.error);
@@ -369,7 +517,6 @@
                 if (selectedAvatarFile) {
                     try {
                         await storage.uploadAvatar(selectedAvatarFile);
-                        await showToast('Аватар завантажено!', 'success');
                     } catch (avatarError) {
                         console.warn('Avatar upload error:', avatarError);
                     }
@@ -380,7 +527,7 @@
 
                 await showToast('Акаунт створено! Ласкаво просимо до Typebiz! 🎉', 'success');
                 
-                setTimeout(() => {
+                setTimeout(function() {
                     window.location.href = '/dashboard';
                 }, 1500);
 
@@ -392,20 +539,21 @@
             }
         });
 
-        (async () => {
+        // Перевірка авторизації
+        (async function() {
             try {
-                const userData = localStorage.getItem('userData');
+                var userData = localStorage.getItem('userData');
                 if (userData) {
-                    const user = JSON.parse(userData);
-                    const response = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}`, {
+                    var user = JSON.parse(userData);
+                    var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(user.email), {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
                         }
                     });
                     
                     if (response.ok) {
-                        const data = await response.json();
+                        var data = await response.json();
                         if (data && data.length > 0) {
                             window.location.href = '/dashboard';
                         }
