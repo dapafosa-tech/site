@@ -858,10 +858,6 @@ async function openAssignEmployee(departmentId, departmentName) {
     select.innerHTML = '<option value="">Завантаження...</option>';
 
     try {
-        // Раніше картки "співробітників" ніколи не створювались автоматично,
-        // тому список тут завжди був порожнім, навіть якщо в організації
-        // вже були учасники. Тепер ми синхронізуємо: для кожного учасника
-        // організації, у якого ще немає картки співробітника, створюємо її.
         var employees = await ensureEmployeesForMembers(currentOrgId);
 
         select.innerHTML = '<option value="">Оберіть співробітника...</option>';
@@ -893,10 +889,6 @@ async function openAssignEmployee(departmentId, departmentName) {
     document.getElementById('assignEmployeeModal').classList.add('active');
 }
 
-// Гарантує, що для кожного учасника організації (org_members) існує
-// відповідний запис у таблиці employees — саме звідти список у модалці
-// "Призначити у відділ" бере людей. Без цього кроку список був порожнім,
-// бо картки співробітників раніше ніде не створювались автоматично.
 async function ensureEmployeesForMembers(orgId) {
     var members = await db.getOrganizationMembers(orgId);
     var employees = await db.getOrganizationEmployees(orgId);
@@ -1756,7 +1748,7 @@ async function deletePoll(pollId) {
     }
 }
 
-// ========== ФАЙЛИ (ВИПРАВЛЕНА ВЕРСІЯ) ==========
+// ========== ФАЙЛИ ==========
 async function loadFiles() {
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Файли';
@@ -1828,8 +1820,6 @@ function openUploadFile() {
     document.getElementById('fileModal').classList.add('active');
 }
 
-// ========== ФАЙЛИ (ВИПРАВЛЕНА ВЕРСІЯ) ==========
-
 document.getElementById('fileForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -1847,12 +1837,10 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
 
     try {
         var user = auth.getCurrentUser();
-        // Створюємо унікальне ім'я файлу
         var fileExt = file.name.split('.').pop();
         var fileName = Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + fileExt;
         
-        // ПРАВИЛЬНИЙ URL - використовуємо public
-        var uploadUrl = SUPABASE_URL + '/storage/v1/object/org_files/' + fileName;
+        var uploadUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
         
         console.log('📤 Завантаження на URL:', uploadUrl);
         console.log('📄 Файл:', file.name, file.size, 'bytes');
@@ -1889,11 +1877,9 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
             throw new Error('Помилка завантаження: ' + uploadResponse.status + ' - ' + errorText);
         }
 
-        // Отримуємо публічний URL файлу
         var fileUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
         console.log('✅ Файл завантажено! URL:', fileUrl);
 
-        // Зберігаємо інформацію в БД
         await db.createFile({
             organization_id: currentOrgId,
             name: file.name,
@@ -1950,7 +1936,7 @@ async function deleteFile(fileId) {
 }
 
 // ============================================
-// МОДУЛЬ: КЛІНІКА (ВИПРАВЛЕНА ВЕРСІЯ)
+// МОДУЛЬ: КЛІНІКА
 // ============================================
 async function loadClinic() {
     var container = document.getElementById('sectionContent');
@@ -1960,22 +1946,25 @@ async function loadClinic() {
     try {
         var patients = await db.getClinicPatients(currentOrgId);
         var appointments = await db.getClinicAppointments(currentOrgId);
+        allPatients = patients || [];
 
         var html = '';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
         
-        // ===== ЛІВА КОЛОНКА - ПАЦІЄНТИ =====
         html += '<div class="card">';
         html += '<div class="card-header">';
         html += '<h3 class="card-title">Пацієнти (' + (patients ? patients.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openClinicPatient()"><i class="fas fa-plus"></i> Додати</button>';
+        html += '</div>';
+        html += '<div style="margin-bottom:0.75rem;display:flex;gap:0.5rem;">';
+        html += '<input type="text" class="form-control" id="patientSearch" placeholder="🔍 Пошук пацієнтів..." style="flex:1;" oninput="filterPatients()">';
         html += '</div>';
         html += '<div id="clinicPatientsList" style="max-height:300px;overflow-y:auto;">';
         
         if (patients && patients.length > 0) {
             for (var i = 0; i < patients.length; i++) {
                 var p = patients[i];
-                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div class="patient-item" data-name="' + (p.full_name || '').toLowerCase() + '" data-phone="' + (p.phone || '') + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
                 html += '<div><strong>' + (p.full_name || 'Без імені') + '</strong>';
                 html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
                 html += '<div><button class="btn btn-sm btn-danger" onclick="deleteClinicPatient(\'' + p.id + '\')"><i class="fas fa-trash"></i></button></div>';
@@ -1986,7 +1975,6 @@ async function loadClinic() {
         }
         html += '</div></div>';
 
-        // ===== ПРАВА КОЛОНКА - ЗАПИСИ =====
         html += '<div class="card">';
         html += '<div class="card-header">';
         html += '<h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
@@ -1997,15 +1985,15 @@ async function loadClinic() {
         if (appointments && appointments.length > 0) {
             for (var i = 0; i < appointments.length; i++) {
                 var a = appointments[i];
-var statusMap = {
-    'scheduled': { class: 'badge-scheduled', label: '⏳ Заплановано' },
-    'in_progress': { class: 'badge-in_progress', label: '🔄 В процесі' },
-    'completed': { class: 'badge-completed', label: '✅ Виконано' },
-    'cancelled': { class: 'badge-cancelled', label: '❌ Скасовано' }
-};
-var statusInfo = statusMap[a.status] || { class: 'badge-secondary', label: a.status || 'Невідомо' };
-var statusClass = statusInfo.class;
-var statusLabel = statusInfo.label;
+                var statusMap = {
+                    'scheduled': { class: 'badge-scheduled', label: '⏳ Заплановано' },
+                    'in_progress': { class: 'badge-in_progress', label: '🔄 В процесі' },
+                    'completed': { class: 'badge-completed', label: '✅ Виконано' },
+                    'cancelled': { class: 'badge-cancelled', label: '❌ Скасовано' }
+                };
+                var statusInfo = statusMap[a.status] || { class: 'badge-secondary', label: a.status || 'Невідомо' };
+                var statusClass = statusInfo.class;
+                var statusLabel = statusInfo.label;
                 
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
@@ -2032,60 +2020,22 @@ var statusLabel = statusInfo.label;
     }
 }
 
-// ===== ЗМІНА СТАТУСУ ЗАПИСУ =====
-async function changeAppointmentStatus(appointmentId, currentStatus) {
-    // Статуси для вибору
-    var statuses = [
-        { value: 'scheduled', label: '⏳ Заплановано' },
-        { value: 'in_progress', label: '🔄 В процесі' },
-        { value: 'completed', label: '✅ Виконано' },
-        { value: 'cancelled', label: '❌ Скасовано' }
-    ];
-    
-    // Створюємо HTML з кнопками
-    var html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">';
-    html += '<p style="color:var(--muted);margin-bottom:0.5rem;">Поточний статус: <strong style="color:var(--gold);">' + (statuses.find(s => s.value === currentStatus)?.label || currentStatus) + '</strong></p>';
-    html += '<p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem;">Оберіть новий статус:</p>';
-    
-    for (var i = 0; i < statuses.length; i++) {
-        var s = statuses[i];
-        var isActive = s.value === currentStatus;
-        var btnClass = isActive ? 'btn-gold' : 'btn-outline';
-        html += '<button class="btn ' + btnClass + '" onclick="setAppointmentStatus(\'' + appointmentId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + (isActive ? 'opacity:0.7;' : '') + '">';
-        html += s.label + (isActive ? ' ✅' : '');
-        html += '</button>';
-    }
-    html += '</div>';
-    
-    await showAlert(html, 'info', '📋 Зміна статусу запису');
+function filterPatients() {
+    var searchInput = document.getElementById('patientSearch');
+    if (!searchInput) return;
+    var query = searchInput.value.toLowerCase().trim();
+    var items = document.querySelectorAll('.patient-item');
+    items.forEach(function(item) {
+        var name = item.getAttribute('data-name') || '';
+        var phone = item.getAttribute('data-phone') || '';
+        if (name.indexOf(query) !== -1 || phone.indexOf(query) !== -1) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
 }
 
-// ===== ВСТАНОВИТИ НОВИЙ СТАТУС =====
-async function setAppointmentStatus(appointmentId, newStatus) {
-    try {
-        // Закриваємо модалку (якщо відкрита)
-        closeModal('alertModal');
-        
-        var confirmed = await showConfirm('Змінити статус на "' + (newStatus === 'scheduled' ? '⏳ Заплановано' : newStatus === 'in_progress' ? '🔄 В процесі' : newStatus === 'completed' ? '✅ Виконано' : '❌ Скасовано') + '"?', 'Підтвердження');
-        if (!confirmed) return;
-        
-        await db.supabaseQuery('clinic_appointments?id=eq.' + appointmentId, {
-            method: 'PATCH',
-            body: JSON.stringify({ 
-                status: newStatus,
-                updated_at: new Date().toISOString()
-            })
-        });
-        
-        await showToast('Статус оновлено!', 'success');
-        loadClinic();
-    } catch (error) {
-        console.error('Error updating status:', error);
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-// ===== ДОДАТИ ПАЦІЄНТА =====
 function openClinicPatient() {
     document.getElementById('clinicPatientModal').classList.add('active');
     document.getElementById('clinicPatientId').value = '';
@@ -2128,7 +2078,6 @@ document.getElementById('clinicPatientForm')?.addEventListener('submit', async f
     }
 });
 
-// ===== СТВОРИТИ ЗАПИС (З ВИБОРОМ ПАЦІЄНТА) =====
 function openClinicAppointment() {
     document.getElementById('clinicAppointmentModal').classList.add('active');
     document.getElementById('clinicAppointmentId').value = '';
@@ -2193,7 +2142,7 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
             doctor_name: doctorName || 'Лікар',
             appointment_date: date,
             reason: reason || null,
-            status: 'scheduled'  // Початковий статус
+            status: 'scheduled'
         });
         await showToast('Запис створено! Статус: ⏳ Заплановано', 'success');
         closeModal('clinicAppointmentModal');
@@ -2204,6 +2153,74 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
+
+async function deleteClinicPatient(patientId) {
+    var confirmed = await showConfirm('Видалити пацієнта? Всі його записи також будуть видалені.', 'Підтвердження');
+    if (!confirmed) return;
+    try {
+        await db.supabaseQuery('clinic_patients?id=eq.' + patientId, { method: 'DELETE' });
+        await showToast('Пацієнта видалено', 'success');
+        loadClinic();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ===== ЗМІНА СТАТУСУ ЗАПИСУ =====
+async function changeAppointmentStatus(appointmentId, currentStatus) {
+    var statuses = [
+        { value: 'scheduled', label: '⏳ Заплановано' },
+        { value: 'in_progress', label: '🔄 В процесі' },
+        { value: 'completed', label: '✅ Виконано' },
+        { value: 'cancelled', label: '❌ Скасовано' }
+    ];
+    
+    var html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">';
+    html += '<p style="color:var(--muted);margin-bottom:0.5rem;">Поточний статус: <strong style="color:var(--gold);">' + (statuses.find(s => s.value === currentStatus)?.label || currentStatus) + '</strong></p>';
+    html += '<p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem;">Оберіть новий статус:</p>';
+    
+    for (var i = 0; i < statuses.length; i++) {
+        var s = statuses[i];
+        var isActive = s.value === currentStatus;
+        var btnClass = isActive ? 'btn-gold' : 'btn-outline';
+        html += '<button class="btn ' + btnClass + '" onclick="setAppointmentStatus(\'' + appointmentId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + (isActive ? 'opacity:0.7;' : '') + '">';
+        html += s.label + (isActive ? ' ✅' : '');
+        html += '</button>';
+    }
+    html += '</div>';
+    
+    await showAlert(html, 'info', '📋 Зміна статусу запису');
+}
+
+async function setAppointmentStatus(appointmentId, newStatus) {
+    try {
+        closeModal('alertModal');
+        
+        var labels = {
+            'scheduled': '⏳ Заплановано',
+            'in_progress': '🔄 В процесі',
+            'completed': '✅ Виконано',
+            'cancelled': '❌ Скасовано'
+        };
+        
+        var confirmed = await showConfirm('Змінити статус на "' + labels[newStatus] + '"?', 'Підтвердження');
+        if (!confirmed) return;
+        
+        await db.supabaseQuery('clinic_appointments?id=eq.' + appointmentId, {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+                status: newStatus,
+                updated_at: new Date().toISOString()
+            })
+        });
+        
+        await showToast('Статус оновлено!', 'success');
+        loadClinic();
+    } catch (error) {
+        console.error('Error updating status:', error);
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
 
 // ============================================
 // МОДУЛЬ: МАГАЗИН
@@ -2648,9 +2665,18 @@ async function loadSchool() {
         if (students && students.length > 0) {
             for (var i = 0; i < students.length; i++) {
                 var s = students[i];
+                var className = '';
+                if (s.class_id) {
+                    for (var c = 0; c < classes.length; c++) {
+                        if (classes[c].id === s.class_id) {
+                            className = classes[c].name;
+                            break;
+                        }
+                    }
+                }
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
                 html += '<div><strong>' + s.full_name + '</strong></div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (s.class_name ? 'Клас: ' + s.class_name : '') + (s.birth_date ? ' · ' + new Date(s.birth_date).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (className ? 'Клас: ' + className : 'Без класу') + (s.birth_date ? ' · ' + new Date(s.birth_date).toLocaleDateString('uk-UA') : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -2667,7 +2693,7 @@ async function loadSchool() {
                 var c = classes[i];
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
                 html += '<div><strong>' + c.name + '</strong></div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (c.room || '') + (c.teacher_name ? ' · ' + c.teacher_name : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (c.room ? 'Каб. ' + c.room : '') + (c.teacher_name ? ' · Кл. кер.: ' + c.teacher_name : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -2681,12 +2707,82 @@ async function loadSchool() {
     }
 }
 
+function openSchoolClass() {
+    document.getElementById('schoolClassModal').classList.add('active');
+    document.getElementById('schoolClassId').value = '';
+    document.getElementById('schoolClassName').value = '';
+    document.getElementById('schoolClassRoom').value = '';
+    document.getElementById('schoolClassTeacher').value = '';
+    loadSchoolTeachersSelect();
+}
+
+async function loadSchoolTeachersSelect() {
+    try {
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var select = document.getElementById('schoolClassTeacher');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">Без класного керівника</option>';
+        if (members && members.length > 0) {
+            for (var i = 0; i < members.length; i++) {
+                var userData = await db.supabaseQuery('users?id=eq.' + members[i].user_id);
+                if (userData && userData.length > 0) {
+                    var option = document.createElement('option');
+                    option.value = userData[0].id;
+                    option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
+                    select.appendChild(option);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Load teachers error:', error);
+    }
+}
+
+document.getElementById('schoolClassForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('schoolClassName').value.trim();
+    var room = document.getElementById('schoolClassRoom').value.trim();
+    var teacherId = document.getElementById('schoolClassTeacher').value;
+    var teacherName = '';
+
+    if (!name) {
+        await showAlert('Введіть назву класу', 'warning');
+        return;
+    }
+
+    if (teacherId) {
+        var userData = await db.supabaseQuery('users?id=eq.' + teacherId);
+        if (userData && userData.length > 0) {
+            teacherName = userData[0].full_name || userData[0].email || '';
+        }
+    }
+
+    try {
+        await db.createSchoolClass({
+            organization_id: currentOrgId,
+            name: name,
+            room: room || null,
+            teacher_id: teacherId || null,
+            teacher_name: teacherName || null
+        });
+        await showToast('Клас створено!', 'success');
+        closeModal('schoolClassModal');
+        document.getElementById('schoolClassForm').reset();
+        loadSchool();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
 function openSchoolStudent() {
     document.getElementById('schoolStudentModal').classList.add('active');
     document.getElementById('schoolStudentId').value = '';
     document.getElementById('schoolStudentName').value = '';
     document.getElementById('schoolStudentBirth').value = '';
     document.getElementById('schoolStudentPhone').value = '';
+    document.getElementById('schoolStudentEmail').value = '';
+    document.getElementById('schoolStudentAddress').value = '';
     loadSchoolClassesSelect();
 }
 
@@ -2700,7 +2796,7 @@ async function loadSchoolClassesSelect() {
             for (var i = 0; i < classes.length; i++) {
                 var option = document.createElement('option');
                 option.value = classes[i].id;
-                option.textContent = classes[i].name;
+                option.textContent = classes[i].name + (classes[i].teacher_name ? ' (' + classes[i].teacher_name + ')' : '');
                 select.appendChild(option);
             }
         }
@@ -2715,6 +2811,8 @@ document.getElementById('schoolStudentForm')?.addEventListener('submit', async f
     var classId = document.getElementById('schoolStudentClass').value;
     var birth = document.getElementById('schoolStudentBirth').value;
     var phone = document.getElementById('schoolStudentPhone').value.trim();
+    var email = document.getElementById('schoolStudentEmail').value.trim();
+    var address = document.getElementById('schoolStudentAddress').value.trim();
 
     if (!name) {
         await showAlert('Введіть ПІБ учня', 'warning');
@@ -2722,59 +2820,18 @@ document.getElementById('schoolStudentForm')?.addEventListener('submit', async f
     }
 
     try {
-        var className = '';
-        if (classId) {
-            var classes = await db.getSchoolClasses(currentOrgId);
-            for (var i = 0; i < classes.length; i++) {
-                if (classes[i].id === classId) {
-                    className = classes[i].name;
-                    break;
-                }
-            }
-        }
         await db.createSchoolStudent({
             organization_id: currentOrgId,
             full_name: name,
             class_id: classId || null,
-            class_name: className || null,
             birth_date: birth || null,
-            parent_phone: phone || null
+            parent_phone: phone || null,
+            parent_email: email || null,
+            address: address || null
         });
         await showToast('Учня додано!', 'success');
         closeModal('schoolStudentModal');
         document.getElementById('schoolStudentForm').reset();
-        loadSchool();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openSchoolClass() {
-    document.getElementById('schoolClassModal').classList.add('active');
-    document.getElementById('schoolClassId').value = '';
-    document.getElementById('schoolClassName').value = '';
-    document.getElementById('schoolClassRoom').value = '';
-}
-
-document.getElementById('schoolClassForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var name = document.getElementById('schoolClassName').value.trim();
-    var room = document.getElementById('schoolClassRoom').value.trim();
-
-    if (!name) {
-        await showAlert('Введіть назву класу', 'warning');
-        return;
-    }
-
-    try {
-        await db.createSchoolClass({
-            organization_id: currentOrgId,
-            name: name,
-            room: room || null
-        });
-        await showToast('Клас створено!', 'success');
-        closeModal('schoolClassModal');
-        document.getElementById('schoolClassForm').reset();
         loadSchool();
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
