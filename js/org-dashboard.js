@@ -105,6 +105,35 @@ async function loadOrganization() {
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
     document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
 
+    // ПЕРЕВІРКА ПОСАДИ ДИРЕКТОРА
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var user = auth.getCurrentUser();
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var userMember = null;
+        for (var i = 0; i < members.length; i++) {
+            if (members[i].user_id === user.id) {
+                userMember = members[i];
+                break;
+            }
+        }
+        
+        if (userMember && !userMember.rank_id && currentOrg.leader_id === user.id) {
+            var directorRank = null;
+            for (var j = 0; j < ranks.length; j++) {
+                if (ranks[j].is_default) {
+                    directorRank = ranks[j];
+                    break;
+                }
+            }
+            if (directorRank) {
+                await db.updateMemberRank(userMember.id, directorRank.id);
+            }
+        }
+    } catch (e) {
+        console.error('Помилка перевірки посади:', e);
+    }
+
     loadSection('overview');
 }
 
