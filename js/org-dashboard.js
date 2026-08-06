@@ -1518,6 +1518,65 @@ async function editTask(taskId) {
     }
 }
 
+// ===== ЗНЯТИ ПОСАДУ З КОРИСТУВАЧА =====
+async function removeRankFromMember(memberId) {
+    var confirmed = await showConfirm('Зняти посаду з цього користувача?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.updateMemberRank(memberId, null);
+        await showToast('Посаду знято!', 'success');
+        loadMembers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ===== ВИДАЛИТИ З ВІДДІЛУ =====
+async function removeFromDepartment(employeeId) {
+    var confirmed = await showConfirm('Видалити цього співробітника з відділу?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        await db.removeEmployeeFromDepartment(employeeId);
+        await showToast('Співробітника видалено з відділу!', 'success');
+        loadMembers();
+        loadDepartments();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ===== ВИГНАТИ З ОРГАНІЗАЦІЇ =====
+async function removeMember(memberId, userName) {
+    var confirmed = await showConfirm('Ви впевнені, що хочете вигнати користувача "' + userName + '" з організації?', '⚠️ Увага');
+    if (!confirmed) return;
+
+    try {
+        // Видаляємо з учасників
+        await db.removeMemberFromOrganization(memberId);
+        
+        // Також видаляємо з співробітників (якщо є)
+        var employees = await db.getOrganizationEmployees(currentOrgId);
+        for (var i = 0; i < employees.length; i++) {
+            if (employees[i].user_id) {
+                var userData = await db.supabaseQuery('users?id=eq.' + employees[i].user_id);
+                if (userData && userData.length > 0) {
+                    var emp = employees[i];
+                    await db.deleteEmployee(emp.id);
+                    break;
+                }
+            }
+        }
+        
+        await showToast('Користувача вигнано з організації!', 'success');
+        loadMembers();
+        loadOverview();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 async function loadTaskAssignees() {
     var members = await db.getOrganizationMembers(currentOrgId);
     var select = document.getElementById('taskAssign');
