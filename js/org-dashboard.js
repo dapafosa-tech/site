@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА ВЕРСІЯ)
+// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ВИПРАВЛЕНА ВЕРСІЯ)
 // ============================================
 
 var currentOrgId = null;
@@ -90,8 +90,6 @@ function setupNavigationByType(orgType) {
     if (!navMenu) return;
 
     var allLinks = navMenu.querySelectorAll('a');
-    
-    // Ховаємо всі модулі
     var moduleSections = ['clinic', 'shop', 'library', 'school', 'restaurant', 'hotel', 'gym', 'beauty', 'auto', 'realty', 'logistics', 'delivery', 'it'];
     
     allLinks.forEach(function(link) {
@@ -108,7 +106,6 @@ function setupNavigationByType(orgType) {
         }
     });
 
-    // Показуємо тільки потрібний модуль
     var allowedModules = navMap[orgType] || ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings'];
     
     allLinks.forEach(function(link) {
@@ -168,10 +165,8 @@ async function loadOrganization() {
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
     document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
 
-    // НАЛАШТУВАННЯ НАВІГАЦІЇ ЗА ТИПОМ
     setupNavigationByType(currentOrg.type);
 
-    // ПЕРЕВІРКА ПОСАДИ ДИРЕКТОРА
     try {
         var ranks = await db.getOrganizationRanks(currentOrgId);
         var user = auth.getCurrentUser();
@@ -196,9 +191,7 @@ async function loadOrganization() {
                 await db.updateMemberRank(userMember.id, directorRank.id);
             }
         }
-    } catch (e) {
-        // Продовжуємо без перевірки посади
-    }
+    } catch (e) {}
 
     loadSection('overview');
 }
@@ -1885,58 +1878,44 @@ async function loadClinic() {
         var patients = await db.getClinicPatients(currentOrgId);
         var appointments = await db.getClinicAppointments(currentOrgId);
 
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Пацієнти (${patients ? patients.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openClinicPatient()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="clinicPatientsList" style="max-height:300px;overflow-y:auto;">
-                        ${patients && patients.length > 0 ? patients.map(function(p) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">
-                                    <div>
-                                        <strong>${p.full_name}</strong>
-                                        <div style="font-size:0.75rem;color:var(--muted);">
-                                            ${p.phone || ''} ${p.birth_date ? '· ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : ''}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteClinicPatient('${p.id}')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає пацієнтів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Записи (${appointments ? appointments.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openClinicAppointment()">
-                            <i class="fas fa-plus"></i> Записати
-                        </button>
-                    </div>
-                    <div id="clinicAppointmentsList" style="max-height:300px;overflow-y:auto;">
-                        ${appointments && appointments.length > 0 ? appointments.map(function(a) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${a.patient_name || 'Пацієнт'}</strong> → ${a.doctor_name || 'Лікар'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : ''}
-                                        <span class="badge ${a.status === 'scheduled' ? 'badge-warning' : a.status === 'completed' ? 'badge-success' : 'badge-danger'}">${a.status || 'scheduled'}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає записів</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Пацієнти (' + (patients ? patients.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openClinicPatient()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="clinicPatientsList" style="max-height:300px;overflow-y:auto;">';
+        
+        if (patients && patients.length > 0) {
+            for (var i = 0; i < patients.length; i++) {
+                var p = patients[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div><strong>' + p.full_name + '</strong>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
+                html += '<div><button class="btn btn-sm btn-danger" onclick="deleteClinicPatient(\'' + p.id + '\')"><i class="fas fa-trash"></i></button></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає пацієнтів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openClinicAppointment()"><i class="fas fa-plus"></i> Записати</button></div>';
+        html += '<div id="clinicAppointmentsList" style="max-height:300px;overflow-y:auto;">';
+        
+        if (appointments && appointments.length > 0) {
+            for (var i = 0; i < appointments.length; i++) {
+                var a = appointments[i];
+                var statusClass = a.status === 'scheduled' ? 'badge-warning' : a.status === 'completed' ? 'badge-success' : 'badge-danger';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + (a.patient_name || 'Пацієнт') + '</strong> → ' + (a.doctor_name || 'Лікар') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (a.status || 'scheduled') + '</span></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає записів</div>';
+        }
+        html += '</div></div></div>';
+
         container.innerHTML = html;
     } catch (error) {
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
@@ -1992,7 +1971,6 @@ function openClinicAppointment() {
     document.getElementById('clinicAppointmentDoctor').value = '';
     document.getElementById('clinicAppointmentDate').value = '';
     document.getElementById('clinicAppointmentReason').value = '';
-    
     loadClinicPatientsSelect();
 }
 
@@ -2061,7 +2039,7 @@ async function deleteClinicPatient(patientId) {
 }
 
 // ============================================
-// МОДУЛЬ: МАГАЗИН
+// МОДУЛЬ: МАГАЗИН (СКОРОЧЕНА ВЕРСІЯ)
 // ============================================
 async function loadShop() {
     var container = document.getElementById('sectionContent');
@@ -2072,57 +2050,42 @@ async function loadShop() {
         var products = await db.getShopProducts(currentOrgId);
         var sales = await db.getShopSales(currentOrgId);
 
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Товари (${products ? products.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openShopProduct()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="shopProductsList" style="max-height:300px;overflow-y:auto;">
-                        ${products && products.length > 0 ? products.map(function(p) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">
-                                    <div>
-                                        <strong>${p.name}</strong>
-                                        <div style="font-size:0.75rem;color:var(--muted);">
-                                            ${p.price || 0} грн · ${p.quantity || 0} шт.
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteShopProduct('${p.id}')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає товарів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Продажі (${sales ? sales.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openShopSale()">
-                            <i class="fas fa-plus"></i> Продаж
-                        </button>
-                    </div>
-                    <div id="shopSalesList" style="max-height:300px;overflow-y:auto;">
-                        ${sales && sales.length > 0 ? sales.map(function(s) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${s.product_name || 'Товар'}</strong> × ${s.quantity || 1}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${s.total || 0} грн · ${s.sale_date ? new Date(s.sale_date).toLocaleDateString('uk-UA') : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає продажів</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Товари (' + (products ? products.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openShopProduct()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="shopProductsList" style="max-height:300px;overflow-y:auto;">';
+        
+        if (products && products.length > 0) {
+            for (var i = 0; i < products.length; i++) {
+                var p = products[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div><strong>' + p.name + '</strong><div style="font-size:0.75rem;color:var(--muted);">' + (p.price || 0) + ' грн · ' + (p.quantity || 0) + ' шт.</div></div>';
+                html += '<div><button class="btn btn-sm btn-danger" onclick="deleteShopProduct(\'' + p.id + '\')"><i class="fas fa-trash"></i></button></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає товарів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Продажі (' + (sales ? sales.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openShopSale()"><i class="fas fa-plus"></i> Продаж</button></div>';
+        html += '<div id="shopSalesList" style="max-height:300px;overflow-y:auto;">';
+        
+        if (sales && sales.length > 0) {
+            for (var i = 0; i < sales.length; i++) {
+                var s = sales[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + (s.product_name || 'Товар') + '</strong> × ' + (s.quantity || 1) + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (s.total || 0) + ' грн · ' + (s.sale_date ? new Date(s.sale_date).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає продажів</div>';
+        }
+        html += '</div></div></div>';
+
         container.innerHTML = html;
     } catch (error) {
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
@@ -2171,7 +2134,6 @@ function openShopSale() {
     document.getElementById('shopSaleProduct').value = '';
     document.getElementById('shopSaleQuantity').value = '1';
     document.getElementById('shopSaleCustomer').value = '';
-    
     loadShopProductsSelect();
 }
 
@@ -2209,7 +2171,13 @@ document.getElementById('shopSaleForm')?.addEventListener('submit', async functi
 
     try {
         var products = await db.getShopProducts(currentOrgId);
-        var product = products.find(function(p) { return p.id === productId; });
+        var product = null;
+        for (var i = 0; i < products.length; i++) {
+            if (products[i].id === productId) {
+                product = products[i];
+                break;
+            }
+        }
         var price = product ? product.price : 0;
         
         await db.createShopSale({
@@ -2254,7 +2222,7 @@ async function deleteShopProduct(productId) {
 }
 
 // ============================================
-// МОДУЛЬ: БІБЛІОТЕКА
+// МОДУЛЬ: БІБЛІОТЕКА (СКОРОЧЕНА ВЕРСІЯ)
 // ============================================
 async function loadLibrary() {
     var container = document.getElementById('sectionContent');
@@ -2265,51 +2233,43 @@ async function loadLibrary() {
         var books = await db.getLibraryBooks(currentOrgId);
         var loans = await db.getLibraryLoans(currentOrgId);
 
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Книги (${books ? books.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openLibraryBook()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="libraryBooksList" style="max-height:300px;overflow-y:auto;">
-                        ${books && books.length > 0 ? books.map(function(b) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${b.title}</strong> — ${b.author || 'Невідомо'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        В наявності: ${b.available || 0}/${b.quantity || 0}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає книг</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Видача (${loans ? loans.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openLibraryLoan()">
-                            <i class="fas fa-hand-holding"></i> Видати
-                        </button>
-                    </div>
-                    <div id="libraryLoansList" style="max-height:300px;overflow-y:auto;">
-                        ${loans && loans.length > 0 ? loans.map(function(l) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${l.book_title || 'Книга'}</strong> → ${l.reader_name || 'Читач'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${l.loan_date ? new Date(l.loan_date).toLocaleDateString('uk-UA') : ''}
-                                        <span class="badge ${l.status === 'active' ? 'badge-warning' : 'badge-success'}">${l.status || 'active'}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає видач</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Книги (' + (books ? books.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryBook()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="libraryBooksList" style="max-height:300px;overflow-y:auto;">';
+        
+        if (books && books.length > 0) {
+            for (var i = 0; i < books.length; i++) {
+                var b = books[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + b.title + '</strong> — ' + (b.author || 'Невідомо') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">В наявності: ' + (b.available || 0) + '/' + (b.quantity || 0) + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає книг</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">Видача (' + (loans ? loans.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryLoan()"><i class="fas fa-hand-holding"></i> Видати</button></div>';
+        html += '<div id="libraryLoansList" style="max-height:300px;overflow-y:auto;">';
+        
+        if (loans && loans.length > 0) {
+            for (var i = 0; i < loans.length; i++) {
+                var l = loans[i];
+                var statusClass = l.status === 'active' ? 'badge-warning' : 'badge-success';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + (l.book_title || 'Книга') + '</strong> → ' + (l.reader_name || 'Читач') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (l.loan_date ? new Date(l.loan_date).toLocaleDateString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (l.status || 'active') + '</span></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає видач</div>';
+        }
+        html += '</div></div></div>';
+
         container.innerHTML = html;
     } catch (error) {
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
@@ -2361,7 +2321,6 @@ function openLibraryLoan() {
     document.getElementById('libraryLoanId').value = '';
     document.getElementById('libraryLoanBook').value = '';
     document.getElementById('libraryLoanReader').value = '';
-    
     loadLibraryBooksSelect();
     loadLibraryReadersSelect();
 }
@@ -2430,7 +2389,13 @@ document.getElementById('libraryLoanForm')?.addEventListener('submit', async fun
         });
         
         var books = await db.getLibraryBooks(currentOrgId);
-        var book = books.find(function(b) { return b.id === bookId; });
+        var book = null;
+        for (var i = 0; i < books.length; i++) {
+            if (books[i].id === bookId) {
+                book = books[i];
+                break;
+            }
+        }
         if (book) {
             await db.supabaseQuery('library_books?id=eq.' + bookId, {
                 method: 'PATCH',
@@ -2448,1526 +2413,8 @@ document.getElementById('libraryLoanForm')?.addEventListener('submit', async fun
 });
 
 // ============================================
-// МОДУЛЬ: ШКОЛА
+// МОДУЛЬ: НАЛАШТУВАННЯ
 // ============================================
-async function loadSchool() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🎓 Школа';
-    document.getElementById('pageSubtitle').textContent = 'Управління учнями та класами';
-
-    try {
-        var students = await db.getSchoolStudents(currentOrgId);
-        var classes = await db.getSchoolClasses(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Учні (${students ? students.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openSchoolStudent()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="schoolStudentsList" style="max-height:300px;overflow-y:auto;">
-                        ${students && students.length > 0 ? students.map(function(s) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${s.full_name}</strong></div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${s.class_id ? 'Клас: ' + (s.class_name || '') : ''}
-                                        ${s.birth_date ? '· ' + new Date(s.birth_date).toLocaleDateString('uk-UA') : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає учнів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Класи (${classes ? classes.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openSchoolClass()">
-                            <i class="fas fa-plus"></i> Створити
-                        </button>
-                    </div>
-                    <div id="schoolClassesList" style="max-height:300px;overflow-y:auto;">
-                        ${classes && classes.length > 0 ? classes.map(function(c) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${c.name}</strong></div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${c.room || ''} ${c.teacher_name ? '· ' + c.teacher_name : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає класів</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openSchoolStudent() {
-    document.getElementById('schoolStudentModal').classList.add('active');
-    document.getElementById('schoolStudentId').value = '';
-    document.getElementById('schoolStudentName').value = '';
-    document.getElementById('schoolStudentBirth').value = '';
-    document.getElementById('schoolStudentPhone').value = '';
-    loadSchoolClassesSelect();
-}
-
-async function loadSchoolClassesSelect() {
-    try {
-        var classes = await db.getSchoolClasses(currentOrgId);
-        var select = document.getElementById('schoolStudentClass');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Без класу</option>';
-        if (classes && classes.length > 0) {
-            for (var i = 0; i < classes.length; i++) {
-                var option = document.createElement('option');
-                option.value = classes[i].id;
-                option.textContent = classes[i].name;
-                select.appendChild(option);
-            }
-        }
-    } catch (error) {
-        console.error('Load classes error:', error);
-    }
-}
-
-document.getElementById('schoolStudentForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('schoolStudentName').value.trim();
-    var classId = document.getElementById('schoolStudentClass').value;
-    var birth = document.getElementById('schoolStudentBirth').value;
-    var phone = document.getElementById('schoolStudentPhone').value.trim();
-
-    if (!name) {
-        await showAlert('Введіть ПІБ учня', 'warning');
-        return;
-    }
-
-    try {
-        await db.createSchoolStudent({
-            organization_id: currentOrgId,
-            full_name: name,
-            class_id: classId || null,
-            birth_date: birth || null,
-            parent_phone: phone || null
-        });
-        await showToast('Учня додано!', 'success');
-        closeModal('schoolStudentModal');
-        document.getElementById('schoolStudentForm').reset();
-        loadSchool();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openSchoolClass() {
-    document.getElementById('schoolClassModal').classList.add('active');
-    document.getElementById('schoolClassId').value = '';
-    document.getElementById('schoolClassName').value = '';
-    document.getElementById('schoolClassRoom').value = '';
-}
-
-document.getElementById('schoolClassForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('schoolClassName').value.trim();
-    var room = document.getElementById('schoolClassRoom').value.trim();
-
-    if (!name) {
-        await showAlert('Введіть назву класу', 'warning');
-        return;
-    }
-
-    try {
-        await db.createSchoolClass({
-            organization_id: currentOrgId,
-            name: name,
-            room: room || null
-        });
-        await showToast('Клас створено!', 'success');
-        closeModal('schoolClassModal');
-        document.getElementById('schoolClassForm').reset();
-        loadSchool();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: РЕСТОРАН
-// ============================================
-async function loadRestaurant() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🍽️ Ресторан';
-    document.getElementById('pageSubtitle').textContent = 'Управління меню та замовленнями';
-
-    try {
-        var menu = await db.getRestaurantMenu(currentOrgId);
-        var orders = await db.getRestaurantOrders(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Меню (${menu ? menu.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openRestaurantMenuItem()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="restaurantMenuList" style="max-height:300px;overflow-y:auto;">
-                        ${menu && menu.length > 0 ? menu.map(function(m) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${m.name}</strong> — ${m.price || 0} грн</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${m.category || ''} ${m.is_available ? '✅ Доступно' : '❌ Немає'}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає страв</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Замовлення (${orders ? orders.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openRestaurantOrder()">
-                            <i class="fas fa-plus"></i> Створити
-                        </button>
-                    </div>
-                    <div id="restaurantOrdersList" style="max-height:300px;overflow-y:auto;">
-                        ${orders && orders.length > 0 ? orders.map(function(o) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>Замовлення #${o.id ? o.id.slice(0,8) : ''}</strong> — ${o.total || 0} грн</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        Стіл ${o.table_number || '?'} · ${o.status || 'new'}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає замовлень</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openRestaurantMenuItem() {
-    document.getElementById('restaurantMenuModal').classList.add('active');
-    document.getElementById('restaurantMenuItemId').value = '';
-    document.getElementById('restaurantMenuItemName').value = '';
-    document.getElementById('restaurantMenuItemPrice').value = '';
-    document.getElementById('restaurantMenuItemCategory').value = '';
-}
-
-document.getElementById('restaurantMenuForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('restaurantMenuItemName').value.trim();
-    var price = parseFloat(document.getElementById('restaurantMenuItemPrice').value);
-    var category = document.getElementById('restaurantMenuItemCategory').value.trim();
-
-    if (!name) {
-        await showAlert('Введіть назву страви', 'warning');
-        return;
-    }
-
-    try {
-        await db.createRestaurantMenuItem({
-            organization_id: currentOrgId,
-            name: name,
-            price: price || 0,
-            category: category || null,
-            is_available: true
-        });
-        await showToast('Страву додано!', 'success');
-        closeModal('restaurantMenuModal');
-        document.getElementById('restaurantMenuForm').reset();
-        loadRestaurant();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openRestaurantOrder() {
-    document.getElementById('restaurantOrderModal').classList.add('active');
-    document.getElementById('restaurantOrderId').value = '';
-    document.getElementById('restaurantOrderTable').value = '';
-    document.getElementById('restaurantOrderItems').value = '';
-    document.getElementById('restaurantOrderTotal').value = '';
-}
-
-document.getElementById('restaurantOrderForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var tableNumber = parseInt(document.getElementById('restaurantOrderTable').value);
-    var itemsText = document.getElementById('restaurantOrderItems').value.trim();
-    var total = parseFloat(document.getElementById('restaurantOrderTotal').value);
-
-    try {
-        var items = itemsText ? itemsText.split('\n').filter(function(i) { return i.trim(); }) : [];
-        
-        await db.createRestaurantOrder({
-            organization_id: currentOrgId,
-            table_number: tableNumber || null,
-            items: items,
-            total: total || 0,
-            status: 'new'
-        });
-        await showToast('Замовлення створено!', 'success');
-        closeModal('restaurantOrderModal');
-        document.getElementById('restaurantOrderForm').reset();
-        loadRestaurant();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: ГОТЕЛЬ
-// ============================================
-async function loadHotel() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🏨 Готель';
-    document.getElementById('pageSubtitle').textContent = 'Управління номерами та бронюваннями';
-
-    try {
-        var rooms = await db.getHotelRooms(currentOrgId);
-        var bookings = await db.getHotelBookings(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Номери (${rooms ? rooms.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openHotelRoom()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="hotelRoomsList" style="max-height:300px;overflow-y:auto;">
-                        ${rooms && rooms.length > 0 ? rooms.map(function(r) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>№${r.number}</strong> — ${r.type || 'Стандарт'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${r.price || 0} грн · ${r.is_available ? '✅ Вільний' : '❌ Зайнятий'}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає номерів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Бронювання (${bookings ? bookings.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openHotelBooking()">
-                            <i class="fas fa-plus"></i> Забронювати
-                        </button>
-                    </div>
-                    <div id="hotelBookingsList" style="max-height:300px;overflow-y:auto;">
-                        ${bookings && bookings.length > 0 ? bookings.map(function(b) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${b.guest_name}</strong> → №${b.room_number || '?'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${b.check_in ? new Date(b.check_in).toLocaleDateString('uk-UA') : ''} - ${b.check_out ? new Date(b.check_out).toLocaleDateString('uk-UA') : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає бронювань</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openHotelRoom() {
-    document.getElementById('hotelRoomModal').classList.add('active');
-    document.getElementById('hotelRoomId').value = '';
-    document.getElementById('hotelRoomNumber').value = '';
-    document.getElementById('hotelRoomType').value = '';
-    document.getElementById('hotelRoomPrice').value = '';
-}
-
-document.getElementById('hotelRoomForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var number = document.getElementById('hotelRoomNumber').value.trim();
-    var type = document.getElementById('hotelRoomType').value.trim();
-    var price = parseFloat(document.getElementById('hotelRoomPrice').value);
-
-    if (!number) {
-        await showAlert('Введіть номер кімнати', 'warning');
-        return;
-    }
-
-    try {
-        await db.createHotelRoom({
-            organization_id: currentOrgId,
-            number: number,
-            type: type || 'Стандарт',
-            price: price || 0,
-            is_available: true
-        });
-        await showToast('Номер додано!', 'success');
-        closeModal('hotelRoomModal');
-        document.getElementById('hotelRoomForm').reset();
-        loadHotel();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openHotelBooking() {
-    document.getElementById('hotelBookingModal').classList.add('active');
-    document.getElementById('hotelBookingId').value = '';
-    document.getElementById('hotelBookingGuest').value = '';
-    document.getElementById('hotelBookingPhone').value = '';
-    document.getElementById('hotelBookingCheckIn').value = '';
-    document.getElementById('hotelBookingCheckOut').value = '';
-    loadHotelRoomsSelect();
-}
-
-async function loadHotelRoomsSelect() {
-    try {
-        var rooms = await db.getHotelRooms(currentOrgId);
-        var select = document.getElementById('hotelBookingRoom');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Оберіть номер...</option>';
-        if (rooms && rooms.length > 0) {
-            for (var i = 0; i < rooms.length; i++) {
-                if (rooms[i].is_available) {
-                    var option = document.createElement('option');
-                    option.value = rooms[i].id;
-                    option.textContent = '№' + rooms[i].number + ' (' + rooms[i].type + ')';
-                    select.appendChild(option);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Load rooms error:', error);
-    }
-}
-
-document.getElementById('hotelBookingForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var roomId = document.getElementById('hotelBookingRoom').value;
-    var guestName = document.getElementById('hotelBookingGuest').value.trim();
-    var guestPhone = document.getElementById('hotelBookingPhone').value.trim();
-    var checkIn = document.getElementById('hotelBookingCheckIn').value;
-    var checkOut = document.getElementById('hotelBookingCheckOut').value;
-
-    if (!roomId || !guestName || !checkIn || !checkOut) {
-        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
-        return;
-    }
-
-    try {
-        await db.createHotelBooking({
-            organization_id: currentOrgId,
-            room_id: roomId,
-            guest_name: guestName,
-            guest_phone: guestPhone || null,
-            check_in: checkIn,
-            check_out: checkOut,
-            status: 'confirmed'
-        });
-        
-        await db.supabaseQuery('hotel_rooms?id=eq.' + roomId, {
-            method: 'PATCH',
-            body: JSON.stringify({ is_available: false })
-        });
-        
-        await showToast('Бронювання створено!', 'success');
-        closeModal('hotelBookingModal');
-        document.getElementById('hotelBookingForm').reset();
-        loadHotel();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: СПОРТЗАЛ
-// ============================================
-async function loadGym() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '💪 Спортзал';
-    document.getElementById('pageSubtitle').textContent = 'Управління абонементами та тренуваннями';
-
-    try {
-        var memberships = await db.getGymMemberships(currentOrgId);
-        var trainings = await db.getGymTrainings(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Абонементи (${memberships ? memberships.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openGymMembership()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="gymMembershipsList" style="max-height:300px;overflow-y:auto;">
-                        ${memberships && memberships.length > 0 ? memberships.map(function(m) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${m.user_name || 'Користувач'}</strong> — ${m.type || 'Стандарт'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${m.start_date ? new Date(m.start_date).toLocaleDateString('uk-UA') : ''} - ${m.end_date ? new Date(m.end_date).toLocaleDateString('uk-UA') : ''}
-                                        <span class="badge ${m.status === 'active' ? 'badge-success' : 'badge-danger'}">${m.status || 'active'}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає абонементів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Тренування (${trainings ? trainings.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openGymTraining()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="gymTrainingsList" style="max-height:300px;overflow-y:auto;">
-                        ${trainings && trainings.length > 0 ? trainings.map(function(t) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${t.name}</strong> — ${t.trainer || 'Тренер'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${t.schedule || ''} · ${t.max_participants || 10} місць
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає тренувань</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openGymMembership() {
-    document.getElementById('gymMembershipModal').classList.add('active');
-    document.getElementById('gymMembershipId').value = '';
-    document.getElementById('gymMembershipType').value = '';
-    document.getElementById('gymMembershipStart').value = '';
-    document.getElementById('gymMembershipEnd').value = '';
-    loadGymUsersSelect();
-}
-
-async function loadGymUsersSelect() {
-    try {
-        var members = await db.getOrganizationMembers(currentOrgId);
-        var select = document.getElementById('gymMembershipUser');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Оберіть користувача...</option>';
-        if (members && members.length > 0) {
-            for (var i = 0; i < members.length; i++) {
-                var userData = await db.supabaseQuery('users?id=eq.' + members[i].user_id);
-                if (userData && userData.length > 0) {
-                    var option = document.createElement('option');
-                    option.value = members[i].user_id;
-                    option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
-                    select.appendChild(option);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Load users error:', error);
-    }
-}
-
-document.getElementById('gymMembershipForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var userId = document.getElementById('gymMembershipUser').value;
-    var type = document.getElementById('gymMembershipType').value.trim();
-    var startDate = document.getElementById('gymMembershipStart').value;
-    var endDate = document.getElementById('gymMembershipEnd').value;
-    var price = parseFloat(document.getElementById('gymMembershipPrice').value);
-
-    if (!userId || !startDate || !endDate) {
-        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
-        return;
-    }
-
-    try {
-        await db.createGymMembership({
-            organization_id: currentOrgId,
-            user_id: userId,
-            type: type || 'Стандарт',
-            start_date: startDate,
-            end_date: endDate,
-            price: price || 0,
-            status: 'active'
-        });
-        await showToast('Абонемент додано!', 'success');
-        closeModal('gymMembershipModal');
-        document.getElementById('gymMembershipForm').reset();
-        loadGym();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openGymTraining() {
-    document.getElementById('gymTrainingModal').classList.add('active');
-    document.getElementById('gymTrainingId').value = '';
-    document.getElementById('gymTrainingName').value = '';
-    document.getElementById('gymTrainingTrainer').value = '';
-    document.getElementById('gymTrainingSchedule').value = '';
-}
-
-document.getElementById('gymTrainingForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('gymTrainingName').value.trim();
-    var trainer = document.getElementById('gymTrainingTrainer').value.trim();
-    var schedule = document.getElementById('gymTrainingSchedule').value.trim();
-
-    if (!name) {
-        await showAlert('Введіть назву тренування', 'warning');
-        return;
-    }
-
-    try {
-        await db.createGymTraining({
-            organization_id: currentOrgId,
-            name: name,
-            trainer: trainer || null,
-            schedule: schedule || null
-        });
-        await showToast('Тренування додано!', 'success');
-        closeModal('gymTrainingModal');
-        document.getElementById('gymTrainingForm').reset();
-        loadGym();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: САЛОН КРАСИ
-// ============================================
-async function loadBeauty() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '💅 Салон краси';
-    document.getElementById('pageSubtitle').textContent = 'Управління послугами та записами';
-
-    try {
-        var services = await db.getBeautyServices(currentOrgId);
-        var appointments = await db.getBeautyAppointments(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Послуги (${services ? services.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openBeautyService()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="beautyServicesList" style="max-height:300px;overflow-y:auto;">
-                        ${services && services.length > 0 ? services.map(function(s) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${s.name}</strong> — ${s.price || 0} грн</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${s.category || ''} · ${s.duration || 0} хв.
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає послуг</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Записи (${appointments ? appointments.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openBeautyAppointment()">
-                            <i class="fas fa-plus"></i> Записати
-                        </button>
-                    </div>
-                    <div id="beautyAppointmentsList" style="max-height:300px;overflow-y:auto;">
-                        ${appointments && appointments.length > 0 ? appointments.map(function(a) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${a.client_name}</strong> → ${a.service_name || 'Послуга'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : ''}
-                                        <span class="badge ${a.status === 'scheduled' ? 'badge-warning' : 'badge-success'}">${a.status || 'scheduled'}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає записів</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openBeautyService() {
-    document.getElementById('beautyServiceModal').classList.add('active');
-    document.getElementById('beautyServiceId').value = '';
-    document.getElementById('beautyServiceName').value = '';
-    document.getElementById('beautyServicePrice').value = '';
-    document.getElementById('beautyServiceDuration').value = '';
-}
-
-document.getElementById('beautyServiceForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('beautyServiceName').value.trim();
-    var price = parseFloat(document.getElementById('beautyServicePrice').value);
-    var duration = parseInt(document.getElementById('beautyServiceDuration').value);
-
-    if (!name) {
-        await showAlert('Введіть назву послуги', 'warning');
-        return;
-    }
-
-    try {
-        await db.createBeautyService({
-            organization_id: currentOrgId,
-            name: name,
-            price: price || 0,
-            duration: duration || 30,
-            category: 'Інше'
-        });
-        await showToast('Послугу додано!', 'success');
-        closeModal('beautyServiceModal');
-        document.getElementById('beautyServiceForm').reset();
-        loadBeauty();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openBeautyAppointment() {
-    document.getElementById('beautyAppointmentModal').classList.add('active');
-    document.getElementById('beautyAppointmentId').value = '';
-    document.getElementById('beautyAppointmentClient').value = '';
-    document.getElementById('beautyAppointmentPhone').value = '';
-    document.getElementById('beautyAppointmentDate').value = '';
-    document.getElementById('beautyAppointmentMaster').value = '';
-    loadBeautyServicesSelect();
-}
-
-async function loadBeautyServicesSelect() {
-    try {
-        var services = await db.getBeautyServices(currentOrgId);
-        var select = document.getElementById('beautyAppointmentService');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Оберіть послугу...</option>';
-        if (services && services.length > 0) {
-            for (var i = 0; i < services.length; i++) {
-                var option = document.createElement('option');
-                option.value = services[i].id;
-                option.textContent = services[i].name + ' (' + services[i].price + ' грн)';
-                select.appendChild(option);
-            }
-        }
-    } catch (error) {
-        console.error('Load services error:', error);
-    }
-}
-
-document.getElementById('beautyAppointmentForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var serviceId = document.getElementById('beautyAppointmentService').value;
-    var clientName = document.getElementById('beautyAppointmentClient').value.trim();
-    var clientPhone = document.getElementById('beautyAppointmentPhone').value.trim();
-    var date = document.getElementById('beautyAppointmentDate').value;
-    var master = document.getElementById('beautyAppointmentMaster').value.trim();
-
-    if (!serviceId || !clientName || !date) {
-        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
-        return;
-    }
-
-    try {
-        await db.createBeautyAppointment({
-            organization_id: currentOrgId,
-            service_id: serviceId,
-            client_name: clientName,
-            client_phone: clientPhone || null,
-            appointment_date: date,
-            master: master || 'Майстер',
-            status: 'scheduled'
-        });
-        await showToast('Запис створено!', 'success');
-        closeModal('beautyAppointmentModal');
-        document.getElementById('beautyAppointmentForm').reset();
-        loadBeauty();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: АВТОСЕРВІС
-// ============================================
-async function loadAuto() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🔧 Автосервіс';
-    document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та запчастинами';
-
-    try {
-        var orders = await db.getAutoOrders(currentOrgId);
-        var parts = await db.getAutoParts(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Замовлення (${orders ? orders.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openAutoOrder()">
-                            <i class="fas fa-plus"></i> Створити
-                        </button>
-                    </div>
-                    <div id="autoOrdersList" style="max-height:300px;overflow-y:auto;">
-                        ${orders && orders.length > 0 ? orders.map(function(o) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${o.client_name}</strong> — ${o.car_model || 'Авто'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${o.car_number || ''} · <span class="badge ${o.status === 'new' ? 'badge-warning' : 'badge-success'}">${o.status || 'new'}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає замовлень</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Запчастини (${parts ? parts.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openAutoPart()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="autoPartsList" style="max-height:300px;overflow-y:auto;">
-                        ${parts && parts.length > 0 ? parts.map(function(p) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${p.name}</strong> — ${p.price || 0} грн</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${p.quantity || 0} шт. · ${p.supplier || ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає запчастин</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openAutoOrder() {
-    document.getElementById('autoOrderModal').classList.add('active');
-    document.getElementById('autoOrderId').value = '';
-    document.getElementById('autoOrderClient').value = '';
-    document.getElementById('autoOrderPhone').value = '';
-    document.getElementById('autoOrderCar').value = '';
-    document.getElementById('autoOrderNumber').value = '';
-    document.getElementById('autoOrderDesc').value = '';
-}
-
-document.getElementById('autoOrderForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var clientName = document.getElementById('autoOrderClient').value.trim();
-    var clientPhone = document.getElementById('autoOrderPhone').value.trim();
-    var carModel = document.getElementById('autoOrderCar').value.trim();
-    var carNumber = document.getElementById('autoOrderNumber').value.trim();
-    var description = document.getElementById('autoOrderDesc').value.trim();
-
-    if (!clientName) {
-        await showAlert('Введіть ім\'я клієнта', 'warning');
-        return;
-    }
-
-    try {
-        await db.createAutoOrder({
-            organization_id: currentOrgId,
-            client_name: clientName,
-            client_phone: clientPhone || null,
-            car_model: carModel || null,
-            car_number: carNumber || null,
-            description: description || null,
-            status: 'new'
-        });
-        await showToast('Замовлення створено!', 'success');
-        closeModal('autoOrderModal');
-        document.getElementById('autoOrderForm').reset();
-        loadAuto();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openAutoPart() {
-    document.getElementById('autoPartModal').classList.add('active');
-    document.getElementById('autoPartId').value = '';
-    document.getElementById('autoPartName').value = '';
-    document.getElementById('autoPartPrice').value = '';
-    document.getElementById('autoPartQuantity').value = '';
-    document.getElementById('autoPartSupplier').value = '';
-}
-
-document.getElementById('autoPartForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('autoPartName').value.trim();
-    var price = parseFloat(document.getElementById('autoPartPrice').value);
-    var quantity = parseInt(document.getElementById('autoPartQuantity').value) || 0;
-    var supplier = document.getElementById('autoPartSupplier').value.trim();
-
-    if (!name) {
-        await showAlert('Введіть назву запчастини', 'warning');
-        return;
-    }
-
-    try {
-        await db.createAutoPart({
-            organization_id: currentOrgId,
-            name: name,
-            price: price || 0,
-            quantity: quantity || 0,
-            supplier: supplier || null
-        });
-        await showToast('Запчастину додано!', 'success');
-        closeModal('autoPartModal');
-        document.getElementById('autoPartForm').reset();
-        loadAuto();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: НЕРУХОМІСТЬ
-// ============================================
-async function loadRealty() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🏠 Нерухомість';
-    document.getElementById('pageSubtitle').textContent = 'Управління об\'єктами та угодами';
-
-    try {
-        var properties = await db.getRealtyProperties(currentOrgId);
-        var deals = await db.getRealtyDeals(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Об\'єкти (${properties ? properties.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openRealtyProperty()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="realtyPropertiesList" style="max-height:300px;overflow-y:auto;">
-                        ${properties && properties.length > 0 ? properties.map(function(p) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${p.address}</strong></div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${p.type || ''} · ${p.price || 0} грн · ${p.area || 0} м²
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає об\'єктів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Угоди (${deals ? deals.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openRealtyDeal()">
-                            <i class="fas fa-plus"></i> Створити
-                        </button>
-                    </div>
-                    <div id="realtyDealsList" style="max-height:300px;overflow-y:auto;">
-                        ${deals && deals.length > 0 ? deals.map(function(d) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${d.client_name}</strong> → ${d.property_address || 'Об\'єкт'}</div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${d.deal_type || ''} · ${d.amount || 0} грн
-                                        <span class="badge ${d.status === 'pending' ? 'badge-warning' : 'badge-success'}">${d.status || 'pending'}</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає угод</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openRealtyProperty() {
-    document.getElementById('realtyPropertyModal').classList.add('active');
-    document.getElementById('realtyPropertyId').value = '';
-    document.getElementById('realtyPropertyAddress').value = '';
-    document.getElementById('realtyPropertyType').value = '';
-    document.getElementById('realtyPropertyPrice').value = '';
-    document.getElementById('realtyPropertyArea').value = '';
-}
-
-document.getElementById('realtyPropertyForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var address = document.getElementById('realtyPropertyAddress').value.trim();
-    var type = document.getElementById('realtyPropertyType').value.trim();
-    var price = parseFloat(document.getElementById('realtyPropertyPrice').value);
-    var area = parseFloat(document.getElementById('realtyPropertyArea').value);
-
-    if (!address) {
-        await showAlert('Введіть адресу', 'warning');
-        return;
-    }
-
-    try {
-        await db.createRealtyProperty({
-            organization_id: currentOrgId,
-            address: address,
-            type: type || 'Квартира',
-            price: price || 0,
-            area: area || 0,
-            status: 'active'
-        });
-        await showToast('Об\'єкт додано!', 'success');
-        closeModal('realtyPropertyModal');
-        document.getElementById('realtyPropertyForm').reset();
-        loadRealty();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openRealtyDeal() {
-    document.getElementById('realtyDealModal').classList.add('active');
-    document.getElementById('realtyDealId').value = '';
-    document.getElementById('realtyDealClient').value = '';
-    document.getElementById('realtyDealPhone').value = '';
-    document.getElementById('realtyDealType').value = '';
-    document.getElementById('realtyDealAmount').value = '';
-    loadRealtyPropertiesSelect();
-}
-
-async function loadRealtyPropertiesSelect() {
-    try {
-        var properties = await db.getRealtyProperties(currentOrgId);
-        var select = document.getElementById('realtyDealProperty');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Оберіть об\'єкт...</option>';
-        if (properties && properties.length > 0) {
-            for (var i = 0; i < properties.length; i++) {
-                if (properties[i].status === 'active') {
-                    var option = document.createElement('option');
-                    option.value = properties[i].id;
-                    option.textContent = properties[i].address + ' (' + properties[i].price + ' грн)';
-                    select.appendChild(option);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Load properties error:', error);
-    }
-}
-
-document.getElementById('realtyDealForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var propertyId = document.getElementById('realtyDealProperty').value;
-    var clientName = document.getElementById('realtyDealClient').value.trim();
-    var clientPhone = document.getElementById('realtyDealPhone').value.trim();
-    var dealType = document.getElementById('realtyDealType').value;
-    var amount = parseFloat(document.getElementById('realtyDealAmount').value);
-
-    if (!propertyId || !clientName || !dealType) {
-        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
-        return;
-    }
-
-    try {
-        await db.createRealtyDeal({
-            organization_id: currentOrgId,
-            property_id: propertyId,
-            client_name: clientName,
-            client_phone: clientPhone || null,
-            deal_type: dealType,
-            amount: amount || 0,
-            deal_date: new Date().toISOString().split('T')[0],
-            status: 'pending'
-        });
-        await showToast('Угоду створено!', 'success');
-        closeModal('realtyDealModal');
-        document.getElementById('realtyDealForm').reset();
-        loadRealty();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ============================================
-// МОДУЛЬ: ЛОГІСТИКА
-// ============================================
-async function loadLogistics() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '📦 Логістика';
-    document.getElementById('pageSubtitle').textContent = 'Управління вантажами та маршрутами';
-
-    try {
-        var orders = await db.getLogisticsOrders(currentOrgId);
-
-        var html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Вантажі (${orders ? orders.length : 0})</h3>
-                    <button class="btn btn-gold btn-sm" onclick="openLogisticsOrder()">
-                        <i class="fas fa-plus"></i> Створити
-                    </button>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>№</th>
-                                <th>Клієнт</th>
-                                <th>Вага</th>
-                                <th>Статус</th>
-                                <th>Дата доставки</th>
-                                <th>Дії</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${orders && orders.length > 0 ? orders.map(function(o) {
-                                return \`
-                                    <tr>
-                                        <td><strong>\${o.order_number || '—'}</strong></td>
-                                        <td>\${o.client_name || '—'}</td>
-                                        <td>\${o.weight || 0} кг</td>
-                                        <td><span class="badge \${o.status === 'new' ? 'badge-warning' : 'badge-success'}">\${o.status || 'new'}</span></td>
-                                        <td>\${o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('uk-UA') : '—'}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteLogisticsOrder('\${o.id}')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                \`;
-                            }).join('') : '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openLogisticsOrder() {
-    document.getElementById('logisticsOrderModal').classList.add('active');
-    document.getElementById('logisticsOrderId').value = '';
-    document.getElementById('logisticsOrderNumber').value = 'LOG-' + Date.now().toString().slice(-6);
-    document.getElementById('logisticsOrderClient').value = '';
-    document.getElementById('logisticsOrderPickup').value = '';
-    document.getElementById('logisticsOrderDelivery').value = '';
-    document.getElementById('logisticsOrderWeight').value = '';
-    document.getElementById('logisticsOrderDeliveryDate').value = '';
-}
-
-document.getElementById('logisticsOrderForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var orderNumber = document.getElementById('logisticsOrderNumber').value.trim();
-    var clientName = document.getElementById('logisticsOrderClient').value.trim();
-    var pickup = document.getElementById('logisticsOrderPickup').value.trim();
-    var delivery = document.getElementById('logisticsOrderDelivery').value.trim();
-    var weight = parseFloat(document.getElementById('logisticsOrderWeight').value);
-    var deliveryDate = document.getElementById('logisticsOrderDeliveryDate').value;
-
-    if (!orderNumber || !clientName) {
-        await showAlert('Заповніть обов\'язкові поля', 'warning');
-        return;
-    }
-
-    try {
-        await db.createLogisticsOrder({
-            organization_id: currentOrgId,
-            order_number: orderNumber,
-            client_name: clientName,
-            pickup_address: pickup || null,
-            delivery_address: delivery || null,
-            weight: weight || 0,
-            delivery_date: deliveryDate || null,
-            status: 'new'
-        });
-        await showToast('Замовлення створено!', 'success');
-        closeModal('logisticsOrderModal');
-        document.getElementById('logisticsOrderForm').reset();
-        loadLogistics();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-async function deleteLogisticsOrder(orderId) {
-    var confirmed = await showConfirm('Видалити замовлення?', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.supabaseQuery('logistics_orders?id=eq.' + orderId, { method: 'DELETE' });
-        await showToast('Замовлення видалено', 'success');
-        loadLogistics();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-// ============================================
-// МОДУЛЬ: ДОСТАВКА
-// ============================================
-async function loadDelivery() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '🚚 Доставка';
-    document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та кур\'єрами';
-
-    try {
-        var orders = await db.getDeliveryOrders(currentOrgId);
-
-        var html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Замовлення (${orders ? orders.length : 0})</h3>
-                    <button class="btn btn-gold btn-sm" onclick="openDeliveryOrder()">
-                        <i class="fas fa-plus"></i> Створити
-                    </button>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>№</th>
-                                <th>Клієнт</th>
-                                <th>Кур\'єр</th>
-                                <th>Статус</th>
-                                <th>Час доставки</th>
-                                <th>Дії</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${orders && orders.length > 0 ? orders.map(function(o) {
-                                return \`
-                                    <tr>
-                                        <td><strong>\${o.order_number || '—'}</strong></td>
-                                        <td>\${o.client_name || '—'}</td>
-                                        <td>\${o.courier_name || 'Не призначено'}</td>
-                                        <td><span class="badge \${o.status === 'pending' ? 'badge-warning' : o.status === 'delivered' ? 'badge-success' : 'badge-primary'}">\${o.status || 'pending'}</span></td>
-                                        <td>\${o.delivery_time ? new Date(o.delivery_time).toLocaleString('uk-UA') : '—'}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteDeliveryOrder('\${o.id}')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                \`;
-                            }).join('') : '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openDeliveryOrder() {
-    document.getElementById('deliveryOrderModal').classList.add('active');
-    document.getElementById('deliveryOrderId').value = '';
-    document.getElementById('deliveryOrderNumber').value = 'DEL-' + Date.now().toString().slice(-6);
-    document.getElementById('deliveryOrderClient').value = '';
-    document.getElementById('deliveryOrderPhone').value = '';
-    document.getElementById('deliveryOrderAddress').value = '';
-    document.getElementById('deliveryOrderCourier').value = '';
-    document.getElementById('deliveryOrderTime').value = '';
-}
-
-document.getElementById('deliveryOrderForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var orderNumber = document.getElementById('deliveryOrderNumber').value.trim();
-    var clientName = document.getElementById('deliveryOrderClient').value.trim();
-    var clientPhone = document.getElementById('deliveryOrderPhone').value.trim();
-    var clientAddress = document.getElementById('deliveryOrderAddress').value.trim();
-    var courierName = document.getElementById('deliveryOrderCourier').value.trim();
-    var deliveryTime = document.getElementById('deliveryOrderTime').value;
-
-    if (!orderNumber || !clientName) {
-        await showAlert('Заповніть обов\'язкові поля', 'warning');
-        return;
-    }
-
-    try {
-        await db.createDeliveryOrder({
-            organization_id: currentOrgId,
-            order_number: orderNumber,
-            client_name: clientName,
-            client_phone: clientPhone || null,
-            client_address: clientAddress || null,
-            courier_name: courierName || null,
-            delivery_time: deliveryTime || null,
-            status: 'pending'
-        });
-        await showToast('Замовлення створено!', 'success');
-        closeModal('deliveryOrderModal');
-        document.getElementById('deliveryOrderForm').reset();
-        loadDelivery();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-async function deleteDeliveryOrder(orderId) {
-    var confirmed = await showConfirm('Видалити замовлення?', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.supabaseQuery('delivery_orders?id=eq.' + orderId, { method: 'DELETE' });
-        await showToast('Замовлення видалено', 'success');
-        loadDelivery();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-// ============================================
-// МОДУЛЬ: IT / GAMEDEV
-// ============================================
-async function loadIT() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = '💻 IT / GameDev';
-    document.getElementById('pageSubtitle').textContent = 'Управління проектами та задачами';
-
-    try {
-        var projects = await db.getItProjects(currentOrgId);
-        var bugs = await db.getItBugs(currentOrgId);
-
-        var html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Проекти (${projects ? projects.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openITProject()">
-                            <i class="fas fa-plus"></i> Створити
-                        </button>
-                    </div>
-                    <div id="itProjectsList" style="max-height:300px;overflow-y:auto;">
-                        ${projects && projects.length > 0 ? projects.map(function(p) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${p.name}</strong></div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${p.status || 'active'} · ${p.deadline ? new Date(p.deadline).toLocaleDateString('uk-UA') : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає проектів</div>'}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Баги (${bugs ? bugs.length : 0})</h3>
-                        <button class="btn btn-gold btn-sm" onclick="openITBug()">
-                            <i class="fas fa-plus"></i> Додати
-                        </button>
-                    </div>
-                    <div id="itBugsList" style="max-height:300px;overflow-y:auto;">
-                        ${bugs && bugs.length > 0 ? bugs.map(function(b) {
-                            return `
-                                <div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">
-                                    <div><strong>${b.title}</strong></div>
-                                    <div style="font-size:0.75rem;color:var(--muted);">
-                                        ${b.priority || 'medium'} · ${b.status || 'open'}
-                                        ${b.assigned_to ? '→ ' + (b.assigned_name || '') : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div class="text-center text-muted" style="padding:1rem;">Немає багів</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openITProject() {
-    document.getElementById('itProjectModal').classList.add('active');
-    document.getElementById('itProjectId').value = '';
-    document.getElementById('itProjectName').value = '';
-    document.getElementById('itProjectDesc').value = '';
-    document.getElementById('itProjectDeadline').value = '';
-}
-
-document.getElementById('itProjectForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var name = document.getElementById('itProjectName').value.trim();
-    var description = document.getElementById('itProjectDesc').value.trim();
-    var deadline = document.getElementById('itProjectDeadline').value;
-
-    if (!name) {
-        await showAlert('Введіть назву проекту', 'warning');
-        return;
-    }
-
-    try {
-        await db.createItProject({
-            organization_id: currentOrgId,
-            name: name,
-            description: description || null,
-            deadline: deadline || null,
-            status: 'active'
-        });
-        await showToast('Проект створено!', 'success');
-        closeModal('itProjectModal');
-        document.getElementById('itProjectForm').reset();
-        loadIT();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-function openITBug() {
-    document.getElementById('itBugModal').classList.add('active');
-    document.getElementById('itBugId').value = '';
-    document.getElementById('itBugTitle').value = '';
-    document.getElementById('itBugDesc').value = '';
-    document.getElementById('itBugPriority').value = 'medium';
-    loadITProjectsSelect();
-    loadITUsersSelect();
-}
-
-async function loadITProjectsSelect() {
-    try {
-        var projects = await db.getItProjects(currentOrgId);
-        var select = document.getElementById('itBugProject');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Оберіть проект...</option>';
-        if (projects && projects.length > 0) {
-            for (var i = 0; i < projects.length; i++) {
-                var option = document.createElement('option');
-                option.value = projects[i].id;
-                option.textContent = projects[i].name;
-                select.appendChild(option);
-            }
-        }
-    } catch (error) {
-        console.error('Load projects error:', error);
-    }
-}
-
-async function loadITUsersSelect() {
-    try {
-        var members = await db.getOrganizationMembers(currentOrgId);
-        var select = document.getElementById('itBugAssign');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Не призначено</option>';
-        if (members && members.length > 0) {
-            for (var i = 0; i < members.length; i++) {
-                var userData = await db.supabaseQuery('users?id=eq.' + members[i].user_id);
-                if (userData && userData.length > 0) {
-                    var option = document.createElement('option');
-                    option.value = members[i].user_id;
-                    option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
-                    select.appendChild(option);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Load users error:', error);
-    }
-}
-
-document.getElementById('itBugForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    var projectId = document.getElementById('itBugProject').value;
-    var title = document.getElementById('itBugTitle').value.trim();
-    var description = document.getElementById('itBugDesc').value.trim();
-    var priority = document.getElementById('itBugPriority').value;
-    var assignedTo = document.getElementById('itBugAssign').value;
-
-    if (!projectId || !title) {
-        await showAlert('Виберіть проект і введіть назву бага', 'warning');
-        return;
-    }
-
-    try {
-        await db.createItBug({
-            organization_id: currentOrgId,
-            project_id: projectId,
-            title: title,
-            description: description || null,
-            priority: priority || 'medium',
-            assigned_to: assignedTo || null,
-            status: 'open'
-        });
-        await showToast('Баг додано!', 'success');
-        closeModal('itBugModal');
-        document.getElementById('itBugForm').reset();
-        loadIT();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-});
-
-// ========== НАЛАШТУВАННЯ ==========
 async function loadSettings() {
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Налаштування';
@@ -4089,6 +2536,7 @@ function selectColor(el) {
     if (colorEl) colorEl.value = el.style.backgroundColor;
 }
 
+// ===== ЗАКРИТТЯ МОДАЛОК ПО КЛІКУ ПОЗА НЕЮ =====
 var modals = document.querySelectorAll('.modal');
 for (var m = 0; m < modals.length; m++) {
     modals[m].addEventListener('click', function(e) {
@@ -4119,4 +2567,5 @@ async function deleteUserAccount() {
     }
 }
 
+// ===== ЗАПУСК =====
 init();
