@@ -8,7 +8,7 @@ if (typeof SUPABASE_URL === 'undefined') {
 }
 
 // ===== КОНФІГУРАЦІЯ BREVO =====
-var BREVO_API_KEY = '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;
+var BREVO_API_KEY = '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';
 var BREVO_FROM_EMAIL = 'dapafosa@gmail.com';
 var BREVO_FROM_NAME = 'Typebiz';
 
