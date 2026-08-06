@@ -2277,6 +2277,7 @@ async function deleteClinicPatient(patientId) {
 }
 
 // ===== ЗМІНА СТАТУСУ ЗАПИСУ =====
+// ===== ЗМІНА СТАТУСУ ЗАПИСУ (ВИПРАВЛЕНО - КНОПКИ ЗНИЗУ) =====
 async function changeAppointmentStatus(appointmentId, currentStatus) {
     var statuses = [
         { value: 'scheduled', label: '⏳ Заплановано' },
@@ -2285,15 +2286,28 @@ async function changeAppointmentStatus(appointmentId, currentStatus) {
         { value: 'cancelled', label: '❌ Скасовано' }
     ];
     
-    var html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">';
-    html += '<p style="color:var(--muted);margin-bottom:0.5rem;">Поточний статус: <strong style="color:var(--gold);">' + (statuses.find(s => s.value === currentStatus)?.label || currentStatus) + '</strong></p>';
-    html += '<p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem;">Оберіть новий статус:</p>';
+    // Знаходимо поточний статус
+    var currentLabel = 'Невідомо';
+    for (var i = 0; i < statuses.length; i++) {
+        if (statuses[i].value === currentStatus) {
+            currentLabel = statuses[i].label;
+            break;
+        }
+    }
+    
+    var html = '';
+    html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
+    html += '<p style="color:var(--text-secondary);margin-bottom:0.25rem;font-size:0.95rem;">Поточний статус: <strong style="color:var(--gold);">' + currentLabel + '</strong></p>';
+    html += '<p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:0.25rem;">Оберіть новий статус:</p>';
     
     for (var i = 0; i < statuses.length; i++) {
         var s = statuses[i];
         var isActive = s.value === currentStatus;
         var btnClass = isActive ? 'btn-gold' : 'btn-outline';
-        html += '<button class="btn ' + btnClass + '" onclick="setAppointmentStatus(\'' + appointmentId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + (isActive ? 'opacity:0.7;' : '') + '">';
+        var style = isActive ? 'opacity:0.7;cursor:default;' : '';
+        var disabled = isActive ? 'disabled' : '';
+        
+        html += '<button class="btn ' + btnClass + '" onclick="setAppointmentStatus(\'' + appointmentId + '\', \'' + s.value + '\')" style="width:100%;justify-content:center;' + style + '" ' + disabled + '>';
         html += s.label + (isActive ? ' ✅' : '');
         html += '</button>';
     }
@@ -2302,6 +2316,7 @@ async function changeAppointmentStatus(appointmentId, currentStatus) {
     await showAlert(html, 'info', '📋 Зміна статусу запису');
 }
 
+// ===== ВСТАНОВИТИ НОВИЙ СТАТУС =====
 async function setAppointmentStatus(appointmentId, newStatus) {
     try {
         closeModal('alertModal');
