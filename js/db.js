@@ -131,8 +131,34 @@ async function createOrganization(data) {
 
     if (result && result.length > 0) {
         var orgId = result[0].id;
-        await createDefaultRanks(orgId);
-        await addMemberToOrganization(orgId, user.id, null);
+        var rankResult = await supabaseQuery('org_ranks', {
+            method: 'POST',
+            body: JSON.stringify({
+                id: generateUUID(),
+                organization_id: orgId,
+                name: 'Директор',
+                color: '#ef4444',
+                is_default: true,
+                order: 0,
+                permissions: { 
+                    all: true,
+                    manage_members: true,
+                    manage_ranks: true,
+                    manage_departments: true,
+                    manage_settings: true,
+                    manage_requests: true,
+                    manage_vacations: true,
+                    manage_chat: true,
+                    delete_org: true
+                }
+            })
+        });
+        
+        if (rankResult && rankResult.length > 0) {
+            await addMemberToOrganization(orgId, user.id, rankResult[0].id);
+        } else {
+            await addMemberToOrganization(orgId, user.id, null);
+        }
     }
 
     return result;
@@ -146,7 +172,6 @@ async function getUserOrganizations() {
         var orgs = await supabaseQuery('organizations?created_by=eq.' + user.id);
         return orgs || [];
     } catch (error) {
-        console.error('Load orgs error:', error);
         return [];
     }
 }
@@ -165,7 +190,6 @@ async function getUserAllOrganizations() {
         var orgs = await supabaseQuery('organizations?id=in.(' + orgIds + ')');
         return orgs || [];
     } catch (error) {
-        console.error('Load all orgs error:', error);
         return [];
     }
 }
@@ -193,35 +217,14 @@ async function getOrganizationByJoinCode(code) {
     return result[0] || null;
 }
 
-// ===== РАНГИ (ТІЛЬКИ ДИРЕКТОР) =====
-async function createDefaultRanks(orgId) {
-    await supabaseQuery('org_ranks', {
-        method: 'POST',
-        body: JSON.stringify({
-            id: generateUUID(),
-            organization_id: orgId,
-            name: 'Директор',
-            color: '#ef4444',
-            permissions: { 
-                all: true,
-                manage_members: true,
-                manage_ranks: true,
-                manage_departments: true,
-                manage_settings: true,
-                manage_requests: true,
-                manage_vacations: true,
-                manage_chat: true,
-                delete_org: true
-            }
-        })
-    });
-}
-
+// ===== РАНГИ =====
 async function getOrganizationRanks(orgId) {
-    return supabaseQuery('org_ranks?organization_id=eq.' + orgId);
+    return supabaseQuery('org_ranks?organization_id=eq.' + orgId + '&order=order.asc');
 }
 
 async function createRank(orgId, data) {
+    var ranks = await getOrganizationRanks(orgId);
+    var order = ranks ? ranks.length : 0;
     return supabaseQuery('org_ranks', {
         method: 'POST',
         body: JSON.stringify({
@@ -230,7 +233,8 @@ async function createRank(orgId, data) {
             name: data.name,
             color: data.color,
             permissions: data.permissions || {},
-            order: data.order || 0
+            is_default: false,
+            order: data.order !== undefined ? data.order : order
         }),
         headers: {
             'Prefer': 'return=representation'
@@ -493,6 +497,142 @@ async function deleteVacation(vacationId) {
     });
 }
 
+// ===== ПОДІЇ (КАЛЕНДАР) =====
+async function createEvent(data) {
+    return supabaseQuery('org_events', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: data.organization_id,
+            title: data.title,
+            description: data.description || '',
+            start_date: data.start_date,
+            end_date: data.end_date,
+            location: data.location || '',
+            created_by: data.created_by
+        }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getEvents(organizationId) {
+    return supabaseQuery('org_events?organization_id=eq.' + organizationId + '&order=start_date.asc');
+}
+
+async function deleteEvent(id) {
+    return supabaseQuery('org_events?id=eq.' + id, {
+        method: 'DELETE'
+    });
+}
+
+// ===== ФАЙЛИ =====
+async function createFile(data) {
+    return supabaseQuery('org_files', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: data.organization_id,
+            name: data.name,
+            url: data.url,
+            size: data.size || 0,
+            mime_type: data.mime_type || '',
+            uploaded_by: data.uploaded_by
+        }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getFiles(organizationId) {
+    return supabaseQuery('org_files?organization_id=eq.' + organizationId + '&order=created_at.desc');
+}
+
+async function deleteFile(id) {
+    return supabaseQuery('org_files?id=eq.' + id, {
+        method: 'DELETE'
+    });
+}
+
+// ===== ЗАВДАННЯ =====
+async function createTask(data) {
+    return supabaseQuery('org_tasks', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: data.organization_id,
+            title: data.title,
+            description: data.description || '',
+            assigned_to: data.assigned_to || null,
+            created_by: data.created_by,
+            due_date: data.due_date || null,
+            status: data.status || 'new',
+            priority: data.priority || 'medium'
+        }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getTasks(organizationId) {
+    return supabaseQuery('org_tasks?organization_id=eq.' + organizationId + '&order=created_at.desc');
+}
+
+async function updateTask(id, data) {
+    return supabaseQuery('org_tasks?id=eq.' + id, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    });
+}
+
+async function deleteTask(id) {
+    return supabaseQuery('org_tasks?id=eq.' + id, {
+        method: 'DELETE'
+    });
+}
+
+// ===== ОПИТУВАННЯ =====
+async function createPoll(data) {
+    return supabaseQuery('org_polls', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateUUID(),
+            organization_id: data.organization_id,
+            title: data.title,
+            description: data.description || '',
+            options: data.options,
+            created_by: data.created_by,
+            is_active: true,
+            expires_at: data.expires_at || null
+        }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getPolls(organizationId) {
+    return supabaseQuery('org_polls?organization_id=eq.' + organizationId + '&order=created_at.desc');
+}
+
+async function votePoll(pollId, userId, optionIndex) {
+    return supabaseQuery('org_poll_votes', {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateUUID(),
+            poll_id: pollId,
+            user_id: userId,
+            option_index: optionIndex
+        }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+async function getPollResults(pollId) {
+    return supabaseQuery('org_poll_votes?poll_id=eq.' + pollId);
+}
+
+async function deletePoll(id) {
+    return supabaseQuery('org_polls?id=eq.' + id, {
+        method: 'DELETE'
+    });
+}
+
 // ===== СПОВІЩЕННЯ =====
 async function createNotification(data) {
     return supabaseQuery('notifications', {
@@ -524,13 +664,6 @@ async function markNotificationRead(notificationId) {
     });
 }
 
-async function markAllNotificationsRead(userId) {
-    return supabaseQuery('notifications?user_id=eq.' + userId, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_read: true })
-    });
-}
-
 // ===== КОРИСТУВАЧІ =====
 async function updateUser(id, data) {
     return supabaseQuery('users?id=eq.' + id, {
@@ -555,7 +688,6 @@ window.db = {
     updateOrganization: updateOrganization,
     deleteOrganization: deleteOrganization,
     getOrganizationByJoinCode: getOrganizationByJoinCode,
-    createDefaultRanks: createDefaultRanks,
     getOrganizationRanks: getOrganizationRanks,
     createRank: createRank,
     updateRank: updateRank,
@@ -586,12 +718,24 @@ window.db = {
     getUserVacations: getUserVacations,
     updateVacationStatus: updateVacationStatus,
     deleteVacation: deleteVacation,
+    createEvent: createEvent,
+    getEvents: getEvents,
+    deleteEvent: deleteEvent,
+    createFile: createFile,
+    getFiles: getFiles,
+    deleteFile: deleteFile,
+    createTask: createTask,
+    getTasks: getTasks,
+    updateTask: updateTask,
+    deleteTask: deleteTask,
+    createPoll: createPoll,
+    getPolls: getPolls,
+    votePoll: votePoll,
+    getPollResults: getPollResults,
+    deletePoll: deletePoll,
     createNotification: createNotification,
     getNotifications: getNotifications,
     markNotificationRead: markNotificationRead,
-    markAllNotificationsRead: markAllNotificationsRead,
     updateUser: updateUser,
     deleteUser: deleteUser
 };
-
-console.log('✅ DB module loaded');
