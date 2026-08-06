@@ -18,6 +18,7 @@
             --text-onink: #E7E4DA;
             --muted: #8B93A6;
             --radius: 10px;
+            --radius-sm: 6px;
         }
         *{margin:0;padding:0;box-sizing:border-box;}
         body{
@@ -142,6 +143,7 @@
         .btn-teal:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(70,201,184,0.28);}
         .btn-ghost{border-color:var(--ink-line);color:var(--text-onink);}
         .btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+        .btn-sm{padding:0.3rem 0.8rem;font-size:0.75rem;}
         .org-grid{
             display:grid;
             grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
@@ -279,6 +281,14 @@
         }
         .modal textarea.form-control{resize:vertical;min-height:80px;}
         .btn-block{width:100%;justify-content:center;}
+        .text-muted{color:var(--muted);}
+        .text-center{text-align:center;}
+        .mt-2{margin-top:0.5rem;}
+        .mb-2{margin-bottom:0.5rem;}
+        .flex{display:flex;}
+        .gap-1{gap:0.5rem;}
+        .flex-wrap{flex-wrap:wrap;}
+        .justify-center{justify-content:center;}
         @media(max-width:768px){
             .sidebar{display:none;}
             .main-content{margin-left:0;padding:1rem;}
@@ -306,7 +316,6 @@
             <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мої організації</a></li>
             <li><a href="#" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Приєднатися за кодом</a></li>
             <li id="adminLink" style="display:none;"><a href="/admin"><i class="fas fa-crown"></i> Адмін-панель</a></li>
-            <li><a href="/profile"><i class="fas fa-user"></i> Профіль</a></li>
             <li><a href="/settings"><i class="fas fa-cog"></i> Налаштування</a></li>
             <li class="logout-btn"><a onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
@@ -453,8 +462,8 @@
             <form id="joinOrgForm">
                 <div class="form-group">
                     <label class="form-label">Код організації</label>
-                    <input type="text" class="form-control" id="joinCode" placeholder="Наприклад: ABC123" required style="text-transform:uppercase;font-family:'IBM Plex Mono',monospace;font-size:1.2rem;letter-spacing:2px;">
-                    <small style="color:var(--muted);">Введіть 6-значний код, який видав лідер організації</small>
+                    <input type="text" class="form-control" id="joinCode" placeholder="Наприклад: abcd-efgh-ijkl-mnop" required style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;letter-spacing:2px;text-transform:lowercase;">
+                    <small class="text-muted">Введіть код, який видав лідер організації (в малих літерах)</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Повідомлення лідеру (необов'язково)</label>
@@ -468,16 +477,21 @@
     </div>
 
     <script src="/js/db.js"></script>
-    <script src="/js/storage.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
+        // ============================================
+        // TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ)
+        // ============================================
+
         function logoutUser() {
-            if (confirm('Ви впевнені, що хочете вийти?')) {
-                localStorage.removeItem('userData');
-                localStorage.removeItem('isGuest');
-                window.location.href = '/login';
-            }
+            showConfirm('Ви впевнені, що хочете вийти?', 'Вихід').then(function(confirmed) {
+                if (confirmed) {
+                    localStorage.removeItem('userData');
+                    localStorage.removeItem('isGuest');
+                    window.location.href = '/login';
+                }
+            });
         }
 
         function openCreateOrg() {
@@ -493,7 +507,7 @@
         }
 
         async function loadDashboard() {
-            const user = auth.getCurrentUser();
+            var user = auth.getCurrentUser();
             if (!user) {
                 window.location.href = '/login';
                 return;
@@ -502,9 +516,9 @@
             document.getElementById('userName').textContent = user.full_name || 'Користувач';
             document.getElementById('userEmail').textContent = user.email;
 
-            const avatarEl = document.getElementById('userAvatar');
+            var avatarEl = document.getElementById('userAvatar');
             if (user.avatar_url) {
-                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="Аватар">`;
+                avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
             } else {
                 avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
             }
@@ -518,9 +532,9 @@
 
         async function loadOrganizations() {
             try {
-                const orgs = await db.getUserAllOrganizations();
-                const grid = document.getElementById('orgGrid');
-                const emptyState = document.getElementById('emptyState');
+                var orgs = await db.getUserAllOrganizations();
+                var grid = document.getElementById('orgGrid');
+                var emptyState = document.getElementById('emptyState');
 
                 grid.innerHTML = '';
 
@@ -531,7 +545,7 @@
 
                 emptyState.style.display = 'none';
 
-                const iconMap = {
+                var iconMap = {
                     'shop': 'fa-store',
                     'library': 'fa-book',
                     'company': 'fa-building',
@@ -602,7 +616,7 @@
                     'other': 'fa-cubes'
                 };
 
-                const typeLabels = {
+                var typeLabels = {
                     'shop': 'Магазин',
                     'library': 'Бібліотека',
                     'company': 'Компанія',
@@ -673,108 +687,112 @@
                     'other': 'Інше'
                 };
 
-                orgs.forEach(org => {
-                    const iconClass = iconMap[org.type] || 'fa-cubes';
-                    const card = document.createElement('div');
+                orgs.forEach(function(org) {
+                    var iconClass = iconMap[org.type] || 'fa-cubes';
+                    var card = document.createElement('div');
                     card.className = 'org-card';
-                    card.innerHTML = `
-                        <div class="org-icon">
-                            <i class="fas ${iconClass}"></i>
-                        </div>
-                        <h3>${org.name}</h3>
-                        <p>${org.description || 'Немає опису'}</p>
-                        <span class="org-type">${typeLabels[org.type] || org.type}</span>
-                        <div class="org-join-code">
-                            <i class="fas fa-key"></i> Код: <span class="join-code">${org.join_code || '---'}</span>
-                        </div>
-                    `;
-                    card.addEventListener('click', () => {
-                        window.location.href = `/org?id=${org.id}`;
+                    card.innerHTML = 
+                        '<div class="org-icon">' +
+                            '<i class="fas ' + iconClass + '"></i>' +
+                        '</div>' +
+                        '<h3>' + org.name + '</h3>' +
+                        '<p>' + (org.description || 'Немає опису') + '</p>' +
+                        '<span class="org-type">' + (typeLabels[org.type] || org.type) + '</span>' +
+                        '<div class="org-join-code">' +
+                            '<i class="fas fa-key"></i> Код: <span class="join-code">' + (org.join_code || '---') + '</span>' +
+                        '</div>';
+                    card.addEventListener('click', function() {
+                        window.location.href = '/org?id=' + org.id;
                     });
                     grid.appendChild(card);
                 });
 
             } catch (error) {
                 console.error('Load organizations error:', error);
-                alert('Помилка завантаження організацій: ' + error.message);
+                showAlert('Помилка завантаження організацій: ' + error.message, 'error');
             }
         }
 
-        document.getElementById('createOrgForm').addEventListener('submit', async (e) => {
+        document.getElementById('createOrgForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const name = document.getElementById('orgName').value.trim();
-            const type = document.getElementById('orgType').value;
-            const description = document.getElementById('orgDesc').value.trim();
+            var name = document.getElementById('orgName').value.trim();
+            var type = document.getElementById('orgType').value;
+            var description = document.getElementById('orgDesc').value.trim();
 
             if (!name) {
-                alert('Введіть назву організації');
+                showAlert('Введіть назву організації', 'warning');
                 return;
             }
 
             if (!type) {
-                alert('Оберіть тип організації');
+                showAlert('Оберіть тип організації', 'warning');
                 return;
             }
 
-            const submitBtn = e.target.querySelector('button[type="submit"]');
+            var submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
             try {
-                await db.createOrganization({
-                    name,
-                    type,
+                var result = await db.createOrganization({
+                    name: name,
+                    type: type,
                     description: description || '',
                     is_active: true,
                     settings: {}
                 });
 
-                alert('Організацію створено! 🎉');
+                showToast('Організацію створено! 🎉', 'success');
                 closeModal('createOrgModal');
                 document.getElementById('createOrgForm').reset();
                 await loadOrganizations();
 
             } catch (error) {
                 console.error('Create organization error:', error);
-                alert('Помилка: ' + error.message);
+                showAlert('Помилка: ' + error.message, 'error');
             }
 
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Створити організацію';
         });
 
-        document.getElementById('joinOrgForm').addEventListener('submit', async (e) => {
+        document.getElementById('joinOrgForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const code = document.getElementById('joinCode').value.trim().toUpperCase();
-            const message = document.getElementById('joinMessage').value.trim();
-            const user = auth.getCurrentUser();
+            // ВАЖЛИВО: приводимо до нижнього регістру!
+            var code = document.getElementById('joinCode').value.trim().toLowerCase();
+            var message = document.getElementById('joinMessage').value.trim();
+            var user = auth.getCurrentUser();
+
+            console.log('🔍 Код для пошуку:', code);
 
             if (!code) {
-                alert('Введіть код організації');
+                showAlert('Введіть код організації', 'warning');
                 return;
             }
 
-            const submitBtn = e.target.querySelector('button[type="submit"]');
+            var submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
 
             try {
-                const org = await db.getOrganizationByJoinCode(code);
+                var org = await db.getOrganizationByJoinCode(code);
                 
+                console.log('📦 Результат пошуку:', org);
+
                 if (!org) {
-                    alert('Організацію з таким кодом не знайдено');
+                    showAlert('Організацію з таким кодом не знайдено. Перевірте код.', 'warning');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
                     return;
                 }
 
-                const members = await db.getOrganizationMembers(org.id);
-                const alreadyMember = members.some(m => m.user_id === user.id);
+                var members = await db.getOrganizationMembers(org.id);
+                var alreadyMember = members.some(function(m) { return m.user_id === user.id; });
                 
                 if (alreadyMember) {
-                    alert('Ви вже перебуваєте в цій організації');
+                    showAlert('Ви вже перебуваєте в цій організації', 'warning');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
                     return;
@@ -782,20 +800,20 @@
 
                 await db.createJoinRequest(org.id, user.id, message);
 
-                alert('Заявку відправлено! Лідер організації розгляне її.');
+                showToast('Заявку відправлено! Лідер організації розгляне її.', 'success');
                 closeModal('joinOrgModal');
                 document.getElementById('joinOrgForm').reset();
 
             } catch (error) {
                 console.error('Join organization error:', error);
-                alert('Помилка: ' + error.message);
+                showAlert('Помилка: ' + error.message, 'error');
             }
 
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
         });
 
-        document.querySelectorAll('.modal').forEach(modal => {
+        document.querySelectorAll('.modal').forEach(function(modal) {
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     this.classList.remove('active');
@@ -804,7 +822,7 @@
         });
 
         (async function init() {
-            const isAuth = await auth.requireAuth();
+            var isAuth = await auth.requireAuth();
             if (!isAuth) return;
 
             await loadDashboard();
