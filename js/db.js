@@ -102,12 +102,6 @@ async function createOrganization(data) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
-    var orgs = await getUserOrganizations();
-    var leaderOrgs = orgs.filter(function(o) { return o.leader_id === user.id; });
-    if (leaderOrgs.length >= 100) {
-        throw new Error('Ви можете бути лідером максимум у 2 організаціях');
-    }
-    
     var joinCode = generateJoinCode();
     
     var orgData = {
