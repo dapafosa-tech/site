@@ -67,10 +67,6 @@ var taskPriorityLabels = {
     'urgent': '🔥 Терміновий'
 };
 
-function debugLog(message, data) {
-    if (data === undefined) data = null;
-}
-
 async function init() {
     var isAuth = await auth.requireAuth();
     if (!isAuth) return;
