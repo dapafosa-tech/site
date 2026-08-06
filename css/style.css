@@ -1,32 +1,41 @@
 /* ============================================
-   ORGSPACE - ГЛОБАЛЬНЫЕ СТИЛИ
+   TYPEBIZ - ГЛОБАЛЬНІ СТИЛІ
+   Система: цифрова картотека (ink / paper / gold / teal)
    ============================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 :root {
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
-    --primary-light: #818cf8;
-    --secondary: #7c3aed;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-800: #1f2937;
-    --gray-900: #111827;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --radius: 12px;
-    --radius-sm: 8px;
+    --primary: #1CA893;
+    --primary-dark: #167A6B;
+    --primary-light: #46C9B8;
+    --secondary: #C98A2A;
+    --gold: #F2A93B;
+    --gold-dim: #C98A2A;
+    --teal: #46C9B8;
+    --ink: #14161c;
+    --success: #1CA893;
+    --warning: #F2A93B;
+    --danger: #E2503E;
+    --gray-50: #F7F5EF;
+    --gray-100: #F1EEE4;
+    --gray-200: #E4E0D3;
+    --gray-300: #D2CDBC;
+    --gray-400: #A9A38D;
+    --gray-500: #8B8570;
+    --gray-600: #6B6656;
+    --gray-700: #4A463C;
+    --gray-800: #2B2820;
+    --gray-900: #14161c;
+    --shadow-sm: 0 1px 2px 0 rgb(20 22 28 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(20 22 28 / 0.08), 0 1px 2px -1px rgb(20 22 28 / 0.08);
+    --shadow-md: 0 4px 6px -1px rgb(20 22 28 / 0.08), 0 2px 4px -2px rgb(20 22 28 / 0.08);
+    --shadow-lg: 0 10px 15px -3px rgb(20 22 28 / 0.10), 0 4px 6px -4px rgb(20 22 28 / 0.10);
+    --shadow-xl: 0 20px 25px -5px rgb(20 22 28 / 0.12), 0 8px 10px -6px rgb(20 22 28 / 0.12);
+    --radius: 10px;
+    --radius-sm: 7px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
 }
 
 * {
@@ -36,10 +45,14 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--gray-50);
     color: var(--gray-900);
     line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
 }
 
 .container {
@@ -105,7 +118,7 @@ body {
 .btn-primary:hover {
     background: var(--primary-dark);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 4px 12px rgba(28, 168, 147, 0.3);
 }
 
 .btn-secondary {
@@ -195,7 +208,7 @@ body {
 .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(28, 168, 147, 0.12);
 }
 
 .form-control:disabled {
@@ -280,7 +293,7 @@ textarea.form-control {
 }
 
 .badge-primary {
-    background: rgba(79, 70, 229, 0.1);
+    background: rgba(28, 168, 147, 0.12);
     color: var(--primary);
 }
 
