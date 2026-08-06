@@ -2316,6 +2316,162 @@ async function changeAppointmentStatus(appointmentId, currentStatus) {
     await showAlert(html, 'info', '📋 Зміна статусу запису');
 }
 
+// ===== ВКЛАДКИ В МОДАЛЦІ ПОСАД =====
+function setupRankTabs() {
+    var tabBtns = document.querySelectorAll('.rank-tab-btn');
+    var tabContents = {
+        'view': document.getElementById('rankTabView'),
+        'actions': document.getElementById('rankTabActions')
+    };
+
+    tabBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var tab = this.getAttribute('data-tab');
+            
+            // Видаляємо активні класи
+            tabBtns.forEach(function(b) {
+                b.classList.remove('active');
+                b.style.color = 'var(--text-secondary)';
+                b.style.borderBottom = '2px solid transparent';
+            });
+            
+            // Додаємо активний клас
+            this.classList.add('active');
+            this.style.color = 'var(--gold)';
+            this.style.borderBottom = '2px solid var(--gold)';
+            
+            // Показуємо/ховаємо контент
+            for (var key in tabContents) {
+                if (key === tab) {
+                    tabContents[key].style.display = 'block';
+                } else {
+                    tabContents[key].style.display = 'none';
+                }
+            }
+        });
+    });
+}
+
+function toggleAllViewPermissions() {
+    var checked = document.getElementById('viewAllPermissions').checked;
+    var checkboxes = document.querySelectorAll('#rankTabView .rank-permission');
+    checkboxes.forEach(function(cb) {
+        cb.checked = checked;
+    });
+}
+
+function toggleAllActionsPermissions() {
+    var checked = document.getElementById('actionsAllPermissions').checked;
+    var checkboxes = document.querySelectorAll('#rankTabActions .rank-permission');
+    checkboxes.forEach(function(cb) {
+        cb.checked = checked;
+    });
+}
+
+// Викликати при завантаженні модалки
+document.addEventListener('DOMContentLoaded', function() {
+    setupRankTabs();
+});
+
+// Також викликати при відкритті модалки
+function openCreateRank() {
+    document.getElementById('rankModalTitle').textContent = 'Створити посаду';
+    document.getElementById('rankSubmitText').textContent = 'Створити';
+    document.getElementById('rankEditId').value = '';
+    document.getElementById('rankName').value = '';
+    document.getElementById('rankColor').value = '#F2A93B';
+    
+    // Очищаємо всі чекбокси
+    var checkboxes = document.querySelectorAll('.rank-permission');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+    }
+    
+    // Скидаємо вкладки
+    var tabBtns = document.querySelectorAll('.rank-tab-btn');
+    tabBtns.forEach(function(btn) {
+        btn.classList.remove('active');
+        btn.style.color = 'var(--text-secondary)';
+        btn.style.borderBottom = '2px solid transparent';
+    });
+    var firstTab = document.querySelector('.rank-tab-btn[data-tab="view"]');
+    if (firstTab) {
+        firstTab.classList.add('active');
+        firstTab.style.color = 'var(--gold)';
+        firstTab.style.borderBottom = '2px solid var(--gold)';
+    }
+    document.getElementById('rankTabView').style.display = 'block';
+    document.getElementById('rankTabActions').style.display = 'none';
+    
+    // Скидаємо "вибрати всі"
+    document.getElementById('viewAllPermissions').checked = false;
+    document.getElementById('actionsAllPermissions').checked = false;
+    
+    // Колір
+    var options = document.querySelectorAll('.color-option');
+    for (var j = 0; j < options.length; j++) {
+        options[j].classList.remove('selected');
+    }
+    var firstOption = document.querySelector('.color-option');
+    if (firstOption) firstOption.classList.add('selected');
+    
+    document.getElementById('rankModal').classList.add('active');
+    setupRankTabs();
+}
+
+// Оновлена функція відкриття редагування посади
+async function openEditRank(rankId) {
+    try {
+        var ranks = await db.getOrganizationRanks(currentOrgId);
+        var rank = null;
+        for (var i = 0; i < ranks.length; i++) {
+            if (ranks[i].id === rankId) {
+                rank = ranks[i];
+                break;
+            }
+        }
+        if (!rank) return;
+
+        document.getElementById('rankModalTitle').textContent = 'Редагувати посаду';
+        document.getElementById('rankSubmitText').textContent = 'Зберегти';
+        document.getElementById('rankEditId').value = rank.id;
+        document.getElementById('rankName').value = rank.name;
+        document.getElementById('rankColor').value = rank.color;
+        
+        var permissions = rank.permissions || {};
+        var checkboxes = document.querySelectorAll('.rank-permission');
+        for (var j = 0; j < checkboxes.length; j++) {
+            checkboxes[j].checked = permissions[checkboxes[j].value] === true;
+        }
+        
+        var options = document.querySelectorAll('.color-option');
+        for (var k = 0; k < options.length; k++) {
+            options[k].classList.toggle('selected', options[k].style.backgroundColor === rank.color);
+        }
+        
+        // Скидаємо вкладки
+        var tabBtns = document.querySelectorAll('.rank-tab-btn');
+        tabBtns.forEach(function(btn) {
+            btn.classList.remove('active');
+            btn.style.color = 'var(--text-secondary)';
+            btn.style.borderBottom = '2px solid transparent';
+        });
+        var firstTab = document.querySelector('.rank-tab-btn[data-tab="view"]');
+        if (firstTab) {
+            firstTab.classList.add('active');
+            firstTab.style.color = 'var(--gold)';
+            firstTab.style.borderBottom = '2px solid var(--gold)';
+        }
+        document.getElementById('rankTabView').style.display = 'block';
+        document.getElementById('rankTabActions').style.display = 'none';
+        
+        document.getElementById('rankModal').classList.add('active');
+        setupRankTabs();
+    } catch (error) {
+        await showAlert('Помилка завантаження посади', 'error');
+    }
+}
+
 // ===== ВСТАНОВИТИ НОВИЙ СТАТУС =====
 async function setAppointmentStatus(appointmentId, newStatus) {
     try {
