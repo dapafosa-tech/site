@@ -1,156 +1,168 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Условия использования — Typebiz</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Умови використання — Typebiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/style.css">
     <style>
-        body {
-            background: var(--gray-50);
+        :root {
+            --ink: #0F1115;
+            --ink-soft: #171A21;
+            --ink-line: #2A2E38;
+            --gold: #F2A93B;
+            --teal: #46C9B8;
+            --text-onink: #E7E4DA;
+            --muted: #8B93A6;
+            --radius: 10px;
         }
-
-        .terms-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:'IBM Plex Sans',sans-serif;
+            background:var(--ink);
+            color:var(--text-onink);
+            min-height:100vh;
+            padding:2rem;
         }
-
-        .terms-container .logo {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 2rem;
-            color: var(--gray-800);
+        .terms-container{
+            max-width:800px;
+            margin:0 auto;
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius);
+            padding:3rem;
+            box-shadow:0 30px 60px rgba(0,0,0,0.5);
         }
-
-        .terms-container .logo i {
-            color: var(--primary);
-            margin-right: 0.5rem;
+        .logo{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            font-weight:700;
+            font-size:1.5rem;
+            margin-bottom:2rem;
         }
-
-        .terms-container .logo span {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .logo .tab{
+            width:30px;height:30px;
+            border-radius:4px;
+            background:var(--gold);
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:'IBM Plex Mono';
+            font-size:0.75rem;
+            font-weight:600;
+            transform:rotate(-6deg);
         }
-
-        .terms-container h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+        h1{
+            font-family:'Space Grotesk',sans-serif;
+            font-size:2rem;
+            margin-bottom:0.5rem;
         }
-
-        .terms-container .date {
-            color: var(--gray-500);
-            margin-bottom: 2rem;
+        .date{
+            color:var(--muted);
+            margin-bottom:2rem;
+            font-size:0.9rem;
         }
-
-        .terms-container h2 {
-            font-size: 1.25rem;
-            margin-top: 2rem;
-            margin-bottom: 0.5rem;
+        h2{
+            font-family:'Space Grotesk',sans-serif;
+            font-size:1.25rem;
+            margin-top:2rem;
+            margin-bottom:0.5rem;
+            color:var(--gold);
         }
-
-        .terms-container p {
-            color: var(--gray-600);
-            line-height: 1.8;
-            margin-bottom: 1rem;
+        p{
+            color:var(--muted);
+            line-height:1.8;
+            margin-bottom:1rem;
         }
-
-        .terms-container ul {
-            color: var(--gray-600);
-            line-height: 1.8;
-            padding-left: 1.5rem;
-            margin-bottom: 1rem;
+        ul{
+            color:var(--muted);
+            line-height:1.8;
+            padding-left:1.5rem;
+            margin-bottom:1rem;
         }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--primary);
-            text-decoration: none;
-            margin-top: 2rem;
+        ul li{margin-bottom:0.5rem;}
+        .back-link{
+            display:inline-flex;
+            align-items:center;
+            gap:0.5rem;
+            color:var(--teal);
+            text-decoration:none;
+            margin-top:2rem;
+            font-weight:600;
         }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            .terms-container {
-                margin: 1rem;
-                padding: 1.5rem;
-            }
+        .back-link:hover{color:var(--gold);}
+        @media(max-width:768px){
+            .terms-container{padding:1.5rem;}
+            body{padding:1rem;}
         }
     </style>
 </head>
 <body>
     <div class="terms-container">
         <div class="logo">
-            <i class="fas fa-cubes"></i>
+            <span class="tab">Tb</span>
             <span>Typebiz</span>
         </div>
 
-        <h1>Условия использования</h1>
-        <p class="date">Последнее обновление: 4 августа 2026 г.</p>
+        <h1>Умови використання</h1>
+        <p class="date">Останнє оновлення: 6 серпня 2026 р.</p>
 
-        <h2>1. Общие положения</h2>
+        <h2>1. Загальні положення</h2>
         <p>
-            Добро пожаловать в Typebiz! Используя нашу платформу, вы соглашаетесь с данными условиями. 
-            Typebiz — это универсальная цифровая система для создания и управления организациями.
+            Ласкаво просимо до Typebiz! Використовуючи нашу платформу, ви погоджуєтесь з даними умовами. 
+            Typebiz — це універсальна цифрова система для створення та управління організаціями.
         </p>
 
-        <h2>2. Регистрация и аккаунт</h2>
+        <h2>2. Реєстрація та акаунт</h2>
         <p>
-            Для использования платформы необходимо создать аккаунт. Вы несете ответственность за сохранность 
-            своих учетных данных и за все действия, совершенные под вашим аккаунтом.
+            Для використання платформи необхідно створити акаунт. Ви несете відповідальність за збереження 
+            своїх облікових даних та за всі дії, вчинені під вашим акаунтом.
         </p>
 
-        <h2>3. Использование платформы</h2>
+        <h2>3. Використання платформи</h2>
         <ul>
-            <li>Вы можете создавать организации и управлять ими</li>
-            <li>Вы можете добавлять сотрудников и назначать им роли</li>
-            <li>Вы можете создавать документы и использовать шаблоны</li>
-            <li>Вы можете использовать специальные модули для вашего типа организации</li>
+            <li>Ви можете створювати організації та керувати ними</li>
+            <li>Ви можете додавати співробітників і призначати їм ролі</li>
+            <li>Ви можете створювати документи та використовувати шаблони</li>
+            <li>Ви можете використовувати спеціальні модулі для вашого типу організації</li>
         </ul>
 
-        <h2>4. Бесплатный тариф</h2>
+        <h2>4. Безкоштовний тариф</h2>
         <p>
-            Бесплатный тариф позволяет создать ограниченное количество организаций и использовать 
-            основные функции. Подписка открывает дополнительные возможности.
+            Безкоштовний тариф дозволяє створити обмежену кількість організацій і використовувати 
+            основні функції. Підписка відкриває додаткові можливості.
         </p>
 
-        <h2>5. Конфиденциальность</h2>
+        <h2>5. Конфіденційність</h2>
         <p>
-            Мы заботимся о вашей конфиденциальности. Ваши данные хранятся в безопасности и не передаются 
-            третьим лицам без вашего согласия.
+            Ми дбаємо про вашу конфіденційність. Ваші дані зберігаються в безпеці і не передаються 
+            третім особам без вашої згоди.
         </p>
 
-        <h2>6. Ограничение ответственности</h2>
+        <h2>6. Обмеження відповідальності</h2>
         <p>
-            Typebiz предоставляется "как есть". Мы не несем ответственности за любые убытки, возникшие 
-            в результате использования платформы.
+            Typebiz надається "як є". Ми не несемо відповідальності за будь-які збитки, що виникли 
+            в результаті використання платформи.
         </p>
 
-        <h2>7. Изменения условий</h2>
+        <h2>7. Зміни умов</h2>
         <p>
-            Мы оставляем за собой право изменять данные условия. Обо всех изменениях мы будем уведомлять 
-            вас через email или на сайте.
+            Ми залишаємо за собою право змінювати дані умови. Про всі зміни ми будемо повідомляти 
+            вас через email або на сайті.
         </p>
 
-        <h2>8. Контакты</h2>
+        <h2>8. Контакти</h2>
         <p>
-            По всем вопросам вы можете связаться с нами по email: <a href="mailto:support@typebiz.com">support@typebiz.com</a>
+            З усіх питань ви можете зв'язатися з нами за email: <a href="mailto:support@typebiz.com" style="color:var(--teal);">support@typebiz.com</a>
         </p>
 
         <a href="javascript:history.back()" class="back-link">
-            <i class="fas fa-arrow-left"></i> Вернуться назад
+            <i class="fas fa-arrow-left"></i> Повернутися назад
         </a>
     </div>
 </body>
