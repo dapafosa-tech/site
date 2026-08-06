@@ -338,8 +338,9 @@ async function createJoinRequest(orgId, userId, message) {
 }
 
 async function getJoinRequests(orgId, status) {
-    if (status === undefined) status = 'pending';
-    return supabaseQuery('join_requests?organization_id=eq.' + orgId + '&status=eq.' + status);
+    var endpoint = 'join_requests?organization_id=eq.' + orgId;
+    if (status) endpoint += '&status=eq.' + status;
+    return supabaseQuery(endpoint);
 }
 
 async function updateJoinRequest(requestId, status) {
