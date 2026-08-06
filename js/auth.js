@@ -1,135 +1,18 @@
 // ============================================
-// TYPEBIZ - АВТОРИЗАЦІЯ (З EMAIL ВЕРИФІКАЦІЄЮ)
+// TYPEBIZ - АВТОРИЗАЦІЯ (З BREVO)
 // ============================================
 
-if (typeof SUPABASE_URL === 'undefined') {
-    var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
-    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
-}
+// КОНФІГУРАЦІЯ BREVO
+var BREVO_API_KEY = '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'; // Отримайте в панелі Brevo
+var BREVO_FROM_EMAIL = 'dapafosa@gmail.com'; // Ваш email (підтверджений у Brevo)
+var BREVO_FROM_NAME = 'Typebiz';
 
-// КОНФІГУРАЦІЯ RESEND
-var RESEND_API_KEY = 're_ZRwkHL2Z_M9a1YsU7BCEEuzY7vNN4jnCF'; // Замініть на реальний ключ
-var RESEND_FROM_EMAIL = 'Typebiz <onboarding@resend.dev>'; // Замініть на ваш домен
-
-var currentUser = null;
-
-function getCurrentUser() {
-    try {
-        var userData = localStorage.getItem('userData');
-        if (userData) {
-            currentUser = JSON.parse(userData);
-            return currentUser;
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}
-
-async function checkAuth() {
-    var user = getCurrentUser();
-    if (!user) return false;
-
-    try {
-        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(user.email), {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-
-        if (!response.ok) return false;
-        
-        var data = await response.json();
-        if (!data || data.length === 0) return false;
-        
-        currentUser = data[0];
-        localStorage.setItem('userData', JSON.stringify(currentUser));
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-async function requireAuth() {
-    var isAuth = await checkAuth();
-    if (!isAuth) {
-        window.location.href = '/login';
-        return false;
-    }
-    return true;
-}
-
-async function requireAdmin() {
-    var isAuth = await checkAuth();
-    if (!isAuth) {
-        window.location.href = '/login';
-        return false;
-    }
-    
-    var user = getCurrentUser();
-    if (user && user.role !== 'admin') {
-        await showAlert('Доступ заборонено. Потрібні права адміністратора.', 'error');
-        window.location.href = '/dashboard';
-        return false;
-    }
-    return true;
-}
-
-function logoutUser() {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('isGuest');
-    currentUser = null;
-    window.location.href = '/login';
-}
-
-async function loginUser(email, password) {
-    try {
-        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Помилка під час пошуку користувача');
-        }
-
-        var users = await response.json();
-        
-        if (!users || users.length === 0) {
-            throw new Error('Користувача не знайдено');
-        }
-
-        var user = users[0];
-
-        if (user.password && user.password !== password) {
-            throw new Error('Невірний пароль');
-        }
-
-        // Перевіряємо чи email підтверджено
-        if (!user.email_verified) {
-            throw new Error('Email не підтверджено. Будь ласка, перевірте пошту.');
-        }
-
-        localStorage.setItem('userData', JSON.stringify(user));
-        localStorage.setItem('isGuest', 'false');
-        currentUser = user;
-
-        return { success: true, user: user };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// ===== ВІДПРАВКА КОДУ НА EMAIL =====
+// ===== ВІДПРАВКА КОДУ ЧЕРЕЗ BREVO =====
 async function sendVerificationCode(email) {
     try {
-        // Генеруємо 6-значний код
         var code = Math.floor(100000 + Math.random() * 900000).toString();
         var expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 5); // Код діє 5 хвилин
+        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
         // Зберігаємо код у БД
         var updateResponse = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
@@ -150,18 +33,25 @@ async function sendVerificationCode(email) {
             throw new Error('Не вдалося зберегти код');
         }
 
-        // Відправляємо email через Resend
-        var emailResponse = await fetch('https://api.resend.com/emails', {
+        // Відправляємо email через Brevo API (БЕЗ CORS!)
+        var emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + RESEND_API_KEY,
+                'api-key': BREVO_API_KEY,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: RESEND_FROM_EMAIL,
-                to: [email],
+                sender: {
+                    name: BREVO_FROM_NAME,
+                    email: BREVO_FROM_EMAIL
+                },
+                to: [
+                    {
+                        email: email
+                    }
+                ],
                 subject: 'Код підтвердження Typebiz',
-                html: `
+                htmlContent: `
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -194,8 +84,8 @@ async function sendVerificationCode(email) {
 
         if (!emailResponse.ok) {
             var errorData = await emailResponse.json();
-            console.error('Resend error:', errorData);
-            throw new Error('Не вдалося надіслати email: ' + (errorData.message || 'невідома помилка'));
+            console.error('Brevo error:', errorData);
+            throw new Error('Не вдалося надіслати email');
         }
 
         return { success: true, code: code };
@@ -204,175 +94,3 @@ async function sendVerificationCode(email) {
         return { success: false, error: error.message };
     }
 }
-
-// ===== ПЕРЕВІРКА КОДУ =====
-async function verifyEmailCode(email, code) {
-    try {
-        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Користувача не знайдено');
-        }
-
-        var users = await response.json();
-        if (!users || users.length === 0) {
-            throw new Error('Користувача не знайдено');
-        }
-
-        var user = users[0];
-
-        // Перевіряємо чи код існує
-        if (!user.email_verification_code) {
-            throw new Error('Код не був надісланий');
-        }
-
-        // Перевіряємо чи код не застарів
-        var expiresAt = new Date(user.email_verification_expires);
-        if (new Date() > expiresAt) {
-            throw new Error('Код застарів. Надішліть новий код.');
-        }
-
-        // Перевіряємо код
-        if (user.email_verification_code !== code) {
-            throw new Error('Невірний код');
-        }
-
-        // Код правильний - позначаємо email як підтверджений
-        var updateResponse = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
-            method: 'PATCH',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email_verified: true,
-                email_verification_code: null,
-                email_verification_expires: null
-            })
-        });
-
-        if (!updateResponse.ok) {
-            throw new Error('Не вдалося підтвердити email');
-        }
-
-        // Оновлюємо локальні дані
-        user.email_verified = true;
-        user.email_verification_code = null;
-        user.email_verification_expires = null;
-        localStorage.setItem('userData', JSON.stringify(user));
-        currentUser = user;
-
-        return { success: true };
-    } catch (error) {
-        console.error('Verify code error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-// ===== РЕЄСТРАЦІЯ =====
-async function registerUser(email, password, fullName) {
-    try {
-        // Перевіряємо чи email вже існує
-        var checkResponse = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-
-        if (checkResponse.ok) {
-            var existing = await checkResponse.json();
-            if (existing && existing.length > 0) {
-                throw new Error('Користувач з таким email вже існує');
-            }
-        }
-
-        var userId = generateUUID();
-        
-        var userData = {
-            id: userId,
-            auth_id: userId,
-            email: email,
-            full_name: fullName,
-            password: password,
-            role: 'user',
-            is_active: true,
-            email_verified: false,
-            created_at: new Date().toISOString()
-        };
-
-        var response = await fetch(SUPABASE_URL + '/rest/v1/users', {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(userData)
-        });
-
-        if (!response.ok) {
-            var errorText = await response.text();
-            throw new Error('Помилка при створенні акаунта: ' + errorText);
-        }
-
-        var result = await response.json();
-        var user = result[0] || result;
-        
-        // Зберігаємо користувача локально
-        localStorage.setItem('userData', JSON.stringify(user));
-        localStorage.setItem('isGuest', 'false');
-        currentUser = user;
-
-        // Надсилаємо код на email
-        var codeResult = await sendVerificationCode(email);
-        if (!codeResult.success) {
-            // Якщо не вдалося надіслати код, але користувач створений
-            console.warn('Код не надіслано:', codeResult.error);
-        }
-
-        return { 
-            success: true, 
-            user: user, 
-            codeSent: codeResult.success,
-            codeError: codeResult.error
-        };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0;
-        var v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
-function isAdmin() {
-    var user = getCurrentUser();
-    return user && user.role === 'admin';
-}
-
-window.auth = {
-    getCurrentUser: getCurrentUser,
-    checkAuth: checkAuth,
-    requireAuth: requireAuth,
-    requireAdmin: requireAdmin,
-    logoutUser: logoutUser,
-    loginUser: loginUser,
-    registerUser: registerUser,
-    sendVerificationCode: sendVerificationCode,
-    verifyEmailCode: verifyEmailCode,
-    isAdmin: isAdmin
-};
-
-console.log('✅ Auth module loaded');
