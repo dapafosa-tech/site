@@ -97,12 +97,32 @@ async function supabaseQuery(endpoint, options) {
     }
 }
 
-// ===== СТВОРЕННЯ ОРГАНІЗАЦІЇ (АДМІН БЕЗ ЛІМІТУ) =====
+// ===== КОРИСТУВАЧІ =====
+async function updateUser(id, data) {
+    return supabaseQuery('users?id=eq.' + id, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    });
+}
+
+async function deleteUser(id) {
+    return supabaseQuery('users?id=eq.' + id, {
+        method: 'DELETE'
+    });
+}
+
+async function setUserRole(userId, role) {
+    return supabaseQuery('users?id=eq.' + userId, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: role })
+    });
+}
+
+// ===== ОРГАНІЗАЦІЇ =====
 async function createOrganization(data) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
-    // ===== ПЕРЕВІРКА ЛІМІТУ ТІЛЬКИ ДЛЯ НЕ-АДМІНІВ =====
     if (user.role !== 'admin') {
         var orgs = await getUserOrganizations();
         var leaderOrgs = orgs.filter(function(o) { return o.leader_id === user.id; });
@@ -110,7 +130,6 @@ async function createOrganization(data) {
             throw new Error('Ви можете бути лідером максимум у 2 організаціях. Адміністратори можуть створювати безлімітно.');
         }
     }
-    // ===== КІНЕЦЬ ПЕРЕВІРКИ =====
     
     var joinCode = generateJoinCode();
     
@@ -168,13 +187,6 @@ async function createOrganization(data) {
     }
 
     return result;
-}
-
-async function setUserRole(userId, role) {
-    return supabaseQuery('users?id=eq.' + userId, {
-        method: 'PATCH',
-        body: JSON.stringify({ role: role })
-    });
 }
 
 async function getUserOrganizations() {
@@ -435,7 +447,6 @@ async function deleteDepartment(id) {
     });
 }
 
-// ===== ПРИЗНАЧЕННЯ У ВІДДІЛ =====
 async function assignEmployeeToDepartment(employeeId, departmentId) {
     return supabaseQuery('employees?id=eq.' + employeeId, {
         method: 'PATCH',
@@ -535,7 +546,7 @@ async function deleteVacation(vacationId) {
     });
 }
 
-// ===== ПОДІЇ (КАЛЕНДАР) =====
+// ===== ПОДІЇ =====
 async function createEvent(data) {
     return supabaseQuery('org_events', {
         method: 'POST',
@@ -702,25 +713,9 @@ async function markNotificationRead(notificationId) {
     });
 }
 
-// ===== КОРИСТУВАЧІ =====
-async function updateUser(id, data) {
-    return supabaseQuery('users?id=eq.' + id, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    });
-}
-
-async function deleteUser(id) {
-    return supabaseQuery('users?id=eq.' + id, {
-        method: 'DELETE'
-    });
-}
-
 // ============================================
-// ВСІ МОДУЛІ - ФУНКЦІЇ ДЛЯ РОБОТИ З БАЗОЮ
+// МОДУЛЬ: КЛІНІКА
 // ============================================
-
-// ===== КЛІНІКА =====
 async function getClinicPatients(orgId) {
     return supabaseQuery('clinic_patients?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -745,7 +740,9 @@ async function createClinicAppointment(data) {
     });
 }
 
-// ===== МАГАЗИН =====
+// ============================================
+// МОДУЛЬ: МАГАЗИН
+// ============================================
 async function getShopProducts(orgId) {
     return supabaseQuery('shop_products?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -770,7 +767,9 @@ async function createShopSale(data) {
     });
 }
 
-// ===== БІБЛІОТЕКА =====
+// ============================================
+// МОДУЛЬ: БІБЛІОТЕКА
+// ============================================
 async function getLibraryBooks(orgId) {
     return supabaseQuery('library_books?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -807,7 +806,9 @@ async function createLibraryReader(data) {
     });
 }
 
-// ===== ШКОЛА (ВИПРАВЛЕНО) =====
+// ============================================
+// МОДУЛЬ: ШКОЛА
+// ============================================
 async function getSchoolStudents(orgId) {
     return supabaseQuery('school_students?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -858,7 +859,9 @@ async function createSchoolGrade(data) {
     });
 }
 
-// ===== РЕСТОРАН =====
+// ============================================
+// МОДУЛЬ: РЕСТОРАН / КАФЕ
+// ============================================
 async function getRestaurantMenu(orgId) {
     return supabaseQuery('restaurant_menu?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -883,7 +886,22 @@ async function createRestaurantOrder(data) {
     });
 }
 
-// ===== ГОТЕЛЬ =====
+// ===== РЕСТОРАН - БРОНЮВАННЯ (ДОДАНО) =====
+async function getRestaurantBookings(orgId) {
+    return supabaseQuery('restaurant_bookings?organization_id=eq.' + orgId + '&order=created_at.desc');
+}
+
+async function createRestaurantBooking(data) {
+    return supabaseQuery('restaurant_bookings', {
+        method: 'POST',
+        body: JSON.stringify({ id: generateUUID(), ...data }),
+        headers: { 'Prefer': 'return=representation' }
+    });
+}
+
+// ============================================
+// МОДУЛЬ: ГОТЕЛЬ
+// ============================================
 async function getHotelRooms(orgId) {
     return supabaseQuery('hotel_rooms?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -908,7 +926,9 @@ async function createHotelBooking(data) {
     });
 }
 
-// ===== СПОРТЗАЛ =====
+// ============================================
+// МОДУЛЬ: СПОРТЗАЛ
+// ============================================
 async function getGymMemberships(orgId) {
     return supabaseQuery('gym_memberships?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -933,7 +953,9 @@ async function createGymTraining(data) {
     });
 }
 
-// ===== САЛОН КРАСИ =====
+// ============================================
+// МОДУЛЬ: САЛОН КРАСИ
+// ============================================
 async function getBeautyServices(orgId) {
     return supabaseQuery('beauty_services?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -958,7 +980,9 @@ async function createBeautyAppointment(data) {
     });
 }
 
-// ===== АВТОСЕРВІС =====
+// ============================================
+// МОДУЛЬ: АВТОСЕРВІС
+// ============================================
 async function getAutoOrders(orgId) {
     return supabaseQuery('auto_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -983,7 +1007,9 @@ async function createAutoPart(data) {
     });
 }
 
-// ===== НЕРУХОМІСТЬ =====
+// ============================================
+// МОДУЛЬ: НЕРУХОМІСТЬ
+// ============================================
 async function getRealtyProperties(orgId) {
     return supabaseQuery('realty_properties?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1008,7 +1034,9 @@ async function createRealtyDeal(data) {
     });
 }
 
-// ===== ЛОГІСТИКА =====
+// ============================================
+// МОДУЛЬ: ЛОГІСТИКА
+// ============================================
 async function getLogisticsOrders(orgId) {
     return supabaseQuery('logistics_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1021,7 +1049,9 @@ async function createLogisticsOrder(data) {
     });
 }
 
-// ===== ДОСТАВКА =====
+// ============================================
+// МОДУЛЬ: ДОСТАВКА
+// ============================================
 async function getDeliveryOrders(orgId) {
     return supabaseQuery('delivery_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1034,7 +1064,9 @@ async function createDeliveryOrder(data) {
     });
 }
 
-// ===== IT / GAMEDEV =====
+// ============================================
+// МОДУЛЬ: IT / GAMEDEV
+// ============================================
 async function getItProjects(orgId) {
     return supabaseQuery('it_projects?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1121,6 +1153,7 @@ window.db = {
     markNotificationRead: markNotificationRead,
     updateUser: updateUser,
     deleteUser: deleteUser,
+    setUserRole: setUserRole,
     // КЛІНІКА
     getClinicPatients: getClinicPatients,
     createClinicPatient: createClinicPatient,
@@ -1149,6 +1182,8 @@ window.db = {
     createRestaurantMenuItem: createRestaurantMenuItem,
     getRestaurantOrders: getRestaurantOrders,
     createRestaurantOrder: createRestaurantOrder,
+    getRestaurantBookings: getRestaurantBookings,
+    createRestaurantBooking: createRestaurantBooking,
     // ГОТЕЛЬ
     getHotelRooms: getHotelRooms,
     createHotelRoom: createHotelRoom,
