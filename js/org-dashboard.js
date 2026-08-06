@@ -1912,4 +1912,25 @@ for (var m = 0; m < modals.length; m++) {
     });
 }
 
+// ===== ВИДАЛЕННЯ АККАУНТА =====
+async function deleteUserAccount() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити свій акаунт? Це незворотна дія!', '⚠️ Увага');
+    if (!confirmed) return;
+    
+    var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
+    if (!confirmed2) return;
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.deleteUser(user.id);
+        localStorage.removeItem('userData');
+        await showToast('Акаунт видалено', 'success');
+        setTimeout(function() {
+            window.location.href = '/login';
+        }, 1500);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 init();
