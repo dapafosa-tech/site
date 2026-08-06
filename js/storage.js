@@ -33,8 +33,8 @@ async function uploadAvatar(file) {
 
     var fileExt = file.name.split('.').pop();
     var fileName = user.id + '.' + fileExt;
-    var filePath = 'avatars/' + fileName;
-
+    
+    // ВАЖЛИВО: правильний шлях для завантаження
     var response = await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + fileName, {
         method: 'POST',
         headers: {
@@ -46,11 +46,13 @@ async function uploadAvatar(file) {
 
     if (!response.ok) {
         var error = await response.text();
+        console.error('Upload error:', error);
         throw new Error('Помилка завантаження: ' + error);
     }
 
     var publicUrl = SUPABASE_URL + '/storage/v1/object/public/avatars/' + fileName;
     
+    // Оновлюємо профіль
     await db.updateUser(user.id, { avatar_url: publicUrl });
     
     user.avatar_url = publicUrl;
@@ -63,6 +65,7 @@ async function deleteAvatar() {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
 
+    // Шукаємо файл аватарки
     var listResponse = await fetch(SUPABASE_URL + '/storage/v1/object/list/avatars', {
         headers: {
             'apikey': SUPABASE_ANON_KEY,
