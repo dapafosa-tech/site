@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД (З КАСТОМНИМИ МОДАЛКАМИ)
+// TYPEBIZ - ДАШБОРД
 // ============================================
 
 function logoutUser() {
@@ -253,7 +253,7 @@ document.getElementById('createOrgForm').addEventListener('submit', async functi
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
     try {
-        await db.createOrganization({
+        var result = await db.createOrganization({
             name: name,
             type: type,
             description: description || '',
