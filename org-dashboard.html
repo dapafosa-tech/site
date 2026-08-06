@@ -1,713 +1,1698 @@
-<!-- ===== МОДАЛКИ ДЛЯ КЛІНІКИ ===== -->
-<div class="modal" id="clinicPatientModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати пацієнта</h2>
-            <button class="modal-close" onclick="closeModal('clinicPatientModal')">&times;</button>
-        </div>
-        <form id="clinicPatientForm">
-            <input type="hidden" id="clinicPatientId">
-            <div class="form-group">
-                <label class="form-label">ПІБ пацієнта</label>
-                <input type="text" class="form-control" id="clinicPatientName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон</label>
-                <input type="text" class="form-control" id="clinicPatientPhone">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата народження</label>
-                <input type="date" class="form-control" id="clinicPatientBirth">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Група крові</label>
-                <input type="text" class="form-control" id="clinicPatientBlood" placeholder="Наприклад: A+, O-">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Алергії</label>
-                <textarea class="form-control" id="clinicPatientAllergies" rows="2" placeholder="Алергії (якщо є)"></textarea>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Організація — Typebiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* ===== ТЕМНА ТЕМА ===== */
+        :root {
+            --ink: #0F1115;
+            --ink-soft: #171A21;
+            --ink-line: #2A2E38;
+            --gold: #F2A93B;
+            --gold-dim: #C98A2A;
+            --teal: #46C9B8;
+            --stamp-red: #E2503E;
+            --text-onink: #E7E4DA;
+            --muted: #8B93A6;
+            --text-onpaper: #181A1F;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --bg-body: #0F1115;
+            --bg-card: #171A21;
+            --bg-input: #0F1115;
+            --text-primary: #E7E4DA;
+            --text-secondary: #8B93A6;
+            --border-color: #2A2E38;
+        }
 
-<div class="modal" id="clinicAppointmentModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити запис</h2>
-            <button class="modal-close" onclick="closeModal('clinicAppointmentModal')">&times;</button>
-        </div>
-        <form id="clinicAppointmentForm">
-            <input type="hidden" id="clinicAppointmentId">
-            <div class="form-group">
-                <label class="form-label">Пацієнт</label>
-                <select class="form-control" id="clinicAppointmentPatient" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Лікар</label>
-                <input type="text" class="form-control" id="clinicAppointmentDoctor" placeholder="ПІБ лікаря">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата та час</label>
-                <input type="datetime-local" class="form-control" id="clinicAppointmentDate" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Причина</label>
-                <textarea class="form-control" id="clinicAppointmentReason" rows="2" placeholder="Причина візиту"></textarea>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Записати</button>
-        </form>
-    </div>
-</div>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ МАГАЗИНУ ===== -->
-<div class="modal" id="shopProductModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати товар</h2>
-            <button class="modal-close" onclick="closeModal('shopProductModal')">&times;</button>
-        </div>
-        <form id="shopProductForm">
-            <input type="hidden" id="shopProductId">
-            <div class="form-group">
-                <label class="form-label">Назва товару</label>
-                <input type="text" class="form-control" id="shopProductName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна (грн)</label>
-                <input type="number" class="form-control" id="shopProductPrice" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Кількість</label>
-                <input type="number" class="form-control" id="shopProductQuantity" value="0">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
 
-<div class="modal" id="shopSaleModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Оформити продаж</h2>
-            <button class="modal-close" onclick="closeModal('shopSaleModal')">&times;</button>
-        </div>
-        <form id="shopSaleForm">
-            <input type="hidden" id="shopSaleId">
-            <div class="form-group">
-                <label class="form-label">Товар</label>
-                <select class="form-control" id="shopSaleProduct" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Кількість</label>
-                <input type="number" class="form-control" id="shopSaleQuantity" value="1" min="1">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Клієнт</label>
-                <input type="text" class="form-control" id="shopSaleCustomer" placeholder="Ім'я клієнта">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Продати</button>
-        </form>
-    </div>
-</div>
+        .display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ БІБЛІОТЕКИ ===== -->
-<div class="modal" id="libraryBookModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати книгу</h2>
-            <button class="modal-close" onclick="closeModal('libraryBookModal')">&times;</button>
-        </div>
-        <form id="libraryBookForm">
-            <input type="hidden" id="libraryBookId">
-            <div class="form-group">
-                <label class="form-label">Назва книги</label>
-                <input type="text" class="form-control" id="libraryBookTitle" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Автор</label>
-                <input type="text" class="form-control" id="libraryBookAuthor">
-            </div>
-            <div class="form-group">
-                <label class="form-label">ISBN</label>
-                <input type="text" class="form-control" id="libraryBookIsbn">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Кількість</label>
-                <input type="number" class="form-control" id="libraryBookQuantity" value="1">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        /* ===== САЙДБАР ===== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100%;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            overflow-y: auto;
+            z-index: 100;
+        }
 
-<div class="modal" id="libraryLoanModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Видати книгу</h2>
-            <button class="modal-close" onclick="closeModal('libraryLoanModal')">&times;</button>
-        </div>
-        <form id="libraryLoanForm">
-            <input type="hidden" id="libraryLoanId">
-            <div class="form-group">
-                <label class="form-label">Книга</label>
-                <select class="form-control" id="libraryLoanBook" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Читач</label>
-                <select class="form-control" id="libraryLoanReader" required></select>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Видати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ ШКОЛИ ===== -->
-<div class="modal" id="schoolStudentModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати учня</h2>
-            <button class="modal-close" onclick="closeModal('schoolStudentModal')">&times;</button>
-        </div>
-        <form id="schoolStudentForm">
-            <input type="hidden" id="schoolStudentId">
-            <div class="form-group">
-                <label class="form-label">ПІБ учня</label>
-                <input type="text" class="form-control" id="schoolStudentName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Клас</label>
-                <select class="form-control" id="schoolStudentClass"></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата народження</label>
-                <input type="date" class="form-control" id="schoolStudentBirth">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон батьків</label>
-                <input type="text" class="form-control" id="schoolStudentPhone">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .logo .tab {
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            background: var(--gold);
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono';
+            font-size: 0.7rem;
+            font-weight: 600;
+            transform: rotate(-6deg);
+        }
 
-<div class="modal" id="schoolClassModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити клас</h2>
-            <button class="modal-close" onclick="closeModal('schoolClassModal')">&times;</button>
-        </div>
-        <form id="schoolClassForm">
-            <input type="hidden" id="schoolClassId">
-            <div class="form-group">
-                <label class="form-label">Назва класу</label>
-                <input type="text" class="form-control" id="schoolClassName" placeholder="Наприклад: 10-А" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Кабінет</label>
-                <input type="text" class="form-control" id="schoolClassRoom">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .sidebar .org-info {
+            padding: 1rem;
+            background: var(--bg-body);
+            border-radius: var(--radius);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ РЕСТОРАНУ ===== -->
-<div class="modal" id="restaurantMenuModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати страву</h2>
-            <button class="modal-close" onclick="closeModal('restaurantMenuModal')">&times;</button>
-        </div>
-        <form id="restaurantMenuForm">
-            <input type="hidden" id="restaurantMenuItemId">
-            <div class="form-group">
-                <label class="form-label">Назва страви</label>
-                <input type="text" class="form-control" id="restaurantMenuItemName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна (грн)</label>
-                <input type="number" class="form-control" id="restaurantMenuItemPrice" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Категорія</label>
-                <input type="text" class="form-control" id="restaurantMenuItemCategory" placeholder="Наприклад: Основні страви">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .org-info .org-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
 
-<div class="modal" id="restaurantOrderModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити замовлення</h2>
-            <button class="modal-close" onclick="closeModal('restaurantOrderModal')">&times;</button>
-        </div>
-        <form id="restaurantOrderForm">
-            <input type="hidden" id="restaurantOrderId">
-            <div class="form-group">
-                <label class="form-label">Номер столика</label>
-                <input type="number" class="form-control" id="restaurantOrderTable">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Страви (кожна з нового рядка)</label>
-                <textarea class="form-control" id="restaurantOrderItems" rows="3" placeholder="Борщ&#10;Вареники"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Загальна сума (грн)</label>
-                <input type="number" class="form-control" id="restaurantOrderTotal" step="0.01">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .sidebar .org-info .org-type {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ ГОТЕЛЮ ===== -->
-<div class="modal" id="hotelRoomModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати номер</h2>
-            <button class="modal-close" onclick="closeModal('hotelRoomModal')">&times;</button>
-        </div>
-        <form id="hotelRoomForm">
-            <input type="hidden" id="hotelRoomId">
-            <div class="form-group">
-                <label class="form-label">Номер кімнати</label>
-                <input type="text" class="form-control" id="hotelRoomNumber" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тип</label>
-                <input type="text" class="form-control" id="hotelRoomType" placeholder="Стандарт, Люкс">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна за ніч (грн)</label>
-                <input type="number" class="form-control" id="hotelRoomPrice" step="0.01">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .org-info .org-code {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+            font-family: 'IBM Plex Mono', monospace;
+        }
 
-<div class="modal" id="hotelBookingModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Забронювати номер</h2>
-            <button class="modal-close" onclick="closeModal('hotelBookingModal')">&times;</button>
-        </div>
-        <form id="hotelBookingForm">
-            <input type="hidden" id="hotelBookingId">
-            <div class="form-group">
-                <label class="form-label">Номер</label>
-                <select class="form-control" id="hotelBookingRoom" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Гість</label>
-                <input type="text" class="form-control" id="hotelBookingGuest" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон</label>
-                <input type="text" class="form-control" id="hotelBookingPhone">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Заїзд</label>
-                <input type="date" class="form-control" id="hotelBookingCheckIn" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Виїзд</label>
-                <input type="date" class="form-control" id="hotelBookingCheckOut" required>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Забронювати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .nav-menu {
+            list-style: none;
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ СПОРТЗАЛУ ===== -->
-<div class="modal" id="gymMembershipModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати абонемент</h2>
-            <button class="modal-close" onclick="closeModal('gymMembershipModal')">&times;</button>
-        </div>
-        <form id="gymMembershipForm">
-            <input type="hidden" id="gymMembershipId">
-            <div class="form-group">
-                <label class="form-label">Користувач</label>
-                <select class="form-control" id="gymMembershipUser" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тип абонементу</label>
-                <input type="text" class="form-control" id="gymMembershipType" placeholder="Стандарт, Преміум">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата початку</label>
-                <input type="date" class="form-control" id="gymMembershipStart" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата закінчення</label>
-                <input type="date" class="form-control" id="gymMembershipEnd" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна (грн)</label>
-                <input type="number" class="form-control" id="gymMembershipPrice" step="0.01">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .nav-menu li {
+            margin-bottom: 0.25rem;
+        }
 
-<div class="modal" id="gymTrainingModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати тренування</h2>
-            <button class="modal-close" onclick="closeModal('gymTrainingModal')">&times;</button>
-        </div>
-        <form id="gymTrainingForm">
-            <input type="hidden" id="gymTrainingId">
-            <div class="form-group">
-                <label class="form-label">Назва тренування</label>
-                <input type="text" class="form-control" id="gymTrainingName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тренер</label>
-                <input type="text" class="form-control" id="gymTrainingTrainer">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Розклад</label>
-                <input type="text" class="form-control" id="gymTrainingSchedule" placeholder="Пн-Ср 18:00-19:00">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all .3s;
+            font-weight: 500;
+            cursor: pointer;
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ САЛОНУ КРАСИ ===== -->
-<div class="modal" id="beautyServiceModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати послугу</h2>
-            <button class="modal-close" onclick="closeModal('beautyServiceModal')">&times;</button>
-        </div>
-        <form id="beautyServiceForm">
-            <input type="hidden" id="beautyServiceId">
-            <div class="form-group">
-                <label class="form-label">Назва послуги</label>
-                <input type="text" class="form-control" id="beautyServiceName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна (грн)</label>
-                <input type="number" class="form-control" id="beautyServicePrice" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тривалість (хвилини)</label>
-                <input type="number" class="form-control" id="beautyServiceDuration" value="30">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .nav-menu a:hover {
+            background: var(--bg-body);
+            color: var(--text-primary);
+        }
 
-<div class="modal" id="beautyAppointmentModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Записати клієнта</h2>
-            <button class="modal-close" onclick="closeModal('beautyAppointmentModal')">&times;</button>
-        </div>
-        <form id="beautyAppointmentForm">
-            <input type="hidden" id="beautyAppointmentId">
-            <div class="form-group">
-                <label class="form-label">Послуга</label>
-                <select class="form-control" id="beautyAppointmentService" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Клієнт</label>
-                <input type="text" class="form-control" id="beautyAppointmentClient" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон</label>
-                <input type="text" class="form-control" id="beautyAppointmentPhone">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата та час</label>
-                <input type="datetime-local" class="form-control" id="beautyAppointmentDate" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Майстер</label>
-                <input type="text" class="form-control" id="beautyAppointmentMaster" placeholder="ПІБ майстра">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Записати</button>
-        </form>
-    </div>
-</div>
+        .sidebar .nav-menu a.active {
+            background: var(--gold);
+            color: var(--ink);
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ АВТОСЕРВІСУ ===== -->
-<div class="modal" id="autoOrderModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити замовлення</h2>
-            <button class="modal-close" onclick="closeModal('autoOrderModal')">&times;</button>
-        </div>
-        <form id="autoOrderForm">
-            <input type="hidden" id="autoOrderId">
-            <div class="form-group">
-                <label class="form-label">Клієнт</label>
-                <input type="text" class="form-control" id="autoOrderClient" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон</label>
-                <input type="text" class="form-control" id="autoOrderPhone">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Марка/Модель авто</label>
-                <input type="text" class="form-control" id="autoOrderCar">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Номер авто</label>
-                <input type="text" class="form-control" id="autoOrderNumber">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Опис робіт</label>
-                <textarea class="form-control" id="autoOrderDesc" rows="2"></textarea>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .sidebar .nav-menu a i {
+            width: 20px;
+            text-align: center;
+        }
 
-<div class="modal" id="autoPartModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати запчастину</h2>
-            <button class="modal-close" onclick="closeModal('autoPartModal')">&times;</button>
-        </div>
-        <form id="autoPartForm">
-            <input type="hidden" id="autoPartId">
-            <div class="form-group">
-                <label class="form-label">Назва запчастини</label>
-                <input type="text" class="form-control" id="autoPartName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна (грн)</label>
-                <input type="number" class="form-control" id="autoPartPrice" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Кількість</label>
-                <input type="number" class="form-control" id="autoPartQuantity" value="0">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Постачальник</label>
-                <input type="text" class="form-control" id="autoPartSupplier">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        /* ===== ОСНОВНИЙ КОНТЕНТ ===== */
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+            min-height: 100vh;
+            width: 100%;
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ НЕРУХОМОСТІ ===== -->
-<div class="modal" id="realtyPropertyModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати об'єкт</h2>
-            <button class="modal-close" onclick="closeModal('realtyPropertyModal')">&times;</button>
-        </div>
-        <form id="realtyPropertyForm">
-            <input type="hidden" id="realtyPropertyId">
-            <div class="form-group">
-                <label class="form-label">Адреса</label>
-                <input type="text" class="form-control" id="realtyPropertyAddress" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тип</label>
-                <input type="text" class="form-control" id="realtyPropertyType" placeholder="Квартира, Будинок, Офіс">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Ціна (грн)</label>
-                <input type="number" class="form-control" id="realtyPropertyPrice" step="0.01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Площа (м²)</label>
-                <input type="number" class="form-control" id="realtyPropertyArea" step="0.1">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
-    </div>
-</div>
+        .back-link {
+            color: var(--teal);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
 
-<div class="modal" id="realtyDealModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити угоду</h2>
-            <button class="modal-close" onclick="closeModal('realtyDealModal')">&times;</button>
-        </div>
-        <form id="realtyDealForm">
-            <input type="hidden" id="realtyDealId">
-            <div class="form-group">
-                <label class="form-label">Об'єкт</label>
-                <select class="form-control" id="realtyDealProperty" required></select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Клієнт</label>
-                <input type="text" class="form-control" id="realtyDealClient" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон</label>
-                <input type="text" class="form-control" id="realtyDealPhone">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Тип угоди</label>
-                <select class="form-control" id="realtyDealType" required>
-                    <option value="sale">Продаж</option>
-                    <option value="rent">Оренда</option>
-                    <option value="exchange">Обмін</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Сума (грн)</label>
-                <input type="number" class="form-control" id="realtyDealAmount" step="0.01">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .back-link:hover {
+            color: var(--gold);
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ ЛОГІСТИКИ ===== -->
-<div class="modal" id="logisticsOrderModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити вантаж</h2>
-            <button class="modal-close" onclick="closeModal('logisticsOrderModal')">&times;</button>
-        </div>
-        <form id="logisticsOrderForm">
-            <input type="hidden" id="logisticsOrderId">
-            <div class="form-group">
-                <label class="form-label">Номер замовлення</label>
-                <input type="text" class="form-control" id="logisticsOrderNumber" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Клієнт</label>
-                <input type="text" class="form-control" id="logisticsOrderClient" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Адреса забору</label>
-                <input type="text" class="form-control" id="logisticsOrderPickup">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Адреса доставки</label>
-                <input type="text" class="form-control" id="logisticsOrderDelivery">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Вага (кг)</label>
-                <input type="number" class="form-control" id="logisticsOrderWeight" step="0.1">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дата доставки</label>
-                <input type="date" class="form-control" id="logisticsOrderDeliveryDate">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ ДОСТАВКИ ===== -->
-<div class="modal" id="deliveryOrderModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити доставку</h2>
-            <button class="modal-close" onclick="closeModal('deliveryOrderModal')">&times;</button>
-        </div>
-        <form id="deliveryOrderForm">
-            <input type="hidden" id="deliveryOrderId">
-            <div class="form-group">
-                <label class="form-label">Номер замовлення</label>
-                <input type="text" class="form-control" id="deliveryOrderNumber" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Клієнт</label>
-                <input type="text" class="form-control" id="deliveryOrderClient" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Телефон</label>
-                <input type="text" class="form-control" id="deliveryOrderPhone">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Адреса доставки</label>
-                <input type="text" class="form-control" id="deliveryOrderAddress">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Кур'єр</label>
-                <input type="text" class="form-control" id="deliveryOrderCourier">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Час доставки</label>
-                <input type="datetime-local" class="form-control" id="deliveryOrderTime">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .page-header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
 
-<!-- ===== МОДАЛКИ ДЛЯ IT ===== -->
-<div class="modal" id="itProjectModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Створити проект</h2>
-            <button class="modal-close" onclick="closeModal('itProjectModal')">&times;</button>
-        </div>
-        <form id="itProjectForm">
-            <input type="hidden" id="itProjectId">
-            <div class="form-group">
-                <label class="form-label">Назва проекту</label>
-                <input type="text" class="form-control" id="itProjectName" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Опис</label>
-                <textarea class="form-control" id="itProjectDesc" rows="2"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Дедлайн</label>
-                <input type="date" class="form-control" id="itProjectDeadline">
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Створити</button>
-        </form>
-    </div>
-</div>
+        .page-header p {
+            color: var(--text-secondary);
+        }
 
-<div class="modal" id="itBugModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Додати баг</h2>
-            <button class="modal-close" onclick="closeModal('itBugModal')">&times;</button>
+        /* ===== СТАТИСТИКА ===== */
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--gold);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .stat-card .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* ===== КАРТКИ ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ===== КНОПКИ ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.5rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform .15s, box-shadow .15s;
+            text-decoration: none;
+        }
+
+        .btn-gold {
+            background: var(--gold);
+            color: var(--ink);
+        }
+
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(242, 169, 59, 0.28);
+        }
+
+        .btn-teal {
+            background: var(--teal);
+            color: var(--ink);
+        }
+
+        .btn-teal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(70, 201, 184, 0.28);
+        }
+
+        .btn-danger {
+            background: #E2503E;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(226, 80, 62, 0.28);
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-outline {
+            border-color: var(--border-color);
+            color: var(--text-primary);
+            background: transparent;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--teal);
+            color: var(--teal);
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ===== ТАБЛИЦІ ===== */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* ===== БЕЙДЖІ ===== */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background: #F59E0B20;
+            color: #F59E0B;
+        }
+
+        .badge-success {
+            background: #46C9B820;
+            color: #46C9B8;
+        }
+
+        .badge-danger {
+            background: #E2503E20;
+            color: #E2503E;
+        }
+
+        .badge-primary {
+            background: #3B82F620;
+            color: #3B82F6;
+        }
+
+        .badge-secondary {
+            background: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        /* ===== МОДАЛКИ ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 520px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color .3s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* ===== ФОРМИ ===== */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1rem;
+            transition: border-color .2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .form-control:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B93A6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* ===== ВИБІР КОЛЬОРУ ===== */
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .color-picker .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all .3s;
+        }
+
+        .color-picker .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-picker .color-option.selected {
+            border-color: var(--gold);
+        }
+
+        /* ===== ДОПОМІЖНІ КЛАСИ ===== */
+        .mt-3 {
+            margin-top: 1.5rem;
+        }
+        .mb-2 {
+            margin-bottom: 1rem;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-muted {
+            color: var(--text-secondary);
+        }
+        .text-gold {
+            color: var(--gold);
+        }
+        .text-danger {
+            color: #E2503E;
+        }
+        .flex {
+            display: flex;
+        }
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+        .gap-1 {
+            gap: 0.5rem;
+        }
+        .gap-2 {
+            gap: 1rem;
+        }
+        .items-center {
+            align-items: center;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin: 1rem 0;
+        }
+
+        .alert-danger {
+            background: #E2503E20;
+            border: 1px solid #E2503E;
+            color: #E2503E;
+        }
+
+        /* ===== АДАПТИВ ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+            .grid-4 {
+                grid-template-columns: 1fr 1fr;
+            }
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== СКРОЛБАР ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gold);
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== САЙДБАР ===== -->
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="tab">Tb</span>
+            <span>Typebiz</span>
         </div>
-        <form id="itBugForm">
-            <input type="hidden" id="itBugId">
-            <div class="form-group">
-                <label class="form-label">Проект</label>
-                <select class="form-control" id="itBugProject" required></select>
+
+        <div class="org-info" id="orgInfo">
+            <div class="org-name" id="orgName">Завантаження...</div>
+            <div class="org-type" id="orgType">---</div>
+            <div class="org-code"><i class="fas fa-key"></i> Код: <span id="joinCode">---</span></div>
+        </div>
+
+        <ul class="nav-menu">
+            <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад</a></li>
+            <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Огляд</a></li>
+            <li><a onclick="loadSection('members')"><i class="fas fa-users"></i> Учасники</a></li>
+            <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
+            <li><a onclick="loadSection('ranks')"><i class="fas fa-crown"></i> Посади</a></li>
+            <li><a onclick="loadSection('departments')"><i class="fas fa-sitemap"></i> Відділи</a></li>
+            <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чат</a></li>
+            <li><a onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
+            <li><a onclick="loadSection('events')"><i class="fas fa-calendar-alt"></i> Події</a></li>
+            <li><a onclick="loadSection('tasks')"><i class="fas fa-tasks"></i> Завдання</a></li>
+            <li><a onclick="loadSection('polls')"><i class="fas fa-poll"></i> Опитування</a></li>
+            <li><a onclick="loadSection('files')"><i class="fas fa-folder"></i> Файли</a></li>
+            <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Налаштування</a></li>
+            
+            <!-- МОДУЛІ -->
+            <li><a onclick="loadSection('clinic')"><i class="fas fa-heartbeat"></i> Клініка</a></li>
+            <li><a onclick="loadSection('shop')"><i class="fas fa-store"></i> Магазин</a></li>
+            <li><a onclick="loadSection('library')"><i class="fas fa-book"></i> Бібліотека</a></li>
+            <li><a onclick="loadSection('school')"><i class="fas fa-graduation-cap"></i> Школа</a></li>
+            <li><a onclick="loadSection('restaurant')"><i class="fas fa-utensils"></i> Ресторан</a></li>
+            <li><a onclick="loadSection('hotel')"><i class="fas fa-hotel"></i> Готель</a></li>
+            <li><a onclick="loadSection('gym')"><i class="fas fa-dumbbell"></i> Спортзал</a></li>
+            <li><a onclick="loadSection('beauty')"><i class="fas fa-spa"></i> Салон краси</a></li>
+            <li><a onclick="loadSection('auto')"><i class="fas fa-car"></i> Автосервіс</a></li>
+            <li><a onclick="loadSection('realty')"><i class="fas fa-home"></i> Нерухомість</a></li>
+            <li><a onclick="loadSection('logistics')"><i class="fas fa-shipping-fast"></i> Логістика</a></li>
+            <li><a onclick="loadSection('delivery')"><i class="fas fa-truck"></i> Доставка</a></li>
+            <li><a onclick="loadSection('it')"><i class="fas fa-code"></i> IT/Dev</a></li>
+        </ul>
+    </aside>
+
+    <!-- ===== ОСНОВНИЙ КОНТЕНТ ===== -->
+    <main class="main-content">
+        <a href="/dashboard" class="back-link">
+            <i class="fas fa-arrow-left"></i> До моїх організацій
+        </a>
+
+        <div class="page-header">
+            <div>
+                <h1 id="pageTitle">Огляд</h1>
+                <p id="pageSubtitle">Управління організацією</p>
             </div>
-            <div class="form-group">
-                <label class="form-label">Назва бага</label>
-                <input type="text" class="form-control" id="itBugTitle" required>
+        </div>
+
+        <div id="sectionContent" class="section-content">
+            <div class="text-center text-muted">Завантаження...</div>
+        </div>
+    </main>
+
+    <!-- ===== ВСІ МОДАЛКИ ===== -->
+    <!-- Модалка створення/редагування посади -->
+    <div class="modal" id="rankModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="rankModalTitle">Створити посаду</h2>
+                <button class="modal-close" onclick="closeModal('rankModal')">&times;</button>
             </div>
-            <div class="form-group">
-                <label class="form-label">Опис</label>
-                <textarea class="form-control" id="itBugDesc" rows="2"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Пріоритет</label>
-                <select class="form-control" id="itBugPriority">
-                    <option value="low">🟢 Низький</option>
-                    <option value="medium" selected>🟡 Середній</option>
-                    <option value="high">🔴 Високий</option>
-                    <option value="urgent">🔥 Терміновий</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Призначити</label>
-                <select class="form-control" id="itBugAssign"></select>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Додати</button>
-        </form>
+            <form id="rankForm">
+                <input type="hidden" id="rankEditId">
+                <div class="form-group">
+                    <label class="form-label">Назва посади</label>
+                    <input type="text" class="form-control" id="rankName" placeholder="Наприклад: Менеджер" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Колір</label>
+                    <div class="color-picker" id="colorPicker">
+                        <div class="color-option selected" style="background:#F2A93B" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#46C9B8" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#E2503E" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#F59E0B" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#3B82F6" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#8B5CF6" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#EC4899" onclick="selectColor(this)"></div>
+                        <div class="color-option" style="background:#14B8A6" onclick="selectColor(this)"></div>
+                    </div>
+                    <input type="hidden" id="rankColor" value="#F2A93B">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Права доступу</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="all"> 🔑 Всі
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_members"> 👥 Учасники
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_ranks"> 👑 Посади
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_departments"> 🏢 Відділи
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_settings"> ⚙️ Налаштування
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_requests"> 📩 Заявки
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_vacations"> 🏖️ Відпустки
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="manage_chat"> 💬 Чат
+                        </label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" class="rank-permission" value="view"> 👀 Перегляд
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-save"></i> <span id="rankSubmitText">Створити</span>
+                </button>
+            </form>
+        </div>
     </div>
-</div>
+
+    <!-- Модалка створення відділу -->
+    <div class="modal" id="departmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити відділ</h2>
+                <button class="modal-close" onclick="closeModal('departmentModal')">&times;</button>
+            </div>
+            <form id="departmentForm">
+                <div class="form-group">
+                    <label class="form-label">Назва відділу</label>
+                    <input type="text" class="form-control" id="deptName" placeholder="Наприклад: Відділ продажів" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="deptDesc" rows="3" placeholder="Опис відділу"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-save"></i> Створити відділ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка призначення посади -->
+    <div class="modal" id="assignRankModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Призначити посаду</h2>
+                <button class="modal-close" onclick="closeModal('assignRankModal')">&times;</button>
+            </div>
+            <form id="assignRankForm">
+                <input type="hidden" id="assignMemberId">
+                <div class="form-group">
+                    <label class="form-label">Користувач</label>
+                    <input type="text" class="form-control" id="assignUserName" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Посада</label>
+                    <select class="form-control" id="assignRankSelect" required>
+                        <option value="">Оберіть посаду...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-save"></i> Призначити
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка призначення у відділ -->
+    <div class="modal" id="assignEmployeeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Призначити співробітника у відділ</h2>
+                <button class="modal-close" onclick="closeModal('assignEmployeeModal')">&times;</button>
+            </div>
+            <form id="assignEmployeeForm">
+                <input type="hidden" id="assignDeptId">
+                <div class="form-group">
+                    <label class="form-label">Відділ</label>
+                    <input type="text" class="form-control" id="assignDeptName" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Співробітник</label>
+                    <select class="form-control" id="assignEmployeeSelect" required>
+                        <option value="">Оберіть співробітника...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-save"></i> Призначити
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення події -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити подію</h2>
+                <button class="modal-close" onclick="closeModal('eventModal')">&times;</button>
+            </div>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label class="form-label">Назва події</label>
+                    <input type="text" class="form-control" id="eventTitle" placeholder="Назва" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="eventDesc" rows="3" placeholder="Опис"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата початку</label>
+                    <input type="datetime-local" class="form-control" id="eventStart" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата закінчення</label>
+                    <input type="datetime-local" class="form-control" id="eventEnd" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Місце</label>
+                    <input type="text" class="form-control" id="eventLocation" placeholder="Місце проведення">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення завдання -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="taskModalTitle">Створити завдання</h2>
+                <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskEditId">
+                <div class="form-group">
+                    <label class="form-label">Назва завдання</label>
+                    <input type="text" class="form-control" id="taskTitle" placeholder="Назва" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="taskDesc" rows="3" placeholder="Опис"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Відповідальний</label>
+                    <select class="form-control" id="taskAssign">
+                        <option value="">Не призначено</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дедлайн</label>
+                    <input type="date" class="form-control" id="taskDue">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пріоритет</label>
+                    <select class="form-control" id="taskPriority">
+                        <option value="low">🟢 Низький</option>
+                        <option value="medium" selected>🟡 Середній</option>
+                        <option value="high">🔴 Високий</option>
+                        <option value="urgent">🔥 Терміновий</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <span id="taskSubmitText">Створити</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення опитування -->
+    <div class="modal" id="pollModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити опитування</h2>
+                <button class="modal-close" onclick="closeModal('pollModal')">&times;</button>
+            </div>
+            <form id="pollForm">
+                <input type="hidden" id="pollEditId">
+                <div class="form-group">
+                    <label class="form-label">Назва опитування</label>
+                    <input type="text" class="form-control" id="pollTitle" placeholder="Назва" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="pollDesc" rows="3" placeholder="Опис"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Варіанти відповідей</label>
+                    <textarea class="form-control" id="pollOptions" rows="4" placeholder="Варіант 1&#10;Варіант 2&#10;Варіант 3" required></textarea>
+                    <small style="color:var(--text-secondary);">Кожен варіант з нового рядка</small>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block" id="pollSubmitText">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка завантаження файлу -->
+    <div class="modal" id="fileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Завантажити файл</h2>
+                <button class="modal-close" onclick="closeModal('fileModal')">&times;</button>
+            </div>
+            <form id="fileForm">
+                <div class="form-group">
+                    <label class="form-label">Файл</label>
+                    <input type="file" class="form-control" id="fileInput" required style="padding:0.5rem;background:var(--bg-input);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-upload"></i> Завантажити
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка створення відпустки -->
+    <div class="modal" id="vacationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Заявка на відпустку</h2>
+                <button class="modal-close" onclick="closeModal('vacationModal')">&times;</button>
+            </div>
+            <form id="vacationForm">
+                <div class="form-group">
+                    <label class="form-label">Дата початку</label>
+                    <input type="date" class="form-control" id="vacStart" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата закінчення</label>
+                    <input type="date" class="form-control" id="vacEnd" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип відпустки</label>
+                    <select class="form-control" id="vacType" required>
+                        <option value="annual">Щорічна</option>
+                        <option value="sick">Лікарняний</option>
+                        <option value="unpaid">Без збереження</option>
+                        <option value="maternity">Декретна</option>
+                        <option value="other">Інша</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Причина (необов'язково)</label>
+                    <textarea class="form-control" id="vacReason" rows="3" placeholder="Вкажіть причину"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-paper-plane"></i> Відправити заявку
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ КЛІНІКИ -->
+    <div class="modal" id="clinicPatientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати пацієнта</h2>
+                <button class="modal-close" onclick="closeModal('clinicPatientModal')">&times;</button>
+            </div>
+            <form id="clinicPatientForm">
+                <input type="hidden" id="clinicPatientId">
+                <div class="form-group">
+                    <label class="form-label">ПІБ пацієнта</label>
+                    <input type="text" class="form-control" id="clinicPatientName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="clinicPatientPhone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата народження</label>
+                    <input type="date" class="form-control" id="clinicPatientBirth">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Група крові</label>
+                    <input type="text" class="form-control" id="clinicPatientBlood" placeholder="Наприклад: A+, O-">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Алергії</label>
+                    <textarea class="form-control" id="clinicPatientAllergies" rows="2" placeholder="Алергії (якщо є)"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="clinicAppointmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити запис</h2>
+                <button class="modal-close" onclick="closeModal('clinicAppointmentModal')">&times;</button>
+            </div>
+            <form id="clinicAppointmentForm">
+                <input type="hidden" id="clinicAppointmentId">
+                <div class="form-group">
+                    <label class="form-label">Пацієнт</label>
+                    <select class="form-control" id="clinicAppointmentPatient" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Лікар</label>
+                    <input type="text" class="form-control" id="clinicAppointmentDoctor" placeholder="ПІБ лікаря">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата та час</label>
+                    <input type="datetime-local" class="form-control" id="clinicAppointmentDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Причина</label>
+                    <textarea class="form-control" id="clinicAppointmentReason" rows="2" placeholder="Причина візиту"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Записати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ МАГАЗИНУ -->
+    <div class="modal" id="shopProductModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати товар</h2>
+                <button class="modal-close" onclick="closeModal('shopProductModal')">&times;</button>
+            </div>
+            <form id="shopProductForm">
+                <input type="hidden" id="shopProductId">
+                <div class="form-group">
+                    <label class="form-label">Назва товару</label>
+                    <input type="text" class="form-control" id="shopProductName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна (грн)</label>
+                    <input type="number" class="form-control" id="shopProductPrice" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кількість</label>
+                    <input type="number" class="form-control" id="shopProductQuantity" value="0">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="shopSaleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Оформити продаж</h2>
+                <button class="modal-close" onclick="closeModal('shopSaleModal')">&times;</button>
+            </div>
+            <form id="shopSaleForm">
+                <input type="hidden" id="shopSaleId">
+                <div class="form-group">
+                    <label class="form-label">Товар</label>
+                    <select class="form-control" id="shopSaleProduct" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кількість</label>
+                    <input type="number" class="form-control" id="shopSaleQuantity" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Клієнт</label>
+                    <input type="text" class="form-control" id="shopSaleCustomer" placeholder="Ім'я клієнта">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Продати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ БІБЛІОТЕКИ -->
+    <div class="modal" id="libraryBookModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати книгу</h2>
+                <button class="modal-close" onclick="closeModal('libraryBookModal')">&times;</button>
+            </div>
+            <form id="libraryBookForm">
+                <input type="hidden" id="libraryBookId">
+                <div class="form-group">
+                    <label class="form-label">Назва книги</label>
+                    <input type="text" class="form-control" id="libraryBookTitle" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Автор</label>
+                    <input type="text" class="form-control" id="libraryBookAuthor">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ISBN</label>
+                    <input type="text" class="form-control" id="libraryBookIsbn">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кількість</label>
+                    <input type="number" class="form-control" id="libraryBookQuantity" value="1">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="libraryLoanModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Видати книгу</h2>
+                <button class="modal-close" onclick="closeModal('libraryLoanModal')">&times;</button>
+            </div>
+            <form id="libraryLoanForm">
+                <input type="hidden" id="libraryLoanId">
+                <div class="form-group">
+                    <label class="form-label">Книга</label>
+                    <select class="form-control" id="libraryLoanBook" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Читач</label>
+                    <select class="form-control" id="libraryLoanReader" required></select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Видати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ ШКОЛИ -->
+    <div class="modal" id="schoolStudentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати учня</h2>
+                <button class="modal-close" onclick="closeModal('schoolStudentModal')">&times;</button>
+            </div>
+            <form id="schoolStudentForm">
+                <input type="hidden" id="schoolStudentId">
+                <div class="form-group">
+                    <label class="form-label">ПІБ учня</label>
+                    <input type="text" class="form-control" id="schoolStudentName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Клас</label>
+                    <select class="form-control" id="schoolStudentClass"></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата народження</label>
+                    <input type="date" class="form-control" id="schoolStudentBirth">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон батьків</label>
+                    <input type="text" class="form-control" id="schoolStudentPhone">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="schoolClassModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити клас</h2>
+                <button class="modal-close" onclick="closeModal('schoolClassModal')">&times;</button>
+            </div>
+            <form id="schoolClassForm">
+                <input type="hidden" id="schoolClassId">
+                <div class="form-group">
+                    <label class="form-label">Назва класу</label>
+                    <input type="text" class="form-control" id="schoolClassName" placeholder="Наприклад: 10-А" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кабінет</label>
+                    <input type="text" class="form-control" id="schoolClassRoom">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ РЕСТОРАНУ -->
+    <div class="modal" id="restaurantMenuModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати страву</h2>
+                <button class="modal-close" onclick="closeModal('restaurantMenuModal')">&times;</button>
+            </div>
+            <form id="restaurantMenuForm">
+                <input type="hidden" id="restaurantMenuItemId">
+                <div class="form-group">
+                    <label class="form-label">Назва страви</label>
+                    <input type="text" class="form-control" id="restaurantMenuItemName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна (грн)</label>
+                    <input type="number" class="form-control" id="restaurantMenuItemPrice" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Категорія</label>
+                    <input type="text" class="form-control" id="restaurantMenuItemCategory" placeholder="Наприклад: Основні страви">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="restaurantOrderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити замовлення</h2>
+                <button class="modal-close" onclick="closeModal('restaurantOrderModal')">&times;</button>
+            </div>
+            <form id="restaurantOrderForm">
+                <input type="hidden" id="restaurantOrderId">
+                <div class="form-group">
+                    <label class="form-label">Номер столика</label>
+                    <input type="number" class="form-control" id="restaurantOrderTable">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Страви (кожна з нового рядка)</label>
+                    <textarea class="form-control" id="restaurantOrderItems" rows="3" placeholder="Борщ&#10;Вареники"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Загальна сума (грн)</label>
+                    <input type="number" class="form-control" id="restaurantOrderTotal" step="0.01">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ ГОТЕЛЮ -->
+    <div class="modal" id="hotelRoomModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати номер</h2>
+                <button class="modal-close" onclick="closeModal('hotelRoomModal')">&times;</button>
+            </div>
+            <form id="hotelRoomForm">
+                <input type="hidden" id="hotelRoomId">
+                <div class="form-group">
+                    <label class="form-label">Номер кімнати</label>
+                    <input type="text" class="form-control" id="hotelRoomNumber" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип</label>
+                    <input type="text" class="form-control" id="hotelRoomType" placeholder="Стандарт, Люкс">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна за ніч (грн)</label>
+                    <input type="number" class="form-control" id="hotelRoomPrice" step="0.01">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="hotelBookingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Забронювати номер</h2>
+                <button class="modal-close" onclick="closeModal('hotelBookingModal')">&times;</button>
+            </div>
+            <form id="hotelBookingForm">
+                <input type="hidden" id="hotelBookingId">
+                <div class="form-group">
+                    <label class="form-label">Номер</label>
+                    <select class="form-control" id="hotelBookingRoom" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Гість</label>
+                    <input type="text" class="form-control" id="hotelBookingGuest" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="hotelBookingPhone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Заїзд</label>
+                    <input type="date" class="form-control" id="hotelBookingCheckIn" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Виїзд</label>
+                    <input type="date" class="form-control" id="hotelBookingCheckOut" required>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Забронювати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ СПОРТЗАЛУ -->
+    <div class="modal" id="gymMembershipModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати абонемент</h2>
+                <button class="modal-close" onclick="closeModal('gymMembershipModal')">&times;</button>
+            </div>
+            <form id="gymMembershipForm">
+                <input type="hidden" id="gymMembershipId">
+                <div class="form-group">
+                    <label class="form-label">Користувач</label>
+                    <select class="form-control" id="gymMembershipUser" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип абонементу</label>
+                    <input type="text" class="form-control" id="gymMembershipType" placeholder="Стандарт, Преміум">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата початку</label>
+                    <input type="date" class="form-control" id="gymMembershipStart" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата закінчення</label>
+                    <input type="date" class="form-control" id="gymMembershipEnd" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна (грн)</label>
+                    <input type="number" class="form-control" id="gymMembershipPrice" step="0.01">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="gymTrainingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати тренування</h2>
+                <button class="modal-close" onclick="closeModal('gymTrainingModal')">&times;</button>
+            </div>
+            <form id="gymTrainingForm">
+                <input type="hidden" id="gymTrainingId">
+                <div class="form-group">
+                    <label class="form-label">Назва тренування</label>
+                    <input type="text" class="form-control" id="gymTrainingName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тренер</label>
+                    <input type="text" class="form-control" id="gymTrainingTrainer">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Розклад</label>
+                    <input type="text" class="form-control" id="gymTrainingSchedule" placeholder="Пн-Ср 18:00-19:00">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ САЛОНУ КРАСИ -->
+    <div class="modal" id="beautyServiceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати послугу</h2>
+                <button class="modal-close" onclick="closeModal('beautyServiceModal')">&times;</button>
+            </div>
+            <form id="beautyServiceForm">
+                <input type="hidden" id="beautyServiceId">
+                <div class="form-group">
+                    <label class="form-label">Назва послуги</label>
+                    <input type="text" class="form-control" id="beautyServiceName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна (грн)</label>
+                    <input type="number" class="form-control" id="beautyServicePrice" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тривалість (хвилини)</label>
+                    <input type="number" class="form-control" id="beautyServiceDuration" value="30">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="beautyAppointmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Записати клієнта</h2>
+                <button class="modal-close" onclick="closeModal('beautyAppointmentModal')">&times;</button>
+            </div>
+            <form id="beautyAppointmentForm">
+                <input type="hidden" id="beautyAppointmentId">
+                <div class="form-group">
+                    <label class="form-label">Послуга</label>
+                    <select class="form-control" id="beautyAppointmentService" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Клієнт</label>
+                    <input type="text" class="form-control" id="beautyAppointmentClient" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="beautyAppointmentPhone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата та час</label>
+                    <input type="datetime-local" class="form-control" id="beautyAppointmentDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Майстер</label>
+                    <input type="text" class="form-control" id="beautyAppointmentMaster" placeholder="ПІБ майстра">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Записати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ АВТОСЕРВІСУ -->
+    <div class="modal" id="autoOrderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити замовлення</h2>
+                <button class="modal-close" onclick="closeModal('autoOrderModal')">&times;</button>
+            </div>
+            <form id="autoOrderForm">
+                <input type="hidden" id="autoOrderId">
+                <div class="form-group">
+                    <label class="form-label">Клієнт</label>
+                    <input type="text" class="form-control" id="autoOrderClient" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="autoOrderPhone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Марка/Модель авто</label>
+                    <input type="text" class="form-control" id="autoOrderCar">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Номер авто</label>
+                    <input type="text" class="form-control" id="autoOrderNumber">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис робіт</label>
+                    <textarea class="form-control" id="autoOrderDesc" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="autoPartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати запчастину</h2>
+                <button class="modal-close" onclick="closeModal('autoPartModal')">&times;</button>
+            </div>
+            <form id="autoPartForm">
+                <input type="hidden" id="autoPartId">
+                <div class="form-group">
+                    <label class="form-label">Назва запчастини</label>
+                    <input type="text" class="form-control" id="autoPartName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна (грн)</label>
+                    <input type="number" class="form-control" id="autoPartPrice" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кількість</label>
+                    <input type="number" class="form-control" id="autoPartQuantity" value="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Постачальник</label>
+                    <input type="text" class="form-control" id="autoPartSupplier">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ НЕРУХОМОСТІ -->
+    <div class="modal" id="realtyPropertyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати об'єкт</h2>
+                <button class="modal-close" onclick="closeModal('realtyPropertyModal')">&times;</button>
+            </div>
+            <form id="realtyPropertyForm">
+                <input type="hidden" id="realtyPropertyId">
+                <div class="form-group">
+                    <label class="form-label">Адреса</label>
+                    <input type="text" class="form-control" id="realtyPropertyAddress" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип</label>
+                    <input type="text" class="form-control" id="realtyPropertyType" placeholder="Квартира, Будинок, Офіс">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ціна (грн)</label>
+                    <input type="number" class="form-control" id="realtyPropertyPrice" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Площа (м²)</label>
+                    <input type="number" class="form-control" id="realtyPropertyArea" step="0.1">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="realtyDealModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити угоду</h2>
+                <button class="modal-close" onclick="closeModal('realtyDealModal')">&times;</button>
+            </div>
+            <form id="realtyDealForm">
+                <input type="hidden" id="realtyDealId">
+                <div class="form-group">
+                    <label class="form-label">Об'єкт</label>
+                    <select class="form-control" id="realtyDealProperty" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Клієнт</label>
+                    <input type="text" class="form-control" id="realtyDealClient" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="realtyDealPhone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип угоди</label>
+                    <select class="form-control" id="realtyDealType" required>
+                        <option value="sale">Продаж</option>
+                        <option value="rent">Оренда</option>
+                        <option value="exchange">Обмін</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сума (грн)</label>
+                    <input type="number" class="form-control" id="realtyDealAmount" step="0.01">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ ЛОГІСТИКИ -->
+    <div class="modal" id="logisticsOrderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити вантаж</h2>
+                <button class="modal-close" onclick="closeModal('logisticsOrderModal')">&times;</button>
+            </div>
+            <form id="logisticsOrderForm">
+                <input type="hidden" id="logisticsOrderId">
+                <div class="form-group">
+                    <label class="form-label">Номер замовлення</label>
+                    <input type="text" class="form-control" id="logisticsOrderNumber" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Клієнт</label>
+                    <input type="text" class="form-control" id="logisticsOrderClient" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адреса забору</label>
+                    <input type="text" class="form-control" id="logisticsOrderPickup">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адреса доставки</label>
+                    <input type="text" class="form-control" id="logisticsOrderDelivery">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Вага (кг)</label>
+                    <input type="number" class="form-control" id="logisticsOrderWeight" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата доставки</label>
+                    <input type="date" class="form-control" id="logisticsOrderDeliveryDate">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ ДОСТАВКИ -->
+    <div class="modal" id="deliveryOrderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити доставку</h2>
+                <button class="modal-close" onclick="closeModal('deliveryOrderModal')">&times;</button>
+            </div>
+            <form id="deliveryOrderForm">
+                <input type="hidden" id="deliveryOrderId">
+                <div class="form-group">
+                    <label class="form-label">Номер замовлення</label>
+                    <input type="text" class="form-control" id="deliveryOrderNumber" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Клієнт</label>
+                    <input type="text" class="form-control" id="deliveryOrderClient" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" class="form-control" id="deliveryOrderPhone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адреса доставки</label>
+                    <input type="text" class="form-control" id="deliveryOrderAddress">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кур'єр</label>
+                    <input type="text" class="form-control" id="deliveryOrderCourier">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Час доставки</label>
+                    <input type="datetime-local" class="form-control" id="deliveryOrderTime">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛКИ ДЛЯ IT -->
+    <div class="modal" id="itProjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Створити проект</h2>
+                <button class="modal-close" onclick="closeModal('itProjectModal')">&times;</button>
+            </div>
+            <form id="itProjectForm">
+                <input type="hidden" id="itProjectId">
+                <div class="form-group">
+                    <label class="form-label">Назва проекту</label>
+                    <input type="text" class="form-control" id="itProjectName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="itProjectDesc" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дедлайн</label>
+                    <input type="date" class="form-control" id="itProjectDeadline">
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Створити</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="itBugModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Додати баг</h2>
+                <button class="modal-close" onclick="closeModal('itBugModal')">&times;</button>
+            </div>
+            <form id="itBugForm">
+                <input type="hidden" id="itBugId">
+                <div class="form-group">
+                    <label class="form-label">Проект</label>
+                    <select class="form-control" id="itBugProject" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Назва бага</label>
+                    <input type="text" class="form-control" id="itBugTitle" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис</label>
+                    <textarea class="form-control" id="itBugDesc" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пріоритет</label>
+                    <select class="form-control" id="itBugPriority">
+                        <option value="low">🟢 Низький</option>
+                        <option value="medium" selected>🟡 Середній</option>
+                        <option value="high">🔴 Високий</option>
+                        <option value="urgent">🔥 Терміновий</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Призначити</label>
+                    <select class="form-control" id="itBugAssign"></select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">Додати</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== СКРИПТИ ===== -->
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/org-dashboard.js"></script>
+</body>
+</html>
