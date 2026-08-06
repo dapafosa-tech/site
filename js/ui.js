@@ -1,8 +1,7 @@
 // ============================================
-// TYPEBIZ - UI КОМПОНЕНТИ (КРАСИВІ СПОВІЩЕННЯ)
+// TYPEBIZ - UI КОМПОНЕНТИ (КАСТОМНІ МОДАЛКИ)
 // ============================================
 
-// ===== ТОСТ-СПОВІЩЕННЯ (ЗВЕРХУ ПРАВОРУЧ) =====
 function showToast(message, type, duration) {
     if (type === undefined) type = 'info';
     if (duration === undefined) duration = 3500;
@@ -58,7 +57,6 @@ function showToast(message, type, duration) {
     }, duration);
 }
 
-// ===== КРАСИВИЙ ALERT (МОДАЛКА) =====
 function showAlert(message, type, title) {
     if (type === undefined) type = 'info';
     if (title === undefined) {
@@ -126,7 +124,6 @@ function showAlert(message, type, title) {
     });
 }
 
-// ===== КРАСИВИЙ CONFIRM =====
 function showConfirm(message, title, confirmText, cancelText) {
     if (title === undefined) title = 'Підтвердження';
     if (confirmText === undefined) confirmText = 'Так';
@@ -172,7 +169,6 @@ function showConfirm(message, title, confirmText, cancelText) {
     });
 }
 
-// ===== КРАСИВИЙ PROMPT =====
 function showPrompt(message, defaultValue, title) {
     if (defaultValue === undefined) defaultValue = '';
     if (title === undefined) title = 'Введіть значення';
@@ -238,7 +234,6 @@ function showPrompt(message, defaultValue, title) {
     });
 }
 
-// ===== АНІМАЦІЇ (ДОДАЄМО В HEAD) =====
 var style = document.createElement('style');
 style.textContent = 
     '@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } ' +
@@ -247,10 +242,7 @@ style.textContent =
     '@keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
 document.head.appendChild(style);
 
-// ===== ГЛОБАЛЬНІ ФУНКЦІЇ =====
 window.showToast = showToast;
 window.showAlert = showAlert;
 window.showConfirm = showConfirm;
 window.showPrompt = showPrompt;
-
-console.log('✅ UI module loaded');
