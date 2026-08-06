@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Організація — Typebiz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/global.css">
     <style>
-        /* ===== ТЕМНА ТЕМА ===== */
+        /* ===== ДОДАТКОВІ СТИЛІ ДЛЯ ORG-DASHBOARD ===== */
         :root {
             --ink: #0F1115;
             --ink-soft: #171A21;
@@ -37,18 +38,11 @@
         }
 
         body {
-            font-family: 'IBM Plex Sans', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-body);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
-        }
-
-        .display {
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        .mono {
-            font-family: 'IBM Plex Mono', monospace;
         }
 
         /* ===== САЙДБАР ===== */
@@ -84,7 +78,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'IBM Plex Mono';
+            font-family: monospace;
             font-size: 0.7rem;
             font-weight: 600;
             transform: rotate(-6deg);
@@ -113,7 +107,7 @@
             font-size: 0.8rem;
             color: var(--text-secondary);
             margin-top: 0.25rem;
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: monospace;
         }
 
         .sidebar .nav-menu {
@@ -183,7 +177,6 @@
         }
 
         .page-header h1 {
-            font-family: 'Space Grotesk', sans-serif;
             font-size: 2rem;
             font-weight: 700;
             color: var(--text-primary);
@@ -245,7 +238,6 @@
         }
 
         .card-title {
-            font-family: 'Space Grotesk', sans-serif;
             font-size: 1.25rem;
             font-weight: 600;
             color: var(--text-primary);
@@ -264,6 +256,7 @@
             border: 1px solid transparent;
             transition: transform .15s, box-shadow .15s;
             text-decoration: none;
+            font-family: inherit;
         }
 
         .btn-gold {
@@ -296,6 +289,16 @@
             box-shadow: 0 8px 20px rgba(226, 80, 62, 0.28);
         }
 
+        .btn-warning {
+            background: #F59E0B;
+            color: var(--ink);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.28);
+        }
+
         .btn-sm {
             padding: 0.3rem 0.8rem;
             font-size: 0.75rem;
@@ -320,31 +323,6 @@
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-        }
-
-        /* ===== БЕЙДЖІ СТАТУСІВ КЛІНІКИ ===== */
-        .badge-scheduled {
-            background: #F59E0B20;
-            color: #F59E0B;
-            border: 1px solid #F59E0B40;
-        }
-
-        .badge-in_progress {
-            background: #3B82F620;
-            color: #3B82F6;
-            border: 1px solid #3B82F640;
-        }
-
-        .badge-completed {
-            background: #46C9B820;
-            color: #46C9B8;
-            border: 1px solid #46C9B840;
-        }
-
-        .badge-cancelled {
-            background: #E2503E20;
-            color: #E2503E;
-            border: 1px solid #E2503E40;
         }
 
         /* ===== ТАБЛИЦІ ===== */
@@ -410,6 +388,31 @@
             color: var(--text-secondary);
         }
 
+        /* ===== СТАТУСИ КЛІНІКИ ===== */
+        .badge-scheduled {
+            background: #F59E0B20;
+            color: #F59E0B;
+            border: 1px solid #F59E0B40;
+        }
+
+        .badge-in_progress {
+            background: #3B82F620;
+            color: #3B82F6;
+            border: 1px solid #3B82F640;
+        }
+
+        .badge-completed {
+            background: #46C9B820;
+            color: #46C9B8;
+            border: 1px solid #46C9B840;
+        }
+
+        .badge-cancelled {
+            background: #E2503E20;
+            color: #E2503E;
+            border: 1px solid #E2503E40;
+        }
+
         /* ===== МОДАЛКИ ===== */
         .modal {
             display: none;
@@ -448,7 +451,6 @@
         }
 
         .modal-header h2 {
-            font-family: 'Space Grotesk', sans-serif;
             font-size: 1.25rem;
             color: var(--text-primary);
         }
@@ -486,7 +488,7 @@
             border: 1px solid var(--border-color);
             border-radius: 6px;
             color: var(--text-primary);
-            font-family: 'IBM Plex Sans', sans-serif;
+            font-family: inherit;
             font-size: 1rem;
             transition: border-color .2s;
         }
@@ -632,6 +634,67 @@
 
         ::-webkit-scrollbar-thumb:hover {
             background: var(--gold);
+        }
+
+        /* ===== ТОСТИ ===== */
+        .toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 360px;
+            width: 100%;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+        .toast.warning {
+            border-left: 4px solid #f59e0b;
+        }
+        .toast.info {
+            border-left: 4px solid var(--gold);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
     </style>
 </head>
