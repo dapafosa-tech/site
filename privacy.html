@@ -1,141 +1,160 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Политика конфиденциальности — Typebiz</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Політика конфіденційності — Typebiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/style.css">
     <style>
-        body {
-            background: var(--gray-50);
+        :root {
+            --ink: #0F1115;
+            --ink-soft: #171A21;
+            --ink-line: #2A2E38;
+            --gold: #F2A93B;
+            --teal: #46C9B8;
+            --text-onink: #E7E4DA;
+            --muted: #8B93A6;
+            --radius: 10px;
         }
-
-        .privacy-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:'IBM Plex Sans',sans-serif;
+            background:var(--ink);
+            color:var(--text-onink);
+            min-height:100vh;
+            padding:2rem;
         }
-
-        .privacy-container .logo {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 2rem;
-            color: var(--gray-800);
+        .privacy-container{
+            max-width:800px;
+            margin:0 auto;
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius);
+            padding:3rem;
+            box-shadow:0 30px 60px rgba(0,0,0,0.5);
         }
-
-        .privacy-container .logo i {
-            color: var(--primary);
-            margin-right: 0.5rem;
+        .logo{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            font-weight:700;
+            font-size:1.5rem;
+            margin-bottom:2rem;
         }
-
-        .privacy-container .logo span {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .logo .tab{
+            width:30px;height:30px;
+            border-radius:4px;
+            background:var(--gold);
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:'IBM Plex Mono';
+            font-size:0.75rem;
+            font-weight:600;
+            transform:rotate(-6deg);
         }
-
-        .privacy-container h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+        h1{
+            font-family:'Space Grotesk',sans-serif;
+            font-size:2rem;
+            margin-bottom:0.5rem;
         }
-
-        .privacy-container .date {
-            color: var(--gray-500);
-            margin-bottom: 2rem;
+        .date{
+            color:var(--muted);
+            margin-bottom:2rem;
+            font-size:0.9rem;
         }
-
-        .privacy-container h2 {
-            font-size: 1.25rem;
-            margin-top: 2rem;
-            margin-bottom: 0.5rem;
+        h2{
+            font-family:'Space Grotesk',sans-serif;
+            font-size:1.25rem;
+            margin-top:2rem;
+            margin-bottom:0.5rem;
+            color:var(--gold);
         }
-
-        .privacy-container p {
-            color: var(--gray-600);
-            line-height: 1.8;
-            margin-bottom: 1rem;
+        p{
+            color:var(--muted);
+            line-height:1.8;
+            margin-bottom:1rem;
         }
-
-        .privacy-container ul {
-            color: var(--gray-600);
-            line-height: 1.8;
-            padding-left: 1.5rem;
-            margin-bottom: 1rem;
+        ul{
+            color:var(--muted);
+            line-height:1.8;
+            padding-left:1.5rem;
+            margin-bottom:1rem;
         }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--primary);
-            text-decoration: none;
-            margin-top: 2rem;
+        ul li{margin-bottom:0.5rem;}
+        .back-link{
+            display:inline-flex;
+            align-items:center;
+            gap:0.5rem;
+            color:var(--teal);
+            text-decoration:none;
+            margin-top:2rem;
+            font-weight:600;
         }
-
-        .back-link:hover {
-            text-decoration: underline;
+        .back-link:hover{color:var(--gold);}
+        @media(max-width:768px){
+            .privacy-container{padding:1.5rem;}
+            body{padding:1rem;}
         }
     </style>
 </head>
 <body>
     <div class="privacy-container">
         <div class="logo">
-            <i class="fas fa-cubes"></i>
+            <span class="tab">Tb</span>
             <span>Typebiz</span>
         </div>
 
-        <h1>Политика конфиденциальности</h1>
-        <p class="date">Последнее обновление: 4 августа 2026 г.</p>
+        <h1>Політика конфіденційності</h1>
+        <p class="date">Останнє оновлення: 6 серпня 2026 р.</p>
 
-        <h2>1. Какие данные мы собираем</h2>
+        <h2>1. Які дані ми збираємо</h2>
         <ul>
-            <li>Имя и фамилия</li>
-            <li>Email адрес</li>
-            <li>Номер телефона (опционально)</li>
-            <li>Информация об организациях, которые вы создаете</li>
-            <li>Данные о действиях в системе</li>
+            <li>Ім'я та прізвище</li>
+            <li>Email адреса</li>
+            <li>Номер телефону (опціонально)</li>
+            <li>Інформація про організації, які ви створюєте</li>
+            <li>Дані про дії в системі</li>
         </ul>
 
-        <h2>2. Как мы используем ваши данные</h2>
+        <h2>2. Як ми використовуємо ваші дані</h2>
         <ul>
-            <li>Для создания и управления вашим аккаунтом</li>
-            <li>Для предоставления доступа к платформе</li>
-            <li>Для улучшения наших сервисов</li>
-            <li>Для связи с вами по важным вопросам</li>
+            <li>Для створення та управління вашим акаунтом</li>
+            <li>Для надання доступу до платформи</li>
+            <li>Для покращення наших сервісів</li>
+            <li>Для зв'язку з вами з важливих питань</li>
         </ul>
 
-        <h2>3. Хранение данных</h2>
+        <h2>3. Зберігання даних</h2>
         <p>
-            Ваши данные хранятся на защищенных серверах в Supabase. Мы используем современные методы 
-            шифрования для защиты вашей информации.
+            Ваші дані зберігаються на захищених серверах у Supabase. Ми використовуємо сучасні методи 
+            шифрування для захисту вашої інформації.
         </p>
 
-        <h2>4. Передача данных третьим лицам</h2>
+        <h2>4. Передача даних третім особам</h2>
         <p>
-            Мы не передаем ваши данные третьим лицам без вашего согласия, за исключением случаев, 
-            предусмотренных законодательством.
+            Ми не передаємо ваші дані третім особам без вашої згоди, за винятком випадків, 
+            передбачених законодавством.
         </p>
 
-        <h2>5. Ваши права</h2>
+        <h2>5. Ваші права</h2>
         <ul>
-            <li>Вы можете запросить удаление ваших данных</li>
-            <li>Вы можете экспортировать ваши данные</li>
-            <li>Вы можете изменить настройки конфиденциальности</li>
+            <li>Ви можете запросити видалення ваших даних</li>
+            <li>Ви можете експортувати ваші дані</li>
+            <li>Ви можете змінити налаштування конфіденційності</li>
         </ul>
 
-        <h2>6. Контакты</h2>
+        <h2>6. Контакти</h2>
         <p>
-            По вопросам конфиденциальности: <a href="mailto:privacy@typebiz.com">privacy@typebiz.com</a>
+            З питань конфіденційності: <a href="mailto:privacy@typebiz.com" style="color:var(--teal);">privacy@typebiz.com</a>
         </p>
 
         <a href="javascript:history.back()" class="back-link">
-            <i class="fas fa-arrow-left"></i> Вернуться назад
+            <i class="fas fa-arrow-left"></i> Повернутися назад
         </a>
     </div>
 </body>
