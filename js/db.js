@@ -37,7 +37,9 @@ function generateJoinCode() {
         }
         parts.push(part);
     }
-    return parts.join('-');
+    var code = parts.join('-');
+    console.log('🔑 Згенеровано код:', code);
+    return code;
 }
 
 async function supabaseQuery(endpoint, options) {
@@ -212,9 +214,37 @@ async function deleteOrganization(id) {
     });
 }
 
+// ===== ПОШУК ОРГАНІЗАЦІЇ ПО КОДУ (ВИПРАВЛЕНО) =====
 async function getOrganizationByJoinCode(code) {
-    var result = await supabaseQuery('organizations?join_code=eq.' + code);
-    return result[0] || null;
+    // Приводимо до нижнього регістру (бо в БД зберігається в нижньому)
+    var cleanCode = code.trim().toLowerCase();
+    console.log('🔍 Пошук за кодом:', cleanCode);
+    
+    // Шукаємо точний збіг
+    var result = await supabaseQuery('organizations?join_code=eq.' + cleanCode);
+    
+    if (result && result.length > 0) {
+        console.log('✅ Організацію знайдено:', result[0].name);
+        return result[0];
+    }
+    
+    // Якщо не знайшли - пробуємо пошук по частині (якщо код без дефісів)
+    if (!cleanCode.includes('-')) {
+        var allOrgs = await supabaseQuery('organizations?select=id,name,join_code');
+        if (allOrgs) {
+            for (var i = 0; i < allOrgs.length; i++) {
+                var orgCode = allOrgs[i].join_code || '';
+                var orgCodeClean = orgCode.replace(/-/g, '');
+                if (orgCodeClean === cleanCode) {
+                    console.log('✅ Організацію знайдено (без дефісів):', allOrgs[i].name);
+                    return allOrgs[i];
+                }
+            }
+        }
+    }
+    
+    console.log('❌ Організацію не знайдено');
+    return null;
 }
 
 // ===== РАНГИ =====
