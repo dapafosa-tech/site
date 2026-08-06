@@ -1,9 +1,10 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ВИПРАВЛЕНА ВЕРСІЯ)
+// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА ВЕРСІЯ)
 // ============================================
 
 var currentOrgId = null;
 var currentOrg = null;
+var allPatients = [];
 
 var typeLabels = {
     'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
@@ -1695,7 +1696,7 @@ async function deletePoll(pollId) {
     }
 }
 
-// ========== ФАЙЛИ ==========
+// ========== ФАЙЛИ (ВИПРАВЛЕНА ВЕРСІЯ) ==========
 async function loadFiles() {
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Файли';
@@ -1786,7 +1787,7 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
         var user = auth.getCurrentUser();
         var fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         
-        var uploadResponse = await fetch(SUPABASE_URL + '/storage/v1/object/org_files/' + fileName, {
+        var uploadResponse = await fetch(SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -1799,8 +1800,8 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
             var errorText = await uploadResponse.text();
             console.error('Upload error:', uploadResponse.status, errorText);
             
-            if (uploadResponse.status === 404) {
-                await showAlert('Сховище не налаштоване. Зверніться до адміністратора.', 'error');
+            if (uploadResponse.status === 403 || uploadResponse.status === 404) {
+                await showAlert('Потрібно створити сховище. Виконайте SQL у Supabase.', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-upload"></i> Завантажити';
                 return;
@@ -1816,7 +1817,7 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
             name: file.name,
             url: fileUrl,
             size: file.size,
-            mime_type: file.type,
+            mime_type: file.type || 'application/octet-stream',
             uploaded_by: user ? user.id : null
         });
 
@@ -1849,7 +1850,7 @@ async function deleteFile(fileId) {
 
         if (file) {
             var fileName = file.url.split('/').pop();
-            await fetch(SUPABASE_URL + '/storage/v1/object/org_files/' + fileName, {
+            await fetch(SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName, {
                 method: 'DELETE',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
@@ -1867,7 +1868,7 @@ async function deleteFile(fileId) {
 }
 
 // ============================================
-// МОДУЛЬ: КЛІНІКА
+// МОДУЛЬ: КЛІНІКА (З ПОШУКОМ ПАЦІЄНТІВ)
 // ============================================
 async function loadClinic() {
     var container = document.getElementById('sectionContent');
@@ -1877,38 +1878,54 @@ async function loadClinic() {
     try {
         var patients = await db.getClinicPatients(currentOrgId);
         var appointments = await db.getClinicAppointments(currentOrgId);
+        allPatients = patients || [];
 
         var html = '';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
-        html += '<div class="card"><div class="card-header"><h3 class="card-title">Пацієнти (' + (patients ? patients.length : 0) + ')</h3>';
-        html += '<button class="btn btn-gold btn-sm" onclick="openClinicPatient()"><i class="fas fa-plus"></i> Додати</button></div>';
+        
+        // ЛІВА КОЛОНКА - ПАЦІЄНТИ
+        html += '<div class="card">';
+        html += '<div class="card-header">';
+        html += '<h3 class="card-title">Пацієнти (' + (patients ? patients.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openClinicPatient()"><i class="fas fa-plus"></i> Додати</button>';
+        html += '</div>';
+        
+        html += '<div style="margin-bottom:0.75rem;display:flex;gap:0.5rem;">';
+        html += '<input type="text" class="form-control" id="patientSearch" placeholder="🔍 Пошук пацієнтів..." style="flex:1;" oninput="filterPatients()">';
+        html += '</div>';
+        
         html += '<div id="clinicPatientsList" style="max-height:300px;overflow-y:auto;">';
         
         if (patients && patients.length > 0) {
             for (var i = 0; i < patients.length; i++) {
                 var p = patients[i];
-                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
-                html += '<div><strong>' + p.full_name + '</strong>';
+                html += '<div class="patient-item" data-name="' + (p.full_name || '').toLowerCase() + '" data-phone="' + (p.phone || '') + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div><strong>' + (p.full_name || 'Без імені') + '</strong>';
                 html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
                 html += '<div><button class="btn btn-sm btn-danger" onclick="deleteClinicPatient(\'' + p.id + '\')"><i class="fas fa-trash"></i></button></div>';
                 html += '</div>';
             }
         } else {
-            html += '<div class="text-center text-muted" style="padding:1rem;">Немає пацієнтів</div>';
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає пацієнтів. <br>Натисніть "Додати" щоб створити першого.</div>';
         }
         html += '</div></div>';
 
-        html += '<div class="card"><div class="card-header"><h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
-        html += '<button class="btn btn-gold btn-sm" onclick="openClinicAppointment()"><i class="fas fa-plus"></i> Записати</button></div>';
+        // ПРАВА КОЛОНКА - ЗАПИСИ
+        html += '<div class="card">';
+        html += '<div class="card-header">';
+        html += '<h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openClinicAppointment()"><i class="fas fa-plus"></i> Записати</button>';
+        html += '</div>';
         html += '<div id="clinicAppointmentsList" style="max-height:300px;overflow-y:auto;">';
         
         if (appointments && appointments.length > 0) {
             for (var i = 0; i < appointments.length; i++) {
                 var a = appointments[i];
                 var statusClass = a.status === 'scheduled' ? 'badge-warning' : a.status === 'completed' ? 'badge-success' : 'badge-danger';
+                var statusLabel = a.status === 'scheduled' ? '⏳ Заплановано' : a.status === 'completed' ? '✅ Виконано' : '❌ Скасовано';
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
                 html += '<div><strong>' + (a.patient_name || 'Пацієнт') + '</strong> → ' + (a.doctor_name || 'Лікар') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (a.status || 'scheduled') + '</span></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + statusLabel + '</span></div>';
                 html += '</div>';
             }
         } else {
@@ -1918,8 +1935,25 @@ async function loadClinic() {
 
         container.innerHTML = html;
     } catch (error) {
+        console.error('Clinic load error:', error);
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
+}
+
+function filterPatients() {
+    var searchInput = document.getElementById('patientSearch');
+    if (!searchInput) return;
+    var query = searchInput.value.toLowerCase().trim();
+    var items = document.querySelectorAll('.patient-item');
+    items.forEach(function(item) {
+        var name = item.getAttribute('data-name') || '';
+        var phone = item.getAttribute('data-phone') || '';
+        if (name.indexOf(query) !== -1 || phone.indexOf(query) !== -1) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
 }
 
 function openClinicPatient() {
@@ -1934,7 +1968,6 @@ function openClinicPatient() {
 
 document.getElementById('clinicPatientForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     var name = document.getElementById('clinicPatientName').value.trim();
     var phone = document.getElementById('clinicPatientPhone').value.trim();
     var birth = document.getElementById('clinicPatientBirth').value;
@@ -1960,6 +1993,7 @@ document.getElementById('clinicPatientForm')?.addEventListener('submit', async f
         document.getElementById('clinicPatientForm').reset();
         loadClinic();
     } catch (error) {
+        console.error('Error:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
@@ -1967,50 +2001,93 @@ document.getElementById('clinicPatientForm')?.addEventListener('submit', async f
 function openClinicAppointment() {
     document.getElementById('clinicAppointmentModal').classList.add('active');
     document.getElementById('clinicAppointmentId').value = '';
-    document.getElementById('clinicAppointmentPatient').value = '';
     document.getElementById('clinicAppointmentDoctor').value = '';
     document.getElementById('clinicAppointmentDate').value = '';
     document.getElementById('clinicAppointmentReason').value = '';
-    loadClinicPatientsSelect();
+    document.getElementById('clinicAppointmentPatientSearch').value = '';
+    document.getElementById('clinicAppointmentPatientId').value = '';
+    document.getElementById('clinicAppointmentPatientList').innerHTML = '';
+    document.getElementById('clinicAppointmentPatientList').style.display = 'none';
 }
 
-async function loadClinicPatientsSelect() {
-    try {
-        var patients = await db.getClinicPatients(currentOrgId);
-        var select = document.getElementById('clinicAppointmentPatient');
-        if (!select) return;
-        
-        select.innerHTML = '<option value="">Оберіть пацієнта...</option>';
-        if (patients && patients.length > 0) {
-            for (var i = 0; i < patients.length; i++) {
-                var option = document.createElement('option');
-                option.value = patients[i].id;
-                option.textContent = patients[i].full_name;
-                select.appendChild(option);
-            }
-        }
-    } catch (error) {
-        console.error('Load patients error:', error);
+function searchPatientsForAppointment() {
+    var query = document.getElementById('clinicAppointmentPatientSearch').value.toLowerCase().trim();
+    var list = document.getElementById('clinicAppointmentPatientList');
+    if (!query || query.length < 2) {
+        list.style.display = 'none';
+        list.innerHTML = '';
+        return;
     }
+    var filtered = allPatients.filter(function(p) {
+        var name = (p.full_name || '').toLowerCase();
+        var phone = (p.phone || '');
+        return name.indexOf(query) !== -1 || phone.indexOf(query) !== -1;
+    });
+    if (filtered.length === 0) {
+        list.style.display = 'block';
+        list.innerHTML = '<div style="padding:0.5rem;color:var(--muted);text-align:center;">Пацієнтів не знайдено. <br><button class="btn btn-sm btn-gold" onclick="closeModal(\'clinicAppointmentModal\');openClinicPatient();">Створити нового</button></div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var p = filtered[i];
+        html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="selectPatientForAppointment(\'' + p.id + '\', \'' + (p.full_name || '') + '\', \'' + (p.phone || '') + '\')">';
+        html += '<div><strong>' + p.full_name + '</strong>';
+        html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
+        html += '<span style="color:var(--teal);font-size:0.8rem;"><i class="fas fa-chevron-right"></i></span>';
+        html += '</div>';
+    }
+    list.style.display = 'block';
+    list.innerHTML = html;
 }
+
+function selectPatientForAppointment(id, name, phone) {
+    document.getElementById('clinicAppointmentPatientId').value = id;
+    document.getElementById('clinicAppointmentPatientSearch').value = name + (phone ? ' (' + phone + ')' : '');
+    document.getElementById('clinicAppointmentPatientList').style.display = 'none';
+    document.getElementById('clinicAppointmentPatientList').innerHTML = '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('clinicAppointmentPatientSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', searchPatientsForAppointment);
+        searchInput.addEventListener('focus', function() {
+            if (this.value.length >= 2) {
+                searchPatientsForAppointment();
+            }
+        });
+    }
+});
 
 document.getElementById('clinicAppointmentForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
-    var patientId = document.getElementById('clinicAppointmentPatient').value;
+    var patientId = document.getElementById('clinicAppointmentPatientId').value;
     var doctorName = document.getElementById('clinicAppointmentDoctor').value.trim();
     var date = document.getElementById('clinicAppointmentDate').value;
     var reason = document.getElementById('clinicAppointmentReason').value.trim();
 
-    if (!patientId || !date) {
-        await showAlert('Оберіть пацієнта та дату', 'warning');
+    if (!patientId) {
+        await showAlert('Оберіть пацієнта (почніть вводити ім\'я)', 'warning');
+        return;
+    }
+    if (!date) {
+        await showAlert('Оберіть дату та час', 'warning');
         return;
     }
 
     try {
+        var patient = null;
+        for (var i = 0; i < allPatients.length; i++) {
+            if (allPatients[i].id === patientId) {
+                patient = allPatients[i];
+                break;
+            }
+        }
         await db.createClinicAppointment({
             organization_id: currentOrgId,
             patient_id: patientId,
+            patient_name: patient ? patient.full_name : null,
             doctor_name: doctorName || 'Лікар',
             appointment_date: date,
             reason: reason || null,
@@ -2021,14 +2098,14 @@ document.getElementById('clinicAppointmentForm')?.addEventListener('submit', asy
         document.getElementById('clinicAppointmentForm').reset();
         loadClinic();
     } catch (error) {
+        console.error('Error:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
 
 async function deleteClinicPatient(patientId) {
-    var confirmed = await showConfirm('Видалити пацієнта?', 'Підтвердження');
+    var confirmed = await showConfirm('Видалити пацієнта? Всі його записи також будуть видалені.', 'Підтвердження');
     if (!confirmed) return;
-    
     try {
         await db.supabaseQuery('clinic_patients?id=eq.' + patientId, { method: 'DELETE' });
         await showToast('Пацієнта видалено', 'success');
@@ -2039,7 +2116,7 @@ async function deleteClinicPatient(patientId) {
 }
 
 // ============================================
-// МОДУЛЬ: МАГАЗИН (СКОРОЧЕНА ВЕРСІЯ)
+// МОДУЛЬ: МАГАЗИН
 // ============================================
 async function loadShop() {
     var container = document.getElementById('sectionContent');
@@ -2052,10 +2129,11 @@ async function loadShop() {
 
         var html = '';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
-        html += '<div class="card"><div class="card-header"><h3 class="card-title">Товари (' + (products ? products.length : 0) + ')</h3>';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Товари (' + (products ? products.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openShopProduct()"><i class="fas fa-plus"></i> Додати</button></div>';
         html += '<div id="shopProductsList" style="max-height:300px;overflow-y:auto;">';
-        
         if (products && products.length > 0) {
             for (var i = 0; i < products.length; i++) {
                 var p = products[i];
@@ -2069,10 +2147,10 @@ async function loadShop() {
         }
         html += '</div></div>';
 
-        html += '<div class="card"><div class="card-header"><h3 class="card-title">Продажі (' + (sales ? sales.length : 0) + ')</h3>';
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Продажі (' + (sales ? sales.length : 0) + ')</h3>';
         html += '<button class="btn btn-gold btn-sm" onclick="openShopSale()"><i class="fas fa-plus"></i> Продаж</button></div>';
         html += '<div id="shopSalesList" style="max-height:300px;overflow-y:auto;">';
-        
         if (sales && sales.length > 0) {
             for (var i = 0; i < sales.length; i++) {
                 var s = sales[i];
@@ -2102,7 +2180,6 @@ function openShopProduct() {
 
 document.getElementById('shopProductForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     var name = document.getElementById('shopProductName').value.trim();
     var price = parseFloat(document.getElementById('shopProductPrice').value);
     var quantity = parseInt(document.getElementById('shopProductQuantity').value) || 0;
@@ -2142,7 +2219,6 @@ async function loadShopProductsSelect() {
         var products = await db.getShopProducts(currentOrgId);
         var select = document.getElementById('shopSaleProduct');
         if (!select) return;
-        
         select.innerHTML = '<option value="">Оберіть товар...</option>';
         if (products && products.length > 0) {
             for (var i = 0; i < products.length; i++) {
@@ -2159,7 +2235,6 @@ async function loadShopProductsSelect() {
 
 document.getElementById('shopSaleForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     var productId = document.getElementById('shopSaleProduct').value;
     var quantity = parseInt(document.getElementById('shopSaleQuantity').value) || 1;
     var customer = document.getElementById('shopSaleCustomer').value.trim();
@@ -2211,7 +2286,6 @@ document.getElementById('shopSaleForm')?.addEventListener('submit', async functi
 async function deleteShopProduct(productId) {
     var confirmed = await showConfirm('Видалити товар?', 'Підтвердження');
     if (!confirmed) return;
-    
     try {
         await db.supabaseQuery('shop_products?id=eq.' + productId, { method: 'DELETE' });
         await showToast('Товар видалено', 'success');
@@ -2222,7 +2296,7 @@ async function deleteShopProduct(productId) {
 }
 
 // ============================================
-// МОДУЛЬ: БІБЛІОТЕКА (СКОРОЧЕНА ВЕРСІЯ)
+// МОДУЛЬ: БІБЛІОТЕКА
 // ============================================
 async function loadLibrary() {
     var container = document.getElementById('sectionContent');
@@ -2232,13 +2306,15 @@ async function loadLibrary() {
     try {
         var books = await db.getLibraryBooks(currentOrgId);
         var loans = await db.getLibraryLoans(currentOrgId);
+        var readers = await db.getLibraryReaders(currentOrgId);
 
         var html = '';
-        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
-        html += '<div class="card"><div class="card-header"><h3 class="card-title">Книги (' + (books ? books.length : 0) + ')</h3>';
-        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryBook()"><i class="fas fa-plus"></i> Додати</button></div>';
-        html += '<div id="libraryBooksList" style="max-height:300px;overflow-y:auto;">';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;">';
         
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Книги (' + (books ? books.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryBook()"><i class="fas fa-plus"></i></button></div>';
+        html += '<div id="libraryBooksList" style="max-height:300px;overflow-y:auto;">';
         if (books && books.length > 0) {
             for (var i = 0; i < books.length; i++) {
                 var b = books[i];
@@ -2252,10 +2328,27 @@ async function loadLibrary() {
         }
         html += '</div></div>';
 
-        html += '<div class="card"><div class="card-header"><h3 class="card-title">Видача (' + (loans ? loans.length : 0) + ')</h3>';
-        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryLoan()"><i class="fas fa-hand-holding"></i> Видати</button></div>';
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Читачі (' + (readers ? readers.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryReader()"><i class="fas fa-plus"></i></button></div>';
+        html += '<div id="libraryReadersList" style="max-height:300px;overflow-y:auto;">';
+        if (readers && readers.length > 0) {
+            for (var i = 0; i < readers.length; i++) {
+                var r = readers[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + r.full_name + '</strong></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (r.phone || '') + ' · ' + new Date(r.joined_at).toLocaleDateString('uk-UA') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає читачів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Видача (' + (loans ? loans.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openLibraryLoan()"><i class="fas fa-hand-holding"></i></button></div>';
         html += '<div id="libraryLoansList" style="max-height:300px;overflow-y:auto;">';
-        
         if (loans && loans.length > 0) {
             for (var i = 0; i < loans.length; i++) {
                 var l = loans[i];
@@ -2287,7 +2380,6 @@ function openLibraryBook() {
 
 document.getElementById('libraryBookForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     var title = document.getElementById('libraryBookTitle').value.trim();
     var author = document.getElementById('libraryBookAuthor').value.trim();
     var isbn = document.getElementById('libraryBookIsbn').value.trim();
@@ -2316,6 +2408,41 @@ document.getElementById('libraryBookForm')?.addEventListener('submit', async fun
     }
 });
 
+function openLibraryReader() {
+    document.getElementById('libraryReaderModal').classList.add('active');
+    document.getElementById('libraryReaderId').value = '';
+    document.getElementById('libraryReaderName').value = '';
+    document.getElementById('libraryReaderPhone').value = '';
+    document.getElementById('libraryReaderEmail').value = '';
+}
+
+document.getElementById('libraryReaderForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('libraryReaderName').value.trim();
+    var phone = document.getElementById('libraryReaderPhone').value.trim();
+    var email = document.getElementById('libraryReaderEmail').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть ПІБ читача', 'warning');
+        return;
+    }
+
+    try {
+        await db.createLibraryReader({
+            organization_id: currentOrgId,
+            full_name: name,
+            phone: phone || null,
+            email: email || null
+        });
+        await showToast('Читача додано!', 'success');
+        closeModal('libraryReaderModal');
+        document.getElementById('libraryReaderForm').reset();
+        loadLibrary();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
 function openLibraryLoan() {
     document.getElementById('libraryLoanModal').classList.add('active');
     document.getElementById('libraryLoanId').value = '';
@@ -2330,7 +2457,6 @@ async function loadLibraryBooksSelect() {
         var books = await db.getLibraryBooks(currentOrgId);
         var select = document.getElementById('libraryLoanBook');
         if (!select) return;
-        
         select.innerHTML = '<option value="">Оберіть книгу...</option>';
         if (books && books.length > 0) {
             for (var i = 0; i < books.length; i++) {
@@ -2352,7 +2478,6 @@ async function loadLibraryReadersSelect() {
         var readers = await db.getLibraryReaders(currentOrgId);
         var select = document.getElementById('libraryLoanReader');
         if (!select) return;
-        
         select.innerHTML = '<option value="">Оберіть читача...</option>';
         if (readers && readers.length > 0) {
             for (var i = 0; i < readers.length; i++) {
@@ -2369,7 +2494,6 @@ async function loadLibraryReadersSelect() {
 
 document.getElementById('libraryLoanForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
     var bookId = document.getElementById('libraryLoanBook').value;
     var readerId = document.getElementById('libraryLoanReader').value;
 
@@ -2413,8 +2537,1438 @@ document.getElementById('libraryLoanForm')?.addEventListener('submit', async fun
 });
 
 // ============================================
-// МОДУЛЬ: НАЛАШТУВАННЯ
+// МОДУЛЬ: ШКОЛА
 // ============================================
+async function loadSchool() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '🎓 Школа';
+    document.getElementById('pageSubtitle').textContent = 'Управління учнями та класами';
+
+    try {
+        var students = await db.getSchoolStudents(currentOrgId);
+        var classes = await db.getSchoolClasses(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Учні (' + (students ? students.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openSchoolStudent()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="schoolStudentsList" style="max-height:300px;overflow-y:auto;">';
+        if (students && students.length > 0) {
+            for (var i = 0; i < students.length; i++) {
+                var s = students[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + s.full_name + '</strong></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (s.class_name ? 'Клас: ' + s.class_name : '') + (s.birth_date ? ' · ' + new Date(s.birth_date).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає учнів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Класи (' + (classes ? classes.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openSchoolClass()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div id="schoolClassesList" style="max-height:300px;overflow-y:auto;">';
+        if (classes && classes.length > 0) {
+            for (var i = 0; i < classes.length; i++) {
+                var c = classes[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + c.name + '</strong></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (c.room || '') + (c.teacher_name ? ' · ' + c.teacher_name : '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає класів</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openSchoolStudent() {
+    document.getElementById('schoolStudentModal').classList.add('active');
+    document.getElementById('schoolStudentId').value = '';
+    document.getElementById('schoolStudentName').value = '';
+    document.getElementById('schoolStudentBirth').value = '';
+    document.getElementById('schoolStudentPhone').value = '';
+    loadSchoolClassesSelect();
+}
+
+async function loadSchoolClassesSelect() {
+    try {
+        var classes = await db.getSchoolClasses(currentOrgId);
+        var select = document.getElementById('schoolStudentClass');
+        if (!select) return;
+        select.innerHTML = '<option value="">Без класу</option>';
+        if (classes && classes.length > 0) {
+            for (var i = 0; i < classes.length; i++) {
+                var option = document.createElement('option');
+                option.value = classes[i].id;
+                option.textContent = classes[i].name;
+                select.appendChild(option);
+            }
+        }
+    } catch (error) {
+        console.error('Load classes error:', error);
+    }
+}
+
+document.getElementById('schoolStudentForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('schoolStudentName').value.trim();
+    var classId = document.getElementById('schoolStudentClass').value;
+    var birth = document.getElementById('schoolStudentBirth').value;
+    var phone = document.getElementById('schoolStudentPhone').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть ПІБ учня', 'warning');
+        return;
+    }
+
+    try {
+        var className = '';
+        if (classId) {
+            var classes = await db.getSchoolClasses(currentOrgId);
+            for (var i = 0; i < classes.length; i++) {
+                if (classes[i].id === classId) {
+                    className = classes[i].name;
+                    break;
+                }
+            }
+        }
+        await db.createSchoolStudent({
+            organization_id: currentOrgId,
+            full_name: name,
+            class_id: classId || null,
+            class_name: className || null,
+            birth_date: birth || null,
+            parent_phone: phone || null
+        });
+        await showToast('Учня додано!', 'success');
+        closeModal('schoolStudentModal');
+        document.getElementById('schoolStudentForm').reset();
+        loadSchool();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openSchoolClass() {
+    document.getElementById('schoolClassModal').classList.add('active');
+    document.getElementById('schoolClassId').value = '';
+    document.getElementById('schoolClassName').value = '';
+    document.getElementById('schoolClassRoom').value = '';
+}
+
+document.getElementById('schoolClassForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('schoolClassName').value.trim();
+    var room = document.getElementById('schoolClassRoom').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть назву класу', 'warning');
+        return;
+    }
+
+    try {
+        await db.createSchoolClass({
+            organization_id: currentOrgId,
+            name: name,
+            room: room || null
+        });
+        await showToast('Клас створено!', 'success');
+        closeModal('schoolClassModal');
+        document.getElementById('schoolClassForm').reset();
+        loadSchool();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: РЕСТОРАН
+// ============================================
+async function loadRestaurant() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '🍽️ Ресторан';
+    document.getElementById('pageSubtitle').textContent = 'Управління меню та замовленнями';
+
+    try {
+        var menu = await db.getRestaurantMenu(currentOrgId);
+        var orders = await db.getRestaurantOrders(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Меню (' + (menu ? menu.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openRestaurantMenuItem()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="restaurantMenuList" style="max-height:300px;overflow-y:auto;">';
+        if (menu && menu.length > 0) {
+            for (var i = 0; i < menu.length; i++) {
+                var m = menu[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + m.name + '</strong> — ' + (m.price || 0) + ' грн</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (m.category || '') + (m.is_available ? ' ✅ Доступно' : ' ❌ Немає') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає страв</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Замовлення (' + (orders ? orders.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openRestaurantOrder()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div id="restaurantOrdersList" style="max-height:300px;overflow-y:auto;">';
+        if (orders && orders.length > 0) {
+            for (var i = 0; i < orders.length; i++) {
+                var o = orders[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>Замовлення #' + (o.id ? o.id.slice(0,8) : '') + '</strong> — ' + (o.total || 0) + ' грн</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">Стіл ' + (o.table_number || '?') + ' · ' + (o.status || 'new') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає замовлень</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openRestaurantMenuItem() {
+    document.getElementById('restaurantMenuModal').classList.add('active');
+    document.getElementById('restaurantMenuItemId').value = '';
+    document.getElementById('restaurantMenuItemName').value = '';
+    document.getElementById('restaurantMenuItemPrice').value = '';
+    document.getElementById('restaurantMenuItemCategory').value = '';
+}
+
+document.getElementById('restaurantMenuForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('restaurantMenuItemName').value.trim();
+    var price = parseFloat(document.getElementById('restaurantMenuItemPrice').value);
+    var category = document.getElementById('restaurantMenuItemCategory').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть назву страви', 'warning');
+        return;
+    }
+
+    try {
+        await db.createRestaurantMenuItem({
+            organization_id: currentOrgId,
+            name: name,
+            price: price || 0,
+            category: category || null,
+            is_available: true
+        });
+        await showToast('Страву додано!', 'success');
+        closeModal('restaurantMenuModal');
+        document.getElementById('restaurantMenuForm').reset();
+        loadRestaurant();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openRestaurantOrder() {
+    document.getElementById('restaurantOrderModal').classList.add('active');
+    document.getElementById('restaurantOrderId').value = '';
+    document.getElementById('restaurantOrderTable').value = '';
+    document.getElementById('restaurantOrderItems').value = '';
+    document.getElementById('restaurantOrderTotal').value = '';
+}
+
+document.getElementById('restaurantOrderForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var tableNumber = parseInt(document.getElementById('restaurantOrderTable').value);
+    var itemsText = document.getElementById('restaurantOrderItems').value.trim();
+    var total = parseFloat(document.getElementById('restaurantOrderTotal').value);
+
+    try {
+        var items = itemsText ? itemsText.split('\n').filter(function(i) { return i.trim(); }) : [];
+        await db.createRestaurantOrder({
+            organization_id: currentOrgId,
+            table_number: tableNumber || null,
+            items: items,
+            total: total || 0,
+            status: 'new'
+        });
+        await showToast('Замовлення створено!', 'success');
+        closeModal('restaurantOrderModal');
+        document.getElementById('restaurantOrderForm').reset();
+        loadRestaurant();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: ГОТЕЛЬ
+// ============================================
+async function loadHotel() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '🏨 Готель';
+    document.getElementById('pageSubtitle').textContent = 'Управління номерами та бронюваннями';
+
+    try {
+        var rooms = await db.getHotelRooms(currentOrgId);
+        var bookings = await db.getHotelBookings(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Номери (' + (rooms ? rooms.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openHotelRoom()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="hotelRoomsList" style="max-height:300px;overflow-y:auto;">';
+        if (rooms && rooms.length > 0) {
+            for (var i = 0; i < rooms.length; i++) {
+                var r = rooms[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>№' + r.number + '</strong> — ' + (r.type || 'Стандарт') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (r.price || 0) + ' грн · ' + (r.is_available ? '✅ Вільний' : '❌ Зайнятий') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає номерів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Бронювання (' + (bookings ? bookings.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openHotelBooking()"><i class="fas fa-plus"></i> Забронювати</button></div>';
+        html += '<div id="hotelBookingsList" style="max-height:300px;overflow-y:auto;">';
+        if (bookings && bookings.length > 0) {
+            for (var i = 0; i < bookings.length; i++) {
+                var b = bookings[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + b.guest_name + '</strong> → №' + (b.room_number || '?') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (b.check_in ? new Date(b.check_in).toLocaleDateString('uk-UA') : '') + ' - ' + (b.check_out ? new Date(b.check_out).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає бронювань</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openHotelRoom() {
+    document.getElementById('hotelRoomModal').classList.add('active');
+    document.getElementById('hotelRoomId').value = '';
+    document.getElementById('hotelRoomNumber').value = '';
+    document.getElementById('hotelRoomType').value = '';
+    document.getElementById('hotelRoomPrice').value = '';
+}
+
+document.getElementById('hotelRoomForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var number = document.getElementById('hotelRoomNumber').value.trim();
+    var type = document.getElementById('hotelRoomType').value.trim();
+    var price = parseFloat(document.getElementById('hotelRoomPrice').value);
+
+    if (!number) {
+        await showAlert('Введіть номер кімнати', 'warning');
+        return;
+    }
+
+    try {
+        await db.createHotelRoom({
+            organization_id: currentOrgId,
+            number: number,
+            type: type || 'Стандарт',
+            price: price || 0,
+            is_available: true
+        });
+        await showToast('Номер додано!', 'success');
+        closeModal('hotelRoomModal');
+        document.getElementById('hotelRoomForm').reset();
+        loadHotel();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openHotelBooking() {
+    document.getElementById('hotelBookingModal').classList.add('active');
+    document.getElementById('hotelBookingId').value = '';
+    document.getElementById('hotelBookingGuest').value = '';
+    document.getElementById('hotelBookingPhone').value = '';
+    document.getElementById('hotelBookingCheckIn').value = '';
+    document.getElementById('hotelBookingCheckOut').value = '';
+    loadHotelRoomsSelect();
+}
+
+async function loadHotelRoomsSelect() {
+    try {
+        var rooms = await db.getHotelRooms(currentOrgId);
+        var select = document.getElementById('hotelBookingRoom');
+        if (!select) return;
+        select.innerHTML = '<option value="">Оберіть номер...</option>';
+        if (rooms && rooms.length > 0) {
+            for (var i = 0; i < rooms.length; i++) {
+                if (rooms[i].is_available) {
+                    var option = document.createElement('option');
+                    option.value = rooms[i].id;
+                    option.textContent = '№' + rooms[i].number + ' (' + rooms[i].type + ')';
+                    select.appendChild(option);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Load rooms error:', error);
+    }
+}
+
+document.getElementById('hotelBookingForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var roomId = document.getElementById('hotelBookingRoom').value;
+    var guestName = document.getElementById('hotelBookingGuest').value.trim();
+    var guestPhone = document.getElementById('hotelBookingPhone').value.trim();
+    var checkIn = document.getElementById('hotelBookingCheckIn').value;
+    var checkOut = document.getElementById('hotelBookingCheckOut').value;
+
+    if (!roomId || !guestName || !checkIn || !checkOut) {
+        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
+        return;
+    }
+
+    try {
+        await db.createHotelBooking({
+            organization_id: currentOrgId,
+            room_id: roomId,
+            room_number: document.getElementById('hotelBookingRoom').options[document.getElementById('hotelBookingRoom').selectedIndex]?.text || null,
+            guest_name: guestName,
+            guest_phone: guestPhone || null,
+            check_in: checkIn,
+            check_out: checkOut,
+            status: 'confirmed'
+        });
+        await db.supabaseQuery('hotel_rooms?id=eq.' + roomId, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_available: false })
+        });
+        await showToast('Бронювання створено!', 'success');
+        closeModal('hotelBookingModal');
+        document.getElementById('hotelBookingForm').reset();
+        loadHotel();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: СПОРТЗАЛ
+// ============================================
+async function loadGym() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '💪 Спортзал';
+    document.getElementById('pageSubtitle').textContent = 'Управління абонементами та тренуваннями';
+
+    try {
+        var memberships = await db.getGymMemberships(currentOrgId);
+        var trainings = await db.getGymTrainings(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Абонементи (' + (memberships ? memberships.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openGymMembership()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="gymMembershipsList" style="max-height:300px;overflow-y:auto;">';
+        if (memberships && memberships.length > 0) {
+            for (var i = 0; i < memberships.length; i++) {
+                var m = memberships[i];
+                var statusClass = m.status === 'active' ? 'badge-success' : 'badge-danger';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + (m.user_name || 'Користувач') + '</strong> — ' + (m.type || 'Стандарт') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (m.start_date ? new Date(m.start_date).toLocaleDateString('uk-UA') : '') + ' - ' + (m.end_date ? new Date(m.end_date).toLocaleDateString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (m.status || 'active') + '</span></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає абонементів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Тренування (' + (trainings ? trainings.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openGymTraining()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="gymTrainingsList" style="max-height:300px;overflow-y:auto;">';
+        if (trainings && trainings.length > 0) {
+            for (var i = 0; i < trainings.length; i++) {
+                var t = trainings[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + t.name + '</strong> — ' + (t.trainer || 'Тренер') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (t.schedule || '') + ' · ' + (t.max_participants || 10) + ' місць</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає тренувань</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openGymMembership() {
+    document.getElementById('gymMembershipModal').classList.add('active');
+    document.getElementById('gymMembershipId').value = '';
+    document.getElementById('gymMembershipType').value = '';
+    document.getElementById('gymMembershipStart').value = '';
+    document.getElementById('gymMembershipEnd').value = '';
+    document.getElementById('gymMembershipPrice').value = '';
+    loadGymUsersSelect();
+}
+
+async function loadGymUsersSelect() {
+    try {
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var select = document.getElementById('gymMembershipUser');
+        if (!select) return;
+        select.innerHTML = '<option value="">Оберіть користувача...</option>';
+        if (members && members.length > 0) {
+            for (var i = 0; i < members.length; i++) {
+                var userData = await db.supabaseQuery('users?id=eq.' + members[i].user_id);
+                if (userData && userData.length > 0) {
+                    var option = document.createElement('option');
+                    option.value = members[i].user_id;
+                    option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
+                    select.appendChild(option);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Load users error:', error);
+    }
+}
+
+document.getElementById('gymMembershipForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var userId = document.getElementById('gymMembershipUser').value;
+    var type = document.getElementById('gymMembershipType').value.trim();
+    var startDate = document.getElementById('gymMembershipStart').value;
+    var endDate = document.getElementById('gymMembershipEnd').value;
+    var price = parseFloat(document.getElementById('gymMembershipPrice').value);
+
+    if (!userId || !startDate || !endDate) {
+        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
+        return;
+    }
+
+    try {
+        var userData = await db.supabaseQuery('users?id=eq.' + userId);
+        var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email) : null;
+        await db.createGymMembership({
+            organization_id: currentOrgId,
+            user_id: userId,
+            user_name: userName,
+            type: type || 'Стандарт',
+            start_date: startDate,
+            end_date: endDate,
+            price: price || 0,
+            status: 'active'
+        });
+        await showToast('Абонемент додано!', 'success');
+        closeModal('gymMembershipModal');
+        document.getElementById('gymMembershipForm').reset();
+        loadGym();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openGymTraining() {
+    document.getElementById('gymTrainingModal').classList.add('active');
+    document.getElementById('gymTrainingId').value = '';
+    document.getElementById('gymTrainingName').value = '';
+    document.getElementById('gymTrainingTrainer').value = '';
+    document.getElementById('gymTrainingSchedule').value = '';
+}
+
+document.getElementById('gymTrainingForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('gymTrainingName').value.trim();
+    var trainer = document.getElementById('gymTrainingTrainer').value.trim();
+    var schedule = document.getElementById('gymTrainingSchedule').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть назву тренування', 'warning');
+        return;
+    }
+
+    try {
+        await db.createGymTraining({
+            organization_id: currentOrgId,
+            name: name,
+            trainer: trainer || null,
+            schedule: schedule || null
+        });
+        await showToast('Тренування додано!', 'success');
+        closeModal('gymTrainingModal');
+        document.getElementById('gymTrainingForm').reset();
+        loadGym();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: САЛОН КРАСИ
+// ============================================
+async function loadBeauty() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '💅 Салон краси';
+    document.getElementById('pageSubtitle').textContent = 'Управління послугами та записами';
+
+    try {
+        var services = await db.getBeautyServices(currentOrgId);
+        var appointments = await db.getBeautyAppointments(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Послуги (' + (services ? services.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openBeautyService()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="beautyServicesList" style="max-height:300px;overflow-y:auto;">';
+        if (services && services.length > 0) {
+            for (var i = 0; i < services.length; i++) {
+                var s = services[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + s.name + '</strong> — ' + (s.price || 0) + ' грн</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (s.category || '') + ' · ' + (s.duration || 0) + ' хв.</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає послуг</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Записи (' + (appointments ? appointments.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openBeautyAppointment()"><i class="fas fa-plus"></i> Записати</button></div>';
+        html += '<div id="beautyAppointmentsList" style="max-height:300px;overflow-y:auto;">';
+        if (appointments && appointments.length > 0) {
+            for (var i = 0; i < appointments.length; i++) {
+                var a = appointments[i];
+                var statusClass = a.status === 'scheduled' ? 'badge-warning' : 'badge-success';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + a.client_name + '</strong> → ' + (a.service_name || 'Послуга') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (a.status || 'scheduled') + '</span></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає записів</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openBeautyService() {
+    document.getElementById('beautyServiceModal').classList.add('active');
+    document.getElementById('beautyServiceId').value = '';
+    document.getElementById('beautyServiceName').value = '';
+    document.getElementById('beautyServicePrice').value = '';
+    document.getElementById('beautyServiceDuration').value = '';
+}
+
+document.getElementById('beautyServiceForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('beautyServiceName').value.trim();
+    var price = parseFloat(document.getElementById('beautyServicePrice').value);
+    var duration = parseInt(document.getElementById('beautyServiceDuration').value);
+
+    if (!name) {
+        await showAlert('Введіть назву послуги', 'warning');
+        return;
+    }
+
+    try {
+        await db.createBeautyService({
+            organization_id: currentOrgId,
+            name: name,
+            price: price || 0,
+            duration: duration || 30,
+            category: 'Інше'
+        });
+        await showToast('Послугу додано!', 'success');
+        closeModal('beautyServiceModal');
+        document.getElementById('beautyServiceForm').reset();
+        loadBeauty();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openBeautyAppointment() {
+    document.getElementById('beautyAppointmentModal').classList.add('active');
+    document.getElementById('beautyAppointmentId').value = '';
+    document.getElementById('beautyAppointmentClient').value = '';
+    document.getElementById('beautyAppointmentPhone').value = '';
+    document.getElementById('beautyAppointmentDate').value = '';
+    document.getElementById('beautyAppointmentMaster').value = '';
+    loadBeautyServicesSelect();
+}
+
+async function loadBeautyServicesSelect() {
+    try {
+        var services = await db.getBeautyServices(currentOrgId);
+        var select = document.getElementById('beautyAppointmentService');
+        if (!select) return;
+        select.innerHTML = '<option value="">Оберіть послугу...</option>';
+        if (services && services.length > 0) {
+            for (var i = 0; i < services.length; i++) {
+                var option = document.createElement('option');
+                option.value = services[i].id;
+                option.textContent = services[i].name + ' (' + services[i].price + ' грн)';
+                select.appendChild(option);
+            }
+        }
+    } catch (error) {
+        console.error('Load services error:', error);
+    }
+}
+
+document.getElementById('beautyAppointmentForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var serviceId = document.getElementById('beautyAppointmentService').value;
+    var clientName = document.getElementById('beautyAppointmentClient').value.trim();
+    var clientPhone = document.getElementById('beautyAppointmentPhone').value.trim();
+    var date = document.getElementById('beautyAppointmentDate').value;
+    var master = document.getElementById('beautyAppointmentMaster').value.trim();
+
+    if (!serviceId || !clientName || !date) {
+        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
+        return;
+    }
+
+    try {
+        var services = await db.getBeautyServices(currentOrgId);
+        var serviceName = null;
+        for (var i = 0; i < services.length; i++) {
+            if (services[i].id === serviceId) {
+                serviceName = services[i].name;
+                break;
+            }
+        }
+        await db.createBeautyAppointment({
+            organization_id: currentOrgId,
+            service_id: serviceId,
+            service_name: serviceName,
+            client_name: clientName,
+            client_phone: clientPhone || null,
+            appointment_date: date,
+            master: master || 'Майстер',
+            status: 'scheduled'
+        });
+        await showToast('Запис створено!', 'success');
+        closeModal('beautyAppointmentModal');
+        document.getElementById('beautyAppointmentForm').reset();
+        loadBeauty();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: АВТОСЕРВІС
+// ============================================
+async function loadAuto() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '🔧 Автосервіс';
+    document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та запчастинами';
+
+    try {
+        var orders = await db.getAutoOrders(currentOrgId);
+        var parts = await db.getAutoParts(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Замовлення (' + (orders ? orders.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openAutoOrder()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div id="autoOrdersList" style="max-height:300px;overflow-y:auto;">';
+        if (orders && orders.length > 0) {
+            for (var i = 0; i < orders.length; i++) {
+                var o = orders[i];
+                var statusClass = o.status === 'new' ? 'badge-warning' : 'badge-success';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + o.client_name + '</strong> — ' + (o.car_model || 'Авто') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (o.car_number || '') + ' · <span class="badge ' + statusClass + '">' + (o.status || 'new') + '</span></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає замовлень</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Запчастини (' + (parts ? parts.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openAutoPart()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="autoPartsList" style="max-height:300px;overflow-y:auto;">';
+        if (parts && parts.length > 0) {
+            for (var i = 0; i < parts.length; i++) {
+                var p = parts[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + p.name + '</strong> — ' + (p.price || 0) + ' грн</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.quantity || 0) + ' шт. · ' + (p.supplier || '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає запчастин</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openAutoOrder() {
+    document.getElementById('autoOrderModal').classList.add('active');
+    document.getElementById('autoOrderId').value = '';
+    document.getElementById('autoOrderClient').value = '';
+    document.getElementById('autoOrderPhone').value = '';
+    document.getElementById('autoOrderCar').value = '';
+    document.getElementById('autoOrderNumber').value = '';
+    document.getElementById('autoOrderDesc').value = '';
+}
+
+document.getElementById('autoOrderForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var clientName = document.getElementById('autoOrderClient').value.trim();
+    var clientPhone = document.getElementById('autoOrderPhone').value.trim();
+    var carModel = document.getElementById('autoOrderCar').value.trim();
+    var carNumber = document.getElementById('autoOrderNumber').value.trim();
+    var description = document.getElementById('autoOrderDesc').value.trim();
+
+    if (!clientName) {
+        await showAlert('Введіть ім\'я клієнта', 'warning');
+        return;
+    }
+
+    try {
+        await db.createAutoOrder({
+            organization_id: currentOrgId,
+            client_name: clientName,
+            client_phone: clientPhone || null,
+            car_model: carModel || null,
+            car_number: carNumber || null,
+            description: description || null,
+            status: 'new'
+        });
+        await showToast('Замовлення створено!', 'success');
+        closeModal('autoOrderModal');
+        document.getElementById('autoOrderForm').reset();
+        loadAuto();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openAutoPart() {
+    document.getElementById('autoPartModal').classList.add('active');
+    document.getElementById('autoPartId').value = '';
+    document.getElementById('autoPartName').value = '';
+    document.getElementById('autoPartPrice').value = '';
+    document.getElementById('autoPartQuantity').value = '';
+    document.getElementById('autoPartSupplier').value = '';
+}
+
+document.getElementById('autoPartForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('autoPartName').value.trim();
+    var price = parseFloat(document.getElementById('autoPartPrice').value);
+    var quantity = parseInt(document.getElementById('autoPartQuantity').value) || 0;
+    var supplier = document.getElementById('autoPartSupplier').value.trim();
+
+    if (!name) {
+        await showAlert('Введіть назву запчастини', 'warning');
+        return;
+    }
+
+    try {
+        await db.createAutoPart({
+            organization_id: currentOrgId,
+            name: name,
+            price: price || 0,
+            quantity: quantity || 0,
+            supplier: supplier || null
+        });
+        await showToast('Запчастину додано!', 'success');
+        closeModal('autoPartModal');
+        document.getElementById('autoPartForm').reset();
+        loadAuto();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: НЕРУХОМІСТЬ
+// ============================================
+async function loadRealty() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '🏠 Нерухомість';
+    document.getElementById('pageSubtitle').textContent = 'Управління об\'єктами та угодами';
+
+    try {
+        var properties = await db.getRealtyProperties(currentOrgId);
+        var deals = await db.getRealtyDeals(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Об\'єкти (' + (properties ? properties.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openRealtyProperty()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="realtyPropertiesList" style="max-height:300px;overflow-y:auto;">';
+        if (properties && properties.length > 0) {
+            for (var i = 0; i < properties.length; i++) {
+                var p = properties[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + p.address + '</strong></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.type || '') + ' · ' + (p.price || 0) + ' грн · ' + (p.area || 0) + ' м²</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає об\'єктів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Угоди (' + (deals ? deals.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openRealtyDeal()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div id="realtyDealsList" style="max-height:300px;overflow-y:auto;">';
+        if (deals && deals.length > 0) {
+            for (var i = 0; i < deals.length; i++) {
+                var d = deals[i];
+                var statusClass = d.status === 'pending' ? 'badge-warning' : 'badge-success';
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + d.client_name + '</strong> → ' + (d.property_address || 'Об\'єкт') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (d.deal_type || '') + ' · ' + (d.amount || 0) + ' грн <span class="badge ' + statusClass + '">' + (d.status || 'pending') + '</span></div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає угод</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openRealtyProperty() {
+    document.getElementById('realtyPropertyModal').classList.add('active');
+    document.getElementById('realtyPropertyId').value = '';
+    document.getElementById('realtyPropertyAddress').value = '';
+    document.getElementById('realtyPropertyType').value = '';
+    document.getElementById('realtyPropertyPrice').value = '';
+    document.getElementById('realtyPropertyArea').value = '';
+}
+
+document.getElementById('realtyPropertyForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var address = document.getElementById('realtyPropertyAddress').value.trim();
+    var type = document.getElementById('realtyPropertyType').value.trim();
+    var price = parseFloat(document.getElementById('realtyPropertyPrice').value);
+    var area = parseFloat(document.getElementById('realtyPropertyArea').value);
+
+    if (!address) {
+        await showAlert('Введіть адресу', 'warning');
+        return;
+    }
+
+    try {
+        await db.createRealtyProperty({
+            organization_id: currentOrgId,
+            address: address,
+            type: type || 'Квартира',
+            price: price || 0,
+            area: area || 0,
+            status: 'active'
+        });
+        await showToast('Об\'єкт додано!', 'success');
+        closeModal('realtyPropertyModal');
+        document.getElementById('realtyPropertyForm').reset();
+        loadRealty();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openRealtyDeal() {
+    document.getElementById('realtyDealModal').classList.add('active');
+    document.getElementById('realtyDealId').value = '';
+    document.getElementById('realtyDealClient').value = '';
+    document.getElementById('realtyDealPhone').value = '';
+    document.getElementById('realtyDealType').value = '';
+    document.getElementById('realtyDealAmount').value = '';
+    loadRealtyPropertiesSelect();
+}
+
+async function loadRealtyPropertiesSelect() {
+    try {
+        var properties = await db.getRealtyProperties(currentOrgId);
+        var select = document.getElementById('realtyDealProperty');
+        if (!select) return;
+        select.innerHTML = '<option value="">Оберіть об\'єкт...</option>';
+        if (properties && properties.length > 0) {
+            for (var i = 0; i < properties.length; i++) {
+                if (properties[i].status === 'active') {
+                    var option = document.createElement('option');
+                    option.value = properties[i].id;
+                    option.textContent = properties[i].address + ' (' + properties[i].price + ' грн)';
+                    select.appendChild(option);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Load properties error:', error);
+    }
+}
+
+document.getElementById('realtyDealForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var propertyId = document.getElementById('realtyDealProperty').value;
+    var clientName = document.getElementById('realtyDealClient').value.trim();
+    var clientPhone = document.getElementById('realtyDealPhone').value.trim();
+    var dealType = document.getElementById('realtyDealType').value;
+    var amount = parseFloat(document.getElementById('realtyDealAmount').value);
+
+    if (!propertyId || !clientName || !dealType) {
+        await showAlert('Заповніть всі обов\'язкові поля', 'warning');
+        return;
+    }
+
+    try {
+        var property = null;
+        var properties = await db.getRealtyProperties(currentOrgId);
+        for (var i = 0; i < properties.length; i++) {
+            if (properties[i].id === propertyId) {
+                property = properties[i];
+                break;
+            }
+        }
+        await db.createRealtyDeal({
+            organization_id: currentOrgId,
+            property_id: propertyId,
+            property_address: property ? property.address : null,
+            client_name: clientName,
+            client_phone: clientPhone || null,
+            deal_type: dealType,
+            amount: amount || 0,
+            deal_date: new Date().toISOString().split('T')[0],
+            status: 'pending'
+        });
+        await showToast('Угоду створено!', 'success');
+        closeModal('realtyDealModal');
+        document.getElementById('realtyDealForm').reset();
+        loadRealty();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ============================================
+// МОДУЛЬ: ЛОГІСТИКА
+// ============================================
+async function loadLogistics() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '📦 Логістика';
+    document.getElementById('pageSubtitle').textContent = 'Управління вантажами та маршрутами';
+
+    try {
+        var orders = await db.getLogisticsOrders(currentOrgId);
+
+        var html = '';
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Вантажі (' + (orders ? orders.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openLogisticsOrder()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>№</th><th>Клієнт</th><th>Вага</th><th>Статус</th><th>Дата доставки</th><th>Дії</th></tr></thead><tbody>';
+        if (orders && orders.length > 0) {
+            for (var i = 0; i < orders.length; i++) {
+                var o = orders[i];
+                var statusClass = o.status === 'new' ? 'badge-warning' : 'badge-success';
+                html += '<tr><td><strong>' + (o.order_number || '—') + '</strong></td><td>' + (o.client_name || '—') + '</td><td>' + (o.weight || 0) + ' кг</td><td><span class="badge ' + statusClass + '">' + (o.status || 'new') + '</span></td><td>' + (o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('uk-UA') : '—') + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteLogisticsOrder(\'' + o.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+            }
+        } else {
+            html += '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>';
+        }
+        html += '</tbody></table></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openLogisticsOrder() {
+    document.getElementById('logisticsOrderModal').classList.add('active');
+    document.getElementById('logisticsOrderId').value = '';
+    document.getElementById('logisticsOrderNumber').value = 'LOG-' + Date.now().toString().slice(-6);
+    document.getElementById('logisticsOrderClient').value = '';
+    document.getElementById('logisticsOrderPickup').value = '';
+    document.getElementById('logisticsOrderDelivery').value = '';
+    document.getElementById('logisticsOrderWeight').value = '';
+    document.getElementById('logisticsOrderDeliveryDate').value = '';
+}
+
+document.getElementById('logisticsOrderForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var orderNumber = document.getElementById('logisticsOrderNumber').value.trim();
+    var clientName = document.getElementById('logisticsOrderClient').value.trim();
+    var pickup = document.getElementById('logisticsOrderPickup').value.trim();
+    var delivery = document.getElementById('logisticsOrderDelivery').value.trim();
+    var weight = parseFloat(document.getElementById('logisticsOrderWeight').value);
+    var deliveryDate = document.getElementById('logisticsOrderDeliveryDate').value;
+
+    if (!orderNumber || !clientName) {
+        await showAlert('Заповніть обов\'язкові поля', 'warning');
+        return;
+    }
+
+    try {
+        await db.createLogisticsOrder({
+            organization_id: currentOrgId,
+            order_number: orderNumber,
+            client_name: clientName,
+            pickup_address: pickup || null,
+            delivery_address: delivery || null,
+            weight: weight || 0,
+            delivery_date: deliveryDate || null,
+            status: 'new'
+        });
+        await showToast('Замовлення створено!', 'success');
+        closeModal('logisticsOrderModal');
+        document.getElementById('logisticsOrderForm').reset();
+        loadLogistics();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteLogisticsOrder(orderId) {
+    var confirmed = await showConfirm('Видалити замовлення?', 'Підтвердження');
+    if (!confirmed) return;
+    try {
+        await db.supabaseQuery('logistics_orders?id=eq.' + orderId, { method: 'DELETE' });
+        await showToast('Замовлення видалено', 'success');
+        loadLogistics();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ============================================
+// МОДУЛЬ: ДОСТАВКА
+// ============================================
+async function loadDelivery() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '🚚 Доставка';
+    document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та кур\'єрами';
+
+    try {
+        var orders = await db.getDeliveryOrders(currentOrgId);
+
+        var html = '';
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Замовлення (' + (orders ? orders.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openDeliveryOrder()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>№</th><th>Клієнт</th><th>Кур\'єр</th><th>Статус</th><th>Час доставки</th><th>Дії</th></tr></thead><tbody>';
+        if (orders && orders.length > 0) {
+            for (var i = 0; i < orders.length; i++) {
+                var o = orders[i];
+                var statusClass = o.status === 'pending' ? 'badge-warning' : o.status === 'delivered' ? 'badge-success' : 'badge-primary';
+                html += '<tr><td><strong>' + (o.order_number || '—') + '</strong></td><td>' + (o.client_name || '—') + '</td><td>' + (o.courier_name || 'Не призначено') + '</td><td><span class="badge ' + statusClass + '">' + (o.status || 'pending') + '</span></td><td>' + (o.delivery_time ? new Date(o.delivery_time).toLocaleString('uk-UA') : '—') + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteDeliveryOrder(\'' + o.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+            }
+        } else {
+            html += '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>';
+        }
+        html += '</tbody></table></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openDeliveryOrder() {
+    document.getElementById('deliveryOrderModal').classList.add('active');
+    document.getElementById('deliveryOrderId').value = '';
+    document.getElementById('deliveryOrderNumber').value = 'DEL-' + Date.now().toString().slice(-6);
+    document.getElementById('deliveryOrderClient').value = '';
+    document.getElementById('deliveryOrderPhone').value = '';
+    document.getElementById('deliveryOrderAddress').value = '';
+    document.getElementById('deliveryOrderCourier').value = '';
+    document.getElementById('deliveryOrderTime').value = '';
+}
+
+document.getElementById('deliveryOrderForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var orderNumber = document.getElementById('deliveryOrderNumber').value.trim();
+    var clientName = document.getElementById('deliveryOrderClient').value.trim();
+    var clientPhone = document.getElementById('deliveryOrderPhone').value.trim();
+    var clientAddress = document.getElementById('deliveryOrderAddress').value.trim();
+    var courierName = document.getElementById('deliveryOrderCourier').value.trim();
+    var deliveryTime = document.getElementById('deliveryOrderTime').value;
+
+    if (!orderNumber || !clientName) {
+        await showAlert('Заповніть обов\'язкові поля', 'warning');
+        return;
+    }
+
+    try {
+        await db.createDeliveryOrder({
+            organization_id: currentOrgId,
+            order_number: orderNumber,
+            client_name: clientName,
+            client_phone: clientPhone || null,
+            client_address: clientAddress || null,
+            courier_name: courierName || null,
+            delivery_time: deliveryTime || null,
+            status: 'pending'
+        });
+        await showToast('Замовлення створено!', 'success');
+        closeModal('deliveryOrderModal');
+        document.getElementById('deliveryOrderForm').reset();
+        loadDelivery();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+async function deleteDeliveryOrder(orderId) {
+    var confirmed = await showConfirm('Видалити замовлення?', 'Підтвердження');
+    if (!confirmed) return;
+    try {
+        await db.supabaseQuery('delivery_orders?id=eq.' + orderId, { method: 'DELETE' });
+        await showToast('Замовлення видалено', 'success');
+        loadDelivery();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ============================================
+// МОДУЛЬ: IT / GAMEDEV
+// ============================================
+async function loadIT() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = '💻 IT / GameDev';
+    document.getElementById('pageSubtitle').textContent = 'Управління проектами та задачами';
+
+    try {
+        var projects = await db.getItProjects(currentOrgId);
+        var bugs = await db.getItBugs(currentOrgId);
+
+        var html = '';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Проекти (' + (projects ? projects.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openITProject()"><i class="fas fa-plus"></i> Створити</button></div>';
+        html += '<div id="itProjectsList" style="max-height:300px;overflow-y:auto;">';
+        if (projects && projects.length > 0) {
+            for (var i = 0; i < projects.length; i++) {
+                var p = projects[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + p.name + '</strong></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.status || 'active') + (p.deadline ? ' · ' + new Date(p.deadline).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає проектів</div>';
+        }
+        html += '</div></div>';
+
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Баги (' + (bugs ? bugs.length : 0) + ')</h3>';
+        html += '<button class="btn btn-gold btn-sm" onclick="openITBug()"><i class="fas fa-plus"></i> Додати</button></div>';
+        html += '<div id="itBugsList" style="max-height:300px;overflow-y:auto;">';
+        if (bugs && bugs.length > 0) {
+            for (var i = 0; i < bugs.length; i++) {
+                var b = bugs[i];
+                html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
+                html += '<div><strong>' + b.title + '</strong></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (b.priority || 'medium') + ' · ' + (b.status || 'open') + (b.assigned_name ? ' → ' + b.assigned_name : '') + '</div>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div class="text-center text-muted" style="padding:1rem;">Немає багів</div>';
+        }
+        html += '</div></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
+    }
+}
+
+function openITProject() {
+    document.getElementById('itProjectModal').classList.add('active');
+    document.getElementById('itProjectId').value = '';
+    document.getElementById('itProjectName').value = '';
+    document.getElementById('itProjectDesc').value = '';
+    document.getElementById('itProjectDeadline').value = '';
+}
+
+document.getElementById('itProjectForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var name = document.getElementById('itProjectName').value.trim();
+    var description = document.getElementById('itProjectDesc').value.trim();
+    var deadline = document.getElementById('itProjectDeadline').value;
+
+    if (!name) {
+        await showAlert('Введіть назву проекту', 'warning');
+        return;
+    }
+
+    try {
+        await db.createItProject({
+            organization_id: currentOrgId,
+            name: name,
+            description: description || null,
+            deadline: deadline || null,
+            status: 'active'
+        });
+        await showToast('Проект створено!', 'success');
+        closeModal('itProjectModal');
+        document.getElementById('itProjectForm').reset();
+        loadIT();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+function openITBug() {
+    document.getElementById('itBugModal').classList.add('active');
+    document.getElementById('itBugId').value = '';
+    document.getElementById('itBugTitle').value = '';
+    document.getElementById('itBugDesc').value = '';
+    document.getElementById('itBugPriority').value = 'medium';
+    loadITProjectsSelect();
+    loadITUsersSelect();
+}
+
+async function loadITProjectsSelect() {
+    try {
+        var projects = await db.getItProjects(currentOrgId);
+        var select = document.getElementById('itBugProject');
+        if (!select) return;
+        select.innerHTML = '<option value="">Оберіть проект...</option>';
+        if (projects && projects.length > 0) {
+            for (var i = 0; i < projects.length; i++) {
+                var option = document.createElement('option');
+                option.value = projects[i].id;
+                option.textContent = projects[i].name;
+                select.appendChild(option);
+            }
+        }
+    } catch (error) {
+        console.error('Load projects error:', error);
+    }
+}
+
+async function loadITUsersSelect() {
+    try {
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var select = document.getElementById('itBugAssign');
+        if (!select) return;
+        select.innerHTML = '<option value="">Не призначено</option>';
+        if (members && members.length > 0) {
+            for (var i = 0; i < members.length; i++) {
+                var userData = await db.supabaseQuery('users?id=eq.' + members[i].user_id);
+                if (userData && userData.length > 0) {
+                    var option = document.createElement('option');
+                    option.value = members[i].user_id;
+                    option.textContent = userData[0].full_name || userData[0].email || 'Користувач';
+                    select.appendChild(option);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Load users error:', error);
+    }
+}
+
+document.getElementById('itBugForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var projectId = document.getElementById('itBugProject').value;
+    var title = document.getElementById('itBugTitle').value.trim();
+    var description = document.getElementById('itBugDesc').value.trim();
+    var priority = document.getElementById('itBugPriority').value;
+    var assignedTo = document.getElementById('itBugAssign').value;
+
+    if (!projectId || !title) {
+        await showAlert('Виберіть проект і введіть назву бага', 'warning');
+        return;
+    }
+
+    try {
+        var projectName = '';
+        var projects = await db.getItProjects(currentOrgId);
+        for (var i = 0; i < projects.length; i++) {
+            if (projects[i].id === projectId) {
+                projectName = projects[i].name;
+                break;
+            }
+        }
+        var assignedName = '';
+        if (assignedTo) {
+            var userData = await db.supabaseQuery('users?id=eq.' + assignedTo);
+            if (userData && userData.length > 0) {
+                assignedName = userData[0].full_name || userData[0].email;
+            }
+        }
+        await db.createItBug({
+            organization_id: currentOrgId,
+            project_id: projectId,
+            project_name: projectName,
+            title: title,
+            description: description || null,
+            priority: priority || 'medium',
+            assigned_to: assignedTo || null,
+            assigned_name: assignedName || null,
+            status: 'open'
+        });
+        await showToast('Баг додано!', 'success');
+        closeModal('itBugModal');
+        document.getElementById('itBugForm').reset();
+        loadIT();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+});
+
+// ========== НАЛАШТУВАННЯ ==========
 async function loadSettings() {
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Налаштування';
@@ -2495,19 +4049,6 @@ async function regenerateCode() {
     }
 }
 
-function generateJoinCode() {
-    var chars = 'abcdefghijklmnopqrstuvwxyz';
-    var parts = [];
-    for (var i = 0; i < 4; i++) {
-        var part = '';
-        for (var j = 0; j < 4; j++) {
-            part += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        parts.push(part);
-    }
-    return parts.join('-');
-}
-
 async function deleteOrganization() {
     var confirmed = await showConfirm('Ви впевнені, що хочете видалити організацію? Це незворотна дія!', 'Увага');
     if (!confirmed) return;
@@ -2536,7 +4077,6 @@ function selectColor(el) {
     if (colorEl) colorEl.value = el.style.backgroundColor;
 }
 
-// ===== ЗАКРИТТЯ МОДАЛОК ПО КЛІКУ ПОЗА НЕЮ =====
 var modals = document.querySelectorAll('.modal');
 for (var m = 0; m < modals.length; m++) {
     modals[m].addEventListener('click', function(e) {
@@ -2550,7 +4090,6 @@ for (var m = 0; m < modals.length; m++) {
 async function deleteUserAccount() {
     var confirmed = await showConfirm('Ви впевнені, що хочете видалити свій акаунт? Це незворотна дія!', '⚠️ Увага');
     if (!confirmed) return;
-    
     var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
     if (!confirmed2) return;
 
@@ -2567,5 +4106,4 @@ async function deleteUserAccount() {
     }
 }
 
-// ===== ЗАПУСК =====
 init();
