@@ -854,31 +854,91 @@ async function openAssignEmployee(departmentId, departmentName) {
     document.getElementById('assignDeptId').value = departmentId;
     document.getElementById('assignDeptName').value = departmentName;
 
-    var employees = await db.getOrganizationEmployees(currentOrgId);
     var select = document.getElementById('assignEmployeeSelect');
-    select.innerHTML = '<option value="">Оберіть співробітника...</option>';
+    select.innerHTML = '<option value="">Завантаження...</option>';
 
-    if (employees && employees.length > 0) {
-        var deptEmployees = await db.getEmployeesByDepartment(departmentId);
-        var deptEmployeeIds = deptEmployees.map(function(e) { return e.id; });
+    try {
+        // Раніше картки "співробітників" ніколи не створювались автоматично,
+        // тому список тут завжди був порожнім, навіть якщо в організації
+        // вже були учасники. Тепер ми синхронізуємо: для кожного учасника
+        // організації, у якого ще немає картки співробітника, створюємо її.
+        var employees = await ensureEmployeesForMembers(currentOrgId);
 
-        for (var i = 0; i < employees.length; i++) {
-            var emp = employees[i];
-            if (deptEmployeeIds.indexOf(emp.id) === -1) {
-                var option = document.createElement('option');
-                option.value = emp.id;
-                var fullName = [emp.first_name, emp.last_name, emp.middle_name].filter(function(s) { return s && s.trim(); }).join(' ');
-                option.textContent = fullName || 'Без імені';
-                select.appendChild(option);
+        select.innerHTML = '<option value="">Оберіть співробітника...</option>';
+
+        if (employees && employees.length > 0) {
+            var deptEmployees = await db.getEmployeesByDepartment(departmentId);
+            var deptEmployeeIds = deptEmployees.map(function(e) { return e.id; });
+
+            for (var i = 0; i < employees.length; i++) {
+                var emp = employees[i];
+                if (deptEmployeeIds.indexOf(emp.id) === -1) {
+                    var option = document.createElement('option');
+                    option.value = emp.id;
+                    var fullName = [emp.first_name, emp.last_name, emp.middle_name].filter(function(s) { return s && s.trim(); }).join(' ');
+                    option.textContent = fullName || emp.email || 'Без імені';
+                    select.appendChild(option);
+                }
             }
         }
-    }
 
-    if (select.options.length <= 1) {
-        select.innerHTML = '<option value="">Немає доступних співробітників</option>';
+        if (select.options.length <= 1) {
+            select.innerHTML = '<option value="">Усі учасники вже розподілені по відділах</option>';
+        }
+    } catch (error) {
+        select.innerHTML = '<option value="">Помилка завантаження учасників</option>';
+        console.error('openAssignEmployee error:', error);
     }
 
     document.getElementById('assignEmployeeModal').classList.add('active');
+}
+
+// Гарантує, що для кожного учасника організації (org_members) існує
+// відповідний запис у таблиці employees — саме звідти список у модалці
+// "Призначити у відділ" бере людей. Без цього кроку список був порожнім,
+// бо картки співробітників раніше ніде не створювались автоматично.
+async function ensureEmployeesForMembers(orgId) {
+    var members = await db.getOrganizationMembers(orgId);
+    var employees = await db.getOrganizationEmployees(orgId);
+
+    if (!members || members.length === 0) {
+        return employees || [];
+    }
+
+    var existingByUserId = {};
+    (employees || []).forEach(function(e) {
+        if (e.user_id) existingByUserId[e.user_id] = e;
+    });
+
+    var created = [];
+    for (var i = 0; i < members.length; i++) {
+        var member = members[i];
+        if (!member.user_id || existingByUserId[member.user_id]) continue;
+
+        try {
+            var userData = await db.supabaseQuery('users?id=eq.' + member.user_id);
+            var u = userData && userData.length > 0 ? userData[0] : null;
+            var fullName = (u && u.full_name ? u.full_name : '').trim();
+            var nameParts = fullName ? fullName.split(/\s+/) : [];
+
+            var newEmployee = await db.createEmployee({
+                organization_id: orgId,
+                user_id: member.user_id,
+                first_name: nameParts[0] || (u ? u.email : '') || 'Учасник',
+                last_name: nameParts.slice(1).join(' ') || '',
+                email: u ? u.email : '',
+                status: 'active'
+            });
+
+            if (newEmployee && newEmployee.length > 0) {
+                created.push(newEmployee[0]);
+            }
+        } catch (e) {
+            console.error('Не вдалося створити картку співробітника для учасника', member.id, e);
+        }
+    }
+
+    return (employees || []).concat(created);
 }
 
 document.getElementById('assignEmployeeForm')?.addEventListener('submit', async function(e) {
