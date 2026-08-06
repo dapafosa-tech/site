@@ -1768,6 +1768,8 @@ function openUploadFile() {
     document.getElementById('fileModal').classList.add('active');
 }
 
+// ========== ФАЙЛИ (ВИПРАВЛЕНА ВЕРСІЯ) ==========
+
 document.getElementById('fileForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -1785,9 +1787,17 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
 
     try {
         var user = auth.getCurrentUser();
-        var fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        // Створюємо унікальне ім'я файлу
+        var fileExt = file.name.split('.').pop();
+        var fileName = Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + fileExt;
         
-        var uploadResponse = await fetch(SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName, {
+        // ПРАВИЛЬНИЙ URL - використовуємо public
+        var uploadUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
+        
+        console.log('📤 Завантаження на URL:', uploadUrl);
+        console.log('📄 Файл:', file.name, file.size, 'bytes');
+
+        var uploadResponse = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -1796,22 +1806,34 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
             body: file
         });
 
+        console.log('📥 Статус відповіді:', uploadResponse.status);
+
         if (!uploadResponse.ok) {
             var errorText = await uploadResponse.text();
-            console.error('Upload error:', uploadResponse.status, errorText);
+            console.error('❌ Помилка:', uploadResponse.status, errorText);
             
-            if (uploadResponse.status === 403 || uploadResponse.status === 404) {
-                await showAlert('Потрібно створити сховище. Виконайте SQL у Supabase.', 'error');
+            if (uploadResponse.status === 404) {
+                await showAlert('Сховище не знайдено. Перевірте назву bucket: "org_files"', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-upload"></i> Завантажити';
                 return;
             }
             
-            throw new Error('Помилка завантаження: ' + uploadResponse.status);
+            if (uploadResponse.status === 403) {
+                await showAlert('Немає прав на завантаження. Перевірте політики.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload"></i> Завантажити';
+                return;
+            }
+            
+            throw new Error('Помилка завантаження: ' + uploadResponse.status + ' - ' + errorText);
         }
 
+        // Отримуємо публічний URL файлу
         var fileUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
+        console.log('✅ Файл завантажено! URL:', fileUrl);
 
+        // Зберігаємо інформацію в БД
         await db.createFile({
             organization_id: currentOrgId,
             name: file.name,
@@ -1821,12 +1843,12 @@ document.getElementById('fileForm')?.addEventListener('submit', async function(e
             uploaded_by: user ? user.id : null
         });
 
-        await showToast('Файл завантажено!', 'success');
+        await showToast('Файл завантажено! 🎉', 'success');
         closeModal('fileModal');
         document.getElementById('fileForm').reset();
         loadFiles();
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('❌ Upload error:', error);
         await showAlert('Помилка: ' + error.message, 'error');
     }
 
