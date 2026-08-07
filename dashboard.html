@@ -109,6 +109,8 @@
         }
         .sidebar .nav-menu .logout-btn a{color:#E2503E;}
         .sidebar .nav-menu .logout-btn a:hover{background:#2A1A1A;}
+        .sidebar .nav-menu .owner-link a{color:var(--gold);}
+        .sidebar .nav-menu .owner-link a:hover{background:rgba(242,169,59,0.1);}
         .main-content{
             margin-left:260px;
             padding:2rem;
@@ -320,7 +322,15 @@
         <ul class="nav-menu">
             <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мої організації</a></li>
             <li><a href="#" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Приєднатися за кодом</a></li>
+            
+            <!-- Адмін-панель для адмінів та модераторів -->
             <li id="adminLink" style="display:none;"><a href="/admin"><i class="fas fa-crown"></i> Адмін-панель</a></li>
+            
+            <!-- Панель засновника для власника (owner) -->
+            <li id="ownerLink" style="display:none;" class="owner-link">
+                <a href="/admin"><i class="fas fa-crown" style="color:var(--gold);"></i> <span style="color:var(--gold);">Панель засновника</span></a>
+            </li>
+            
             <li><a href="/settings"><i class="fas fa-cog"></i> Налаштування</a></li>
             <li class="logout-btn"><a onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
@@ -586,9 +596,21 @@
                 avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
             }
 
-            // Показуємо адмін-панель для owner, admin, moderator
-            if (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator') {
-                document.getElementById('adminLink').style.display = 'block';
+            // Показуємо правильну панель залежно від ролі
+            var adminLink = document.getElementById('adminLink');
+            var ownerLink = document.getElementById('ownerLink');
+
+            if (user.role === 'owner') {
+                // Для засновника - показуємо "Панель засновника"
+                ownerLink.style.display = 'block';
+                adminLink.style.display = 'none';
+            } else if (user.role === 'admin' || user.role === 'moderator') {
+                // Для адміна та модератора - показуємо "Адмін-панель"
+                adminLink.style.display = 'block';
+                ownerLink.style.display = 'none';
+            } else {
+                adminLink.style.display = 'none';
+                ownerLink.style.display = 'none';
             }
 
             await loadOrganizations();
