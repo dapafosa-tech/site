@@ -185,6 +185,35 @@ function isAdmin() {
     return user && user.role === 'admin';
 }
 
+async function checkBanned() {
+    var user = getCurrentUser();
+    if (!user) return false;
+    
+    try {
+        var response = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            }
+        });
+        
+        if (!response.ok) return false;
+        var data = await response.json();
+        if (!data || data.length === 0) return false;
+        
+        var userData = data[0];
+        if (userData.is_banned === true) {
+            localStorage.removeItem('userData');
+            window.location.href = '/banned';
+            return true;
+        }
+        
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 window.auth = {
     getCurrentUser: getCurrentUser,
     checkAuth: checkAuth,
