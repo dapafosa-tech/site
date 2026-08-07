@@ -243,6 +243,39 @@ style.textContent =
 document.head.appendChild(style);
 
 // ============================================
+// ФОРМАТУВАННЯ ДАТИ/ЧАСУ ЗА КИЇВСЬКИМ ЧАСОМ
+// (IANA "Europe/Kyiv" сам враховує перехід на літній/зимовий час)
+// ============================================
+
+var TYPEBIZ_TIMEZONE = 'Europe/Kyiv';
+
+function formatDateTimeKyiv(dateValue, options) {
+    try {
+        var d = (dateValue instanceof Date) ? dateValue : new Date(dateValue);
+        if (isNaN(d.getTime())) return '';
+        var opts = { timeZone: TYPEBIZ_TIMEZONE };
+        if (options) {
+            for (var key in options) opts[key] = options[key];
+        }
+        return d.toLocaleString('uk-UA', opts);
+    } catch (e) {
+        return '';
+    }
+}
+
+function formatDateKyiv(dateValue) {
+    return formatDateTimeKyiv(dateValue, { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+function formatTimeKyiv(dateValue) {
+    return formatDateTimeKyiv(dateValue, { hour: '2-digit', minute: '2-digit' });
+}
+
+window.formatDateTimeKyiv = formatDateTimeKyiv;
+window.formatDateKyiv = formatDateKyiv;
+window.formatTimeKyiv = formatTimeKyiv;
+
+// ============================================
 // СИСТЕМНІ НАЛАШТУВАННЯ: НАЗВА САЙТУ + ОГОЛОШЕННЯ
 // (реальне застосування налаштувань з панелі засновника)
 // ============================================
