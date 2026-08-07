@@ -1241,4 +1241,6 @@ window.db = {
     createItProject: createItProject,
     getItBugs: getItBugs,
     createItBug: createItBug
+
+    addLog: addLog
 };
