@@ -222,6 +222,15 @@
             letter-spacing: 0.3px;
             margin-bottom: 0.5rem;
         }
+        .banned-box .countdown {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .banned-box .countdown span {
+            color: var(--gold);
+            font-weight: 600;
+        }
         @media (max-width: 480px) {
             .banned-box { padding: 2.5rem 1.5rem; }
             .banned-box .btn-group { flex-direction: column; }
@@ -264,12 +273,16 @@
         </p>
 
         <div class="btn-group">
-            <a href="/support" class="btn btn-primary">
+            <a href="/support" class="btn btn-primary" id="supportBtn">
                 <i class="fas fa-headset"></i> Звернутися в підтримку
             </a>
-            <a href="/login" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> На сторінку входу
+            <a href="/login" class="btn btn-outline" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Вийти та спробувати знову
             </a>
+        </div>
+
+        <div class="countdown">
+            Перенаправлення на сторінку входу через <span id="countdown">10</span> секунд
         </div>
 
         <div class="footer">
@@ -279,23 +292,44 @@
     </div>
 
     <script>
-        // Отримуємо причину бана з localStorage
+        // Отримуємо дані користувача з localStorage
         var userData = JSON.parse(localStorage.getItem('userData') || '{}');
-        if (userData.ban_reason) {
-            document.getElementById('banReason').innerHTML = 
-                '<i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i> ' + 
-                userData.ban_reason;
-        }
+        var banReason = userData.ban_reason || 'Порушення правил використання платформи';
         
-        // Очищаємо сесію
-        localStorage.removeItem('userData');
-        localStorage.removeItem('isGuest');
-        
-        // Якщо натиснули на підтримку - перенаправляємо з параметром
-        document.querySelector('a[href="/support"]').addEventListener('click', function(e) {
+        // Показуємо причину бана
+        document.getElementById('banReason').innerHTML = 
+            '<i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i> ' + 
+            banReason;
+
+        // Обробка кнопки виходу
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
-            window.location.href = '/support?banned=true&reason=' + encodeURIComponent(userData.ban_reason || '');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('isGuest');
+            window.location.href = '/login';
         });
+
+        // Обробка кнопки підтримки
+        document.getElementById('supportBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            var email = userData.email || '';
+            window.location.href = '/support?banned=true&reason=' + encodeURIComponent(banReason) + '&email=' + encodeURIComponent(email);
+        });
+
+        // Таймер зворотного відліку
+        var seconds = 10;
+        var countdownEl = document.getElementById('countdown');
+        var countdownInterval = setInterval(function() {
+            seconds--;
+            countdownEl.textContent = seconds;
+            if (seconds <= 0) {
+                clearInterval(countdownInterval);
+                // Видаляємо сесію і перенаправляємо на логін
+                localStorage.removeItem('userData');
+                localStorage.removeItem('isGuest');
+                window.location.href = '/login';
+            }
+        }, 1000);
     </script>
 </body>
 </html>
