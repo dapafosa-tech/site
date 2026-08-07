@@ -1,7 +1,3 @@
-// ============================================
-// TYPEBIZ - РОБОТА З БАЗОЮ ДАНИХ (ПОВНА ВЕРСІЯ З ЛОГАМИ)
-// ============================================
-
 if (typeof SUPABASE_URL === 'undefined') {
     var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
@@ -96,7 +92,6 @@ async function supabaseQuery(endpoint, options) {
     }
 }
 
-// ===== ЛОГИ З ІМЕНАМИ КОРИСТУВАЧІВ =====
 async function getUserName(userId) {
     try {
         var result = await supabaseQuery('users?id=eq.' + userId + '&select=full_name,email');
@@ -135,7 +130,6 @@ async function addLog(action, entityType, entityId, details) {
     }
 }
 
-// ===== КОРИСТУВАЧІ =====
 async function updateUser(id, data) {
     var result = await supabaseQuery('users?id=eq.' + id, {
         method: 'PATCH',
@@ -154,9 +148,9 @@ async function deleteUser(id) {
 }
 
 async function setUserRole(userId, role) {
-    var validRoles = ['user', 'moderator', 'admin'];
+    var validRoles = ['user', 'moderator', 'admin', 'owner'];
     if (validRoles.indexOf(role) === -1) {
-        throw new Error('Невірна роль. Доступні: user, moderator, admin');
+        throw new Error('Невірна роль. Доступні: user, moderator, admin, owner');
     }
     
     var result = await supabaseQuery('users?id=eq.' + userId, {
@@ -195,21 +189,18 @@ async function getUsersWithRoles() {
     return supabaseQuery('users?select=id,full_name,email,role,is_banned,ban_reason');
 }
 
-// ===== ОРГАНІЗАЦІЇ =====
 async function createOrganization(data) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
-    // Перевіряємо чи не забанений
     if (await isUserBanned(user.id)) {
         throw new Error('Ваш акаунт заблоковано');
     }
     
-    // Ліміт для звичайних користувачів та модераторів - максимум 1 організація
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'owner') {
         var orgs = await getUserAllOrganizations();
         if (orgs && orgs.length >= 1) {
-            throw new Error('Ви можете створити лише 1 організацію. Адміністратори можуть створювати безлімітно.');
+            throw new Error('Ви можете створити лише 1 організацію. Адміністратори та засновники можуть створювати безлімітно.');
         }
     }
     
@@ -354,7 +345,6 @@ async function getOrganizationByJoinCode(code) {
     return null;
 }
 
-// ===== РАНГИ =====
 async function getOrganizationRanks(orgId) {
     return supabaseQuery('org_ranks?organization_id=eq.' + orgId + '&order=order.asc');
 }
@@ -398,7 +388,6 @@ async function deleteRank(id) {
     return result;
 }
 
-// ===== УЧАСНИКИ =====
 async function addMemberToOrganization(orgId, userId, rankId) {
     if (rankId === undefined) rankId = null;
     
@@ -442,7 +431,6 @@ async function removeMemberFromOrganization(memberId) {
     return result;
 }
 
-// ===== ЗАЯВКИ =====
 async function createJoinRequest(orgId, userId, message) {
     if (message === undefined) message = '';
     
@@ -486,7 +474,6 @@ async function updateJoinRequest(requestId, status) {
     return result;
 }
 
-// ===== СПІВРОБІТНИКИ =====
 async function createEmployee(data) {
     var result = await supabaseQuery('employees', {
         method: 'POST',
@@ -534,7 +521,6 @@ async function deleteEmployee(id) {
     return result;
 }
 
-// ===== ВІДДІЛИ =====
 async function createDepartment(data) {
     var result = await supabaseQuery('departments', {
         method: 'POST',
@@ -595,7 +581,6 @@ async function removeEmployeeFromDepartment(employeeId) {
     return result;
 }
 
-// ===== ЧАТ =====
 async function sendChatMessage(organizationId, userId, message, mentions) {
     if (mentions === undefined) mentions = [];
     var result = await supabaseQuery('org_chat_messages', {
@@ -627,7 +612,6 @@ async function deleteChatMessage(messageId) {
     return result;
 }
 
-// ===== ВІДПУСТКИ =====
 async function createVacation(data) {
     var result = await supabaseQuery('org_vacations', {
         method: 'POST',
@@ -686,7 +670,6 @@ async function deleteVacation(vacationId) {
     return result;
 }
 
-// ===== ПОДІЇ =====
 async function createEvent(data) {
     var result = await supabaseQuery('org_events', {
         method: 'POST',
@@ -718,7 +701,6 @@ async function deleteEvent(id) {
     return result;
 }
 
-// ===== ФАЙЛИ =====
 async function createFile(data) {
     var result = await supabaseQuery('org_files', {
         method: 'POST',
@@ -749,7 +731,6 @@ async function deleteFile(id) {
     return result;
 }
 
-// ===== ЗАВДАННЯ =====
 async function createTask(data) {
     var result = await supabaseQuery('org_tasks', {
         method: 'POST',
@@ -791,7 +772,6 @@ async function deleteTask(id) {
     return result;
 }
 
-// ===== ОПИТУВАННЯ =====
 async function createPoll(data) {
     var result = await supabaseQuery('org_polls', {
         method: 'POST',
@@ -842,7 +822,6 @@ async function deletePoll(id) {
     return result;
 }
 
-// ===== СПОВІЩЕННЯ =====
 async function createNotification(data) {
     return supabaseQuery('notifications', {
         method: 'POST',
@@ -873,9 +852,6 @@ async function markNotificationRead(notificationId) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: КЛІНІКА
-// ============================================
 async function getClinicPatients(orgId) {
     return supabaseQuery('clinic_patients?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -904,9 +880,6 @@ async function createClinicAppointment(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: МАГАЗИН
-// ============================================
 async function getShopProducts(orgId) {
     return supabaseQuery('shop_products?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -935,9 +908,6 @@ async function createShopSale(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: БІБЛІОТЕКА
-// ============================================
 async function getLibraryBooks(orgId) {
     return supabaseQuery('library_books?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -980,9 +950,6 @@ async function createLibraryReader(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ШКОЛА
-// ============================================
 async function getSchoolStudents(orgId) {
     return supabaseQuery('school_students?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1039,9 +1006,6 @@ async function createSchoolGrade(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: РЕСТОРАН / КАФЕ
-// ============================================
 async function getRestaurantMenu(orgId) {
     return supabaseQuery('restaurant_menu?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1084,9 +1048,6 @@ async function createRestaurantBooking(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ГОТЕЛЬ
-// ============================================
 async function getHotelRooms(orgId) {
     return supabaseQuery('hotel_rooms?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1115,9 +1076,6 @@ async function createHotelBooking(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: СПОРТЗАЛ
-// ============================================
 async function getGymMemberships(orgId) {
     return supabaseQuery('gym_memberships?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1146,9 +1104,6 @@ async function createGymTraining(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: САЛОН КРАСИ
-// ============================================
 async function getBeautyServices(orgId) {
     return supabaseQuery('beauty_services?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1177,9 +1132,6 @@ async function createBeautyAppointment(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: АВТОСЕРВІС
-// ============================================
 async function getAutoOrders(orgId) {
     return supabaseQuery('auto_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1208,9 +1160,6 @@ async function createAutoPart(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: НЕРУХОМІСТЬ
-// ============================================
 async function getRealtyProperties(orgId) {
     return supabaseQuery('realty_properties?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1239,9 +1188,6 @@ async function createRealtyDeal(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ЛОГІСТИКА
-// ============================================
 async function getLogisticsOrders(orgId) {
     return supabaseQuery('logistics_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1256,9 +1202,6 @@ async function createLogisticsOrder(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ДОСТАВКА
-// ============================================
 async function getDeliveryOrders(orgId) {
     return supabaseQuery('delivery_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1273,9 +1216,6 @@ async function createDeliveryOrder(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: IT / GAMEDEV
-// ============================================
 async function getItProjects(orgId) {
     return supabaseQuery('it_projects?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1304,9 +1244,6 @@ async function createItBug(data) {
     return result;
 }
 
-// ============================================
-// ЕКСПОРТ ВСІХ ФУНКЦІЙ
-// ============================================
 window.db = {
     supabaseQuery: supabaseQuery,
     addLog: addLog,
@@ -1372,68 +1309,55 @@ window.db = {
     updateUser: updateUser,
     deleteUser: deleteUser,
     setUserRole: setUserRole,
-    // КЛІНІКА
     getClinicPatients: getClinicPatients,
     createClinicPatient: createClinicPatient,
     getClinicAppointments: getClinicAppointments,
     createClinicAppointment: createClinicAppointment,
-    // МАГАЗИН
     getShopProducts: getShopProducts,
     createShopProduct: createShopProduct,
     getShopSales: getShopSales,
     createShopSale: createShopSale,
-    // БІБЛІОТЕКА
     getLibraryBooks: getLibraryBooks,
     createLibraryBook: createLibraryBook,
     getLibraryLoans: getLibraryLoans,
     createLibraryLoan: createLibraryLoan,
     getLibraryReaders: getLibraryReaders,
     createLibraryReader: createLibraryReader,
-    // ШКОЛА
     getSchoolStudents: getSchoolStudents,
     createSchoolStudent: createSchoolStudent,
     getSchoolClasses: getSchoolClasses,
     createSchoolClass: createSchoolClass,
     createSchoolGrade: createSchoolGrade,
-    // РЕСТОРАН
     getRestaurantMenu: getRestaurantMenu,
     createRestaurantMenuItem: createRestaurantMenuItem,
     getRestaurantOrders: getRestaurantOrders,
     createRestaurantOrder: createRestaurantOrder,
     getRestaurantBookings: getRestaurantBookings,
     createRestaurantBooking: createRestaurantBooking,
-    // ГОТЕЛЬ
     getHotelRooms: getHotelRooms,
     createHotelRoom: createHotelRoom,
     getHotelBookings: getHotelBookings,
     createHotelBooking: createHotelBooking,
-    // СПОРТЗАЛ
     getGymMemberships: getGymMemberships,
     createGymMembership: createGymMembership,
     getGymTrainings: getGymTrainings,
     createGymTraining: createGymTraining,
-    // САЛОН КРАСИ
     getBeautyServices: getBeautyServices,
     createBeautyService: createBeautyService,
     getBeautyAppointments: getBeautyAppointments,
     createBeautyAppointment: createBeautyAppointment,
-    // АВТОСЕРВІС
     getAutoOrders: getAutoOrders,
     createAutoOrder: createAutoOrder,
     getAutoParts: getAutoParts,
     createAutoPart: createAutoPart,
-    // НЕРУХОМІСТЬ
     getRealtyProperties: getRealtyProperties,
     createRealtyProperty: createRealtyProperty,
     getRealtyDeals: getRealtyDeals,
     createRealtyDeal: createRealtyDeal,
-    // ЛОГІСТИКА
     getLogisticsOrders: getLogisticsOrders,
     createLogisticsOrder: createLogisticsOrder,
-    // ДОСТАВКА
     getDeliveryOrders: getDeliveryOrders,
     createDeliveryOrder: createDeliveryOrder,
-    // IT
     getItProjects: getItProjects,
     createItProject: createItProject,
     getItBugs: getItBugs,
