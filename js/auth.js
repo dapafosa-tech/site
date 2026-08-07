@@ -1,7 +1,3 @@
-// ============================================
-// TYPEBIZ - АВТОРИЗАЦІЯ (З РОЛЯМИ ТА БАНАМИ)
-// ============================================
-
 if (typeof SUPABASE_URL === 'undefined') {
     var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
@@ -73,8 +69,24 @@ async function requireAdmin() {
     }
     
     var user = getCurrentUser();
-    if (user && user.role !== 'admin') {
+    if (user && user.role !== 'admin' && user.role !== 'owner') {
         await showAlert('Доступ заборонено. Потрібні права адміністратора.', 'error');
+        window.location.href = '/dashboard';
+        return false;
+    }
+    return true;
+}
+
+async function requireOwner() {
+    var isAuth = await checkAuth();
+    if (!isAuth) {
+        window.location.href = '/login';
+        return false;
+    }
+    
+    var user = getCurrentUser();
+    if (user && user.role !== 'owner') {
+        await showAlert('Доступ заборонено. Потрібні права засновника.', 'error');
         window.location.href = '/dashboard';
         return false;
     }
@@ -89,8 +101,8 @@ async function requireModerator() {
     }
     
     var user = getCurrentUser();
-    if (user && user.role !== 'admin' && user.role !== 'moderator') {
-        await showAlert('Доступ заборонено. Потрібні права модератора або адміністратора.', 'error');
+    if (user && user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'owner') {
+        await showAlert('Доступ заборонено. Потрібні права модератора або вище.', 'error');
         window.location.href = '/dashboard';
         return false;
     }
@@ -139,7 +151,6 @@ async function loginUser(email, password) {
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
-        // ПЕРЕХІД НА ДАШБОРД ТІЛЬКИ ПІСЛЯ УСПІШНОГО ВХОДУ
         window.location.href = '/dashboard';
         return { success: true, user: user };
     } catch (error) {
@@ -200,7 +211,6 @@ async function registerUser(email, password, fullName) {
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
-        // ПЕРЕХІД НА ДАШБОРД ТІЛЬКИ ПІСЛЯ УСПІШНОЇ РЕЄСТРАЦІЇ
         window.location.href = '/dashboard';
         return { success: true, user: user };
     } catch (error) {
@@ -218,12 +228,17 @@ function generateUUID() {
 
 function isAdmin() {
     var user = getCurrentUser();
-    return user && user.role === 'admin';
+    return user && (user.role === 'admin' || user.role === 'owner');
+}
+
+function isOwner() {
+    var user = getCurrentUser();
+    return user && user.role === 'owner';
 }
 
 function isModerator() {
     var user = getCurrentUser();
-    return user && (user.role === 'admin' || user.role === 'moderator');
+    return user && (user.role === 'admin' || user.role === 'moderator' || user.role === 'owner');
 }
 
 function getUserRole() {
@@ -236,11 +251,13 @@ window.auth = {
     checkAuth: checkAuth,
     requireAuth: requireAuth,
     requireAdmin: requireAdmin,
+    requireOwner: requireOwner,
     requireModerator: requireModerator,
     logoutUser: logoutUser,
     loginUser: loginUser,
     registerUser: registerUser,
     isAdmin: isAdmin,
+    isOwner: isOwner,
     isModerator: isModerator,
     getUserRole: getUserRole
 };
