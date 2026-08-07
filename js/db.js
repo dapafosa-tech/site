@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - РОБОТА З БАЗОЮ ДАНИХ (ПОВНА ВЕРСІЯ)
+// TYPEBIZ - РОБОТА З БАЗОЮ ДАНИХ (ПОВНА ВЕРСІЯ З ЛОГАМИ)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -38,7 +38,6 @@ function generateJoinCode() {
         parts.push(part);
     }
     var code = parts.join('-');
-    console.log('🔑 Згенеровано код:', code);
     return code;
 }
 
@@ -101,11 +100,13 @@ async function supabaseQuery(endpoint, options) {
 async function addLog(action, entityType, entityId, details) {
     try {
         var user = getCurrentUser();
+        if (!user) return null;
+        
         return await supabaseQuery('activity_logs', {
             method: 'POST',
             body: JSON.stringify({
                 id: generateUUID(),
-                user_id: user ? user.id : null,
+                user_id: user.id,
                 action: action,
                 entity_type: entityType,
                 entity_id: entityId || null,
@@ -115,28 +116,35 @@ async function addLog(action, entityType, entityId, details) {
         });
     } catch (e) {
         console.warn('Failed to add log:', e);
+        return null;
     }
 }
 
 // ===== КОРИСТУВАЧІ =====
 async function updateUser(id, data) {
-    return supabaseQuery('users?id=eq.' + id, {
+    var result = await supabaseQuery('users?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено користувача', 'user', id, data);
+    return result;
 }
 
 async function deleteUser(id) {
-    return supabaseQuery('users?id=eq.' + id, {
+    var result = await supabaseQuery('users?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено користувача', 'user', id, { deleted: true });
+    return result;
 }
 
 async function setUserRole(userId, role) {
-    return supabaseQuery('users?id=eq.' + userId, {
+    var result = await supabaseQuery('users?id=eq.' + userId, {
         method: 'PATCH',
         body: JSON.stringify({ role: role })
     });
+    await addLog('Змінено роль користувача', 'user', userId, { new_role: role });
+    return result;
 }
 
 // ===== ОРГАНІЗАЦІЇ =====
@@ -177,6 +185,8 @@ async function createOrganization(data) {
 
     if (result && result.length > 0) {
         var orgId = result[0].id;
+        
+        // Створюємо посаду "Директор"
         var rankResult = await supabaseQuery('org_ranks', {
             method: 'POST',
             body: JSON.stringify({
@@ -205,6 +215,12 @@ async function createOrganization(data) {
         } else {
             await addMemberToOrganization(orgId, user.id, null);
         }
+        
+        // Лог створення організації
+        await addLog('Створено організацію', 'organization', orgId, {
+            name: data.name,
+            type: data.type
+        });
     }
 
     return result;
@@ -246,26 +262,27 @@ async function getOrganization(id) {
 }
 
 async function updateOrganization(id, data) {
-    return supabaseQuery('organizations?id=eq.' + id, {
+    var result = await supabaseQuery('organizations?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено організацію', 'organization', id, data);
+    return result;
 }
 
 async function deleteOrganization(id) {
-    return supabaseQuery('organizations?id=eq.' + id, {
+    var result = await supabaseQuery('organizations?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено організацію', 'organization', id, { deleted: true });
+    return result;
 }
 
 async function getOrganizationByJoinCode(code) {
     var cleanCode = code.trim().toLowerCase();
-    console.log('🔍 Пошук за кодом:', cleanCode);
-    
     var result = await supabaseQuery('organizations?join_code=eq.' + cleanCode);
     
     if (result && result.length > 0) {
-        console.log('✅ Організацію знайдено:', result[0].name);
         return result[0];
     }
     
@@ -276,14 +293,12 @@ async function getOrganizationByJoinCode(code) {
                 var orgCode = allOrgs[i].join_code || '';
                 var orgCodeClean = orgCode.replace(/-/g, '');
                 if (orgCodeClean === cleanCode) {
-                    console.log('✅ Організацію знайдено (без дефісів):', allOrgs[i].name);
                     return allOrgs[i];
                 }
             }
         }
     }
     
-    console.log('❌ Організацію не знайдено');
     return null;
 }
 
@@ -295,7 +310,7 @@ async function getOrganizationRanks(orgId) {
 async function createRank(orgId, data) {
     var ranks = await getOrganizationRanks(orgId);
     var order = ranks ? ranks.length : 0;
-    return supabaseQuery('org_ranks', {
+    var result = await supabaseQuery('org_ranks', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -310,25 +325,31 @@ async function createRank(orgId, data) {
             'Prefer': 'return=representation'
         }
     });
+    await addLog('Створено посаду', 'rank', orgId, { name: data.name });
+    return result;
 }
 
 async function updateRank(id, data) {
-    return supabaseQuery('org_ranks?id=eq.' + id, {
+    var result = await supabaseQuery('org_ranks?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено посаду', 'rank', id, data);
+    return result;
 }
 
 async function deleteRank(id) {
-    return supabaseQuery('org_ranks?id=eq.' + id, {
+    var result = await supabaseQuery('org_ranks?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено посаду', 'rank', id, { deleted: true });
+    return result;
 }
 
 // ===== УЧАСНИКИ =====
 async function addMemberToOrganization(orgId, userId, rankId) {
     if (rankId === undefined) rankId = null;
-    return supabaseQuery('org_members', {
+    var result = await supabaseQuery('org_members', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -339,6 +360,8 @@ async function addMemberToOrganization(orgId, userId, rankId) {
             is_active: true
         })
     });
+    await addLog('Додано учасника до організації', 'member', orgId, { user_id: userId });
+    return result;
 }
 
 async function getOrganizationMembers(orgId) {
@@ -346,22 +369,26 @@ async function getOrganizationMembers(orgId) {
 }
 
 async function updateMemberRank(memberId, rankId) {
-    return supabaseQuery('org_members?id=eq.' + memberId, {
+    var result = await supabaseQuery('org_members?id=eq.' + memberId, {
         method: 'PATCH',
         body: JSON.stringify({ rank_id: rankId })
     });
+    await addLog('Оновлено посаду учасника', 'member', memberId, { rank_id: rankId });
+    return result;
 }
 
 async function removeMemberFromOrganization(memberId) {
-    return supabaseQuery('org_members?id=eq.' + memberId, {
+    var result = await supabaseQuery('org_members?id=eq.' + memberId, {
         method: 'DELETE'
     });
+    await addLog('Видалено учасника з організації', 'member', memberId, { deleted: true });
+    return result;
 }
 
 // ===== ЗАЯВКИ =====
 async function createJoinRequest(orgId, userId, message) {
     if (message === undefined) message = '';
-    return supabaseQuery('join_requests', {
+    var result = await supabaseQuery('join_requests', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -375,6 +402,8 @@ async function createJoinRequest(orgId, userId, message) {
             'Prefer': 'return=representation'
         }
     });
+    await addLog('Створено заявку на вступ', 'join_request', orgId, { user_id: userId });
+    return result;
 }
 
 async function getJoinRequests(orgId, status) {
@@ -384,18 +413,20 @@ async function getJoinRequests(orgId, status) {
 }
 
 async function updateJoinRequest(requestId, status) {
-    return supabaseQuery('join_requests?id=eq.' + requestId, {
+    var result = await supabaseQuery('join_requests?id=eq.' + requestId, {
         method: 'PATCH',
         body: JSON.stringify({ 
             status: status,
             updated_at: new Date().toISOString()
         })
     });
+    await addLog('Оновлено заявку на вступ', 'join_request', requestId, { status: status });
+    return result;
 }
 
 // ===== СПІВРОБІТНИКИ =====
 async function createEmployee(data) {
-    return supabaseQuery('employees', {
+    var result = await supabaseQuery('employees', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -416,6 +447,8 @@ async function createEmployee(data) {
             'Prefer': 'return=representation'
         }
     });
+    await addLog('Створено співробітника', 'employee', data.organization_id, data);
+    return result;
 }
 
 async function getOrganizationEmployees(orgId) {
@@ -423,21 +456,25 @@ async function getOrganizationEmployees(orgId) {
 }
 
 async function updateEmployee(id, data) {
-    return supabaseQuery('employees?id=eq.' + id, {
+    var result = await supabaseQuery('employees?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено співробітника', 'employee', id, data);
+    return result;
 }
 
 async function deleteEmployee(id) {
-    return supabaseQuery('employees?id=eq.' + id, {
+    var result = await supabaseQuery('employees?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено співробітника', 'employee', id, { deleted: true });
+    return result;
 }
 
 // ===== ВІДДІЛИ =====
 async function createDepartment(data) {
-    return supabaseQuery('departments', {
+    var result = await supabaseQuery('departments', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -449,6 +486,8 @@ async function createDepartment(data) {
             'Prefer': 'return=representation'
         }
     });
+    await addLog('Створено відділ', 'department', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function getOrganizationDepartments(orgId) {
@@ -456,23 +495,29 @@ async function getOrganizationDepartments(orgId) {
 }
 
 async function updateDepartment(id, data) {
-    return supabaseQuery('departments?id=eq.' + id, {
+    var result = await supabaseQuery('departments?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено відділ', 'department', id, data);
+    return result;
 }
 
 async function deleteDepartment(id) {
-    return supabaseQuery('departments?id=eq.' + id, {
+    var result = await supabaseQuery('departments?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено відділ', 'department', id, { deleted: true });
+    return result;
 }
 
 async function assignEmployeeToDepartment(employeeId, departmentId) {
-    return supabaseQuery('employees?id=eq.' + employeeId, {
+    var result = await supabaseQuery('employees?id=eq.' + employeeId, {
         method: 'PATCH',
         body: JSON.stringify({ department_id: departmentId })
     });
+    await addLog('Призначено співробітника у відділ', 'employee', employeeId, { department_id: departmentId });
+    return result;
 }
 
 async function getEmployeesByDepartment(departmentId) {
@@ -480,16 +525,18 @@ async function getEmployeesByDepartment(departmentId) {
 }
 
 async function removeEmployeeFromDepartment(employeeId) {
-    return supabaseQuery('employees?id=eq.' + employeeId, {
+    var result = await supabaseQuery('employees?id=eq.' + employeeId, {
         method: 'PATCH',
         body: JSON.stringify({ department_id: null })
     });
+    await addLog('Видалено співробітника з відділу', 'employee', employeeId, { department_id: null });
+    return result;
 }
 
 // ===== ЧАТ =====
 async function sendChatMessage(organizationId, userId, message, mentions) {
     if (mentions === undefined) mentions = [];
-    return supabaseQuery('org_chat_messages', {
+    var result = await supabaseQuery('org_chat_messages', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -501,6 +548,8 @@ async function sendChatMessage(organizationId, userId, message, mentions) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Відправлено повідомлення в чат', 'chat_message', organizationId, { user_id: userId });
+    return result;
 }
 
 async function getChatMessages(organizationId, limit) {
@@ -509,14 +558,16 @@ async function getChatMessages(organizationId, limit) {
 }
 
 async function deleteChatMessage(messageId) {
-    return supabaseQuery('org_chat_messages?id=eq.' + messageId, {
+    var result = await supabaseQuery('org_chat_messages?id=eq.' + messageId, {
         method: 'DELETE'
     });
+    await addLog('Видалено повідомлення в чаті', 'chat_message', messageId, { deleted: true });
+    return result;
 }
 
 // ===== ВІДПУСТКИ =====
 async function createVacation(data) {
-    return supabaseQuery('org_vacations', {
+    var result = await supabaseQuery('org_vacations', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -532,6 +583,8 @@ async function createVacation(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено заявку на відпустку', 'vacation', data.organization_id, { user_id: data.user_id });
+    return result;
 }
 
 async function getVacations(organizationId, status) {
@@ -555,21 +608,25 @@ async function updateVacationStatus(vacationId, status, approvedBy) {
     if (approvedBy) {
         data.approved_by = approvedBy;
     }
-    return supabaseQuery('org_vacations?id=eq.' + vacationId, {
+    var result = await supabaseQuery('org_vacations?id=eq.' + vacationId, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено статус відпустки', 'vacation', vacationId, { status: status });
+    return result;
 }
 
 async function deleteVacation(vacationId) {
-    return supabaseQuery('org_vacations?id=eq.' + vacationId, {
+    var result = await supabaseQuery('org_vacations?id=eq.' + vacationId, {
         method: 'DELETE'
     });
+    await addLog('Видалено заявку на відпустку', 'vacation', vacationId, { deleted: true });
+    return result;
 }
 
 // ===== ПОДІЇ =====
 async function createEvent(data) {
-    return supabaseQuery('org_events', {
+    var result = await supabaseQuery('org_events', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -583,6 +640,8 @@ async function createEvent(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено подію', 'event', data.organization_id, { title: data.title });
+    return result;
 }
 
 async function getEvents(organizationId) {
@@ -590,14 +649,16 @@ async function getEvents(organizationId) {
 }
 
 async function deleteEvent(id) {
-    return supabaseQuery('org_events?id=eq.' + id, {
+    var result = await supabaseQuery('org_events?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено подію', 'event', id, { deleted: true });
+    return result;
 }
 
 // ===== ФАЙЛИ =====
 async function createFile(data) {
-    return supabaseQuery('org_files', {
+    var result = await supabaseQuery('org_files', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -610,6 +671,8 @@ async function createFile(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Завантажено файл', 'file', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function getFiles(organizationId) {
@@ -617,14 +680,16 @@ async function getFiles(organizationId) {
 }
 
 async function deleteFile(id) {
-    return supabaseQuery('org_files?id=eq.' + id, {
+    var result = await supabaseQuery('org_files?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено файл', 'file', id, { deleted: true });
+    return result;
 }
 
 // ===== ЗАВДАННЯ =====
 async function createTask(data) {
-    return supabaseQuery('org_tasks', {
+    var result = await supabaseQuery('org_tasks', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -639,6 +704,8 @@ async function createTask(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено завдання', 'task', data.organization_id, { title: data.title });
+    return result;
 }
 
 async function getTasks(organizationId) {
@@ -646,21 +713,25 @@ async function getTasks(organizationId) {
 }
 
 async function updateTask(id, data) {
-    return supabaseQuery('org_tasks?id=eq.' + id, {
+    var result = await supabaseQuery('org_tasks?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify(data)
     });
+    await addLog('Оновлено завдання', 'task', id, data);
+    return result;
 }
 
 async function deleteTask(id) {
-    return supabaseQuery('org_tasks?id=eq.' + id, {
+    var result = await supabaseQuery('org_tasks?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено завдання', 'task', id, { deleted: true });
+    return result;
 }
 
 // ===== ОПИТУВАННЯ =====
 async function createPoll(data) {
-    return supabaseQuery('org_polls', {
+    var result = await supabaseQuery('org_polls', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -674,6 +745,8 @@ async function createPoll(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено опитування', 'poll', data.organization_id, { title: data.title });
+    return result;
 }
 
 async function getPolls(organizationId) {
@@ -681,7 +754,7 @@ async function getPolls(organizationId) {
 }
 
 async function votePoll(pollId, userId, optionIndex) {
-    return supabaseQuery('org_poll_votes', {
+    var result = await supabaseQuery('org_poll_votes', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -691,6 +764,8 @@ async function votePoll(pollId, userId, optionIndex) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Віддано голос в опитуванні', 'poll_vote', pollId, { user_id: userId });
+    return result;
 }
 
 async function getPollResults(pollId) {
@@ -698,9 +773,11 @@ async function getPollResults(pollId) {
 }
 
 async function deletePoll(id) {
-    return supabaseQuery('org_polls?id=eq.' + id, {
+    var result = await supabaseQuery('org_polls?id=eq.' + id, {
         method: 'DELETE'
     });
+    await addLog('Видалено опитування', 'poll', id, { deleted: true });
+    return result;
 }
 
 // ===== СПОВІЩЕННЯ =====
@@ -742,11 +819,13 @@ async function getClinicPatients(orgId) {
 }
 
 async function createClinicPatient(data) {
-    return supabaseQuery('clinic_patients', {
+    var result = await supabaseQuery('clinic_patients', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано пацієнта клініки', 'clinic_patient', data.organization_id, { name: data.full_name });
+    return result;
 }
 
 async function getClinicAppointments(orgId) {
@@ -754,11 +833,13 @@ async function getClinicAppointments(orgId) {
 }
 
 async function createClinicAppointment(data) {
-    return supabaseQuery('clinic_appointments', {
+    var result = await supabaseQuery('clinic_appointments', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено запис клініки', 'clinic_appointment', data.organization_id, { patient_id: data.patient_id });
+    return result;
 }
 
 // ============================================
@@ -769,11 +850,13 @@ async function getShopProducts(orgId) {
 }
 
 async function createShopProduct(data) {
-    return supabaseQuery('shop_products', {
+    var result = await supabaseQuery('shop_products', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано товар в магазин', 'shop_product', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function getShopSales(orgId) {
@@ -781,11 +864,13 @@ async function getShopSales(orgId) {
 }
 
 async function createShopSale(data) {
-    return supabaseQuery('shop_sales', {
+    var result = await supabaseQuery('shop_sales', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Оформлено продаж', 'shop_sale', data.organization_id, { product_id: data.product_id });
+    return result;
 }
 
 // ============================================
@@ -796,11 +881,13 @@ async function getLibraryBooks(orgId) {
 }
 
 async function createLibraryBook(data) {
-    return supabaseQuery('library_books', {
+    var result = await supabaseQuery('library_books', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано книгу в бібліотеку', 'library_book', data.organization_id, { title: data.title });
+    return result;
 }
 
 async function getLibraryLoans(orgId) {
@@ -808,11 +895,13 @@ async function getLibraryLoans(orgId) {
 }
 
 async function createLibraryLoan(data) {
-    return supabaseQuery('library_loans', {
+    var result = await supabaseQuery('library_loans', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Видано книгу', 'library_loan', data.organization_id, { book_id: data.book_id });
+    return result;
 }
 
 async function getLibraryReaders(orgId) {
@@ -820,11 +909,13 @@ async function getLibraryReaders(orgId) {
 }
 
 async function createLibraryReader(data) {
-    return supabaseQuery('library_readers', {
+    var result = await supabaseQuery('library_readers', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано читача бібліотеки', 'library_reader', data.organization_id, { name: data.full_name });
+    return result;
 }
 
 // ============================================
@@ -835,7 +926,7 @@ async function getSchoolStudents(orgId) {
 }
 
 async function createSchoolStudent(data) {
-    return supabaseQuery('school_students', {
+    var result = await supabaseQuery('school_students', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -850,6 +941,8 @@ async function createSchoolStudent(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано учня', 'school_student', data.organization_id, { name: data.full_name });
+    return result;
 }
 
 async function getSchoolClasses(orgId) {
@@ -857,7 +950,7 @@ async function getSchoolClasses(orgId) {
 }
 
 async function createSchoolClass(data) {
-    return supabaseQuery('school_classes', {
+    var result = await supabaseQuery('school_classes', {
         method: 'POST',
         body: JSON.stringify({
             id: generateUUID(),
@@ -870,14 +963,18 @@ async function createSchoolClass(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено клас', 'school_class', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function createSchoolGrade(data) {
-    return supabaseQuery('school_grades', {
+    var result = await supabaseQuery('school_grades', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано оцінку', 'school_grade', data.organization_id, { student_id: data.student_id });
+    return result;
 }
 
 // ============================================
@@ -888,11 +985,13 @@ async function getRestaurantMenu(orgId) {
 }
 
 async function createRestaurantMenuItem(data) {
-    return supabaseQuery('restaurant_menu', {
+    var result = await supabaseQuery('restaurant_menu', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано страву в меню', 'restaurant_menu', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function getRestaurantOrders(orgId) {
@@ -900,24 +999,27 @@ async function getRestaurantOrders(orgId) {
 }
 
 async function createRestaurantOrder(data) {
-    return supabaseQuery('restaurant_orders', {
+    var result = await supabaseQuery('restaurant_orders', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено замовлення в ресторані', 'restaurant_order', data.organization_id, { table: data.table_number });
+    return result;
 }
 
-// ===== РЕСТОРАН - БРОНЮВАННЯ (ДОДАНО) =====
 async function getRestaurantBookings(orgId) {
     return supabaseQuery('restaurant_bookings?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
 
 async function createRestaurantBooking(data) {
-    return supabaseQuery('restaurant_bookings', {
+    var result = await supabaseQuery('restaurant_bookings', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено бронювання в ресторані', 'restaurant_booking', data.organization_id, { table: data.table_number });
+    return result;
 }
 
 // ============================================
@@ -928,11 +1030,13 @@ async function getHotelRooms(orgId) {
 }
 
 async function createHotelRoom(data) {
-    return supabaseQuery('hotel_rooms', {
+    var result = await supabaseQuery('hotel_rooms', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано номер в готелі', 'hotel_room', data.organization_id, { number: data.number });
+    return result;
 }
 
 async function getHotelBookings(orgId) {
@@ -940,11 +1044,13 @@ async function getHotelBookings(orgId) {
 }
 
 async function createHotelBooking(data) {
-    return supabaseQuery('hotel_bookings', {
+    var result = await supabaseQuery('hotel_bookings', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено бронювання в готелі', 'hotel_booking', data.organization_id, { room: data.room_number });
+    return result;
 }
 
 // ============================================
@@ -955,11 +1061,13 @@ async function getGymMemberships(orgId) {
 }
 
 async function createGymMembership(data) {
-    return supabaseQuery('gym_memberships', {
+    var result = await supabaseQuery('gym_memberships', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано абонемент у спортзал', 'gym_membership', data.organization_id, { user: data.user_name });
+    return result;
 }
 
 async function getGymTrainings(orgId) {
@@ -967,11 +1075,13 @@ async function getGymTrainings(orgId) {
 }
 
 async function createGymTraining(data) {
-    return supabaseQuery('gym_trainings', {
+    var result = await supabaseQuery('gym_trainings', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано тренування', 'gym_training', data.organization_id, { name: data.name });
+    return result;
 }
 
 // ============================================
@@ -982,11 +1092,13 @@ async function getBeautyServices(orgId) {
 }
 
 async function createBeautyService(data) {
-    return supabaseQuery('beauty_services', {
+    var result = await supabaseQuery('beauty_services', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано послугу в салон краси', 'beauty_service', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function getBeautyAppointments(orgId) {
@@ -994,11 +1106,13 @@ async function getBeautyAppointments(orgId) {
 }
 
 async function createBeautyAppointment(data) {
-    return supabaseQuery('beauty_appointments', {
+    var result = await supabaseQuery('beauty_appointments', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено запис у салон краси', 'beauty_appointment', data.organization_id, { client: data.client_name });
+    return result;
 }
 
 // ============================================
@@ -1009,11 +1123,13 @@ async function getAutoOrders(orgId) {
 }
 
 async function createAutoOrder(data) {
-    return supabaseQuery('auto_orders', {
+    var result = await supabaseQuery('auto_orders', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено замовлення в автосервісі', 'auto_order', data.organization_id, { client: data.client_name });
+    return result;
 }
 
 async function getAutoParts(orgId) {
@@ -1021,11 +1137,13 @@ async function getAutoParts(orgId) {
 }
 
 async function createAutoPart(data) {
-    return supabaseQuery('auto_parts', {
+    var result = await supabaseQuery('auto_parts', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано запчастину', 'auto_part', data.organization_id, { name: data.name });
+    return result;
 }
 
 // ============================================
@@ -1036,11 +1154,13 @@ async function getRealtyProperties(orgId) {
 }
 
 async function createRealtyProperty(data) {
-    return supabaseQuery('realty_properties', {
+    var result = await supabaseQuery('realty_properties', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано об\'єкт нерухомості', 'realty_property', data.organization_id, { address: data.address });
+    return result;
 }
 
 async function getRealtyDeals(orgId) {
@@ -1048,11 +1168,13 @@ async function getRealtyDeals(orgId) {
 }
 
 async function createRealtyDeal(data) {
-    return supabaseQuery('realty_deals', {
+    var result = await supabaseQuery('realty_deals', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено угоду з нерухомості', 'realty_deal', data.organization_id, { client: data.client_name });
+    return result;
 }
 
 // ============================================
@@ -1063,11 +1185,13 @@ async function getLogisticsOrders(orgId) {
 }
 
 async function createLogisticsOrder(data) {
-    return supabaseQuery('logistics_orders', {
+    var result = await supabaseQuery('logistics_orders', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено логістичне замовлення', 'logistics_order', data.organization_id, { client: data.client_name });
+    return result;
 }
 
 // ============================================
@@ -1078,11 +1202,13 @@ async function getDeliveryOrders(orgId) {
 }
 
 async function createDeliveryOrder(data) {
-    return supabaseQuery('delivery_orders', {
+    var result = await supabaseQuery('delivery_orders', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено замовлення доставки', 'delivery_order', data.organization_id, { client: data.client_name });
+    return result;
 }
 
 // ============================================
@@ -1093,11 +1219,13 @@ async function getItProjects(orgId) {
 }
 
 async function createItProject(data) {
-    return supabaseQuery('it_projects', {
+    var result = await supabaseQuery('it_projects', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Створено IT-проект', 'it_project', data.organization_id, { name: data.name });
+    return result;
 }
 
 async function getItBugs(orgId) {
@@ -1105,11 +1233,13 @@ async function getItBugs(orgId) {
 }
 
 async function createItBug(data) {
-    return supabaseQuery('it_bugs', {
+    var result = await supabaseQuery('it_bugs', {
         method: 'POST',
         body: JSON.stringify({ id: generateUUID(), ...data }),
         headers: { 'Prefer': 'return=representation' }
     });
+    await addLog('Додано баг', 'it_bug', data.organization_id, { title: data.title });
+    return result;
 }
 
 // ============================================
@@ -1117,6 +1247,7 @@ async function createItBug(data) {
 // ============================================
 window.db = {
     supabaseQuery: supabaseQuery,
+    addLog: addLog,
     createOrganization: createOrganization,
     getUserOrganizations: getUserOrganizations,
     getUserAllOrganizations: getUserAllOrganizations,
@@ -1241,6 +1372,4 @@ window.db = {
     createItProject: createItProject,
     getItBugs: getItBugs,
     createItBug: createItBug
-
-    addLog: addLog
 };
