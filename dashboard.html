@@ -272,6 +272,29 @@
         .gap-1{gap:0.5rem;}
         .flex-wrap{flex-wrap:wrap;}
         .justify-center{justify-content:center;}
+        
+        /* Скелетон для завантаження */
+        .org-card-skeleton {
+            background:var(--ink-soft);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius);
+            padding:1.5rem;
+            min-height:180px;
+            animation:pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%{opacity:0.3}
+            50%{opacity:0.7}
+            100%{opacity:0.3}
+        }
+        .org-card-skeleton .line {
+            height:12px;
+            background:var(--ink-line);
+            border-radius:4px;
+            margin-bottom:0.5rem;
+        }
+        .org-card-skeleton .line.short {width:60%;}
+        
         @media(max-width:768px){
             .sidebar{display:none;}
             .main-content{margin-left:0;padding:1rem;}
@@ -322,9 +345,9 @@
 
         <div id="orgsContainer">
             <div class="org-grid" id="orgLoading">
-                <div class="org-card-skeleton"></div>
-                <div class="org-card-skeleton"></div>
-                <div class="org-card-skeleton"></div>
+                <div class="org-card-skeleton"><div class="line"></div><div class="line short"></div></div>
+                <div class="org-card-skeleton"><div class="line"></div><div class="line short"></div></div>
+                <div class="org-card-skeleton"><div class="line"></div><div class="line short"></div></div>
             </div>
             <div class="empty-state" id="emptyState" style="display:none;">
                 <i class="fas fa-building"></i>
@@ -359,74 +382,74 @@
                     <label class="form-label">Тип організації</label>
                     <select class="form-control" id="orgType" required>
                         <option value="">Оберіть тип...</option>
-                        <option value="shop">🏪 Магазин</option>
-                        <option value="library">📚 Бібліотека</option>
-                        <option value="company">🏢 Компанія</option>
-                        <option value="school">🎓 Школа</option>
-                        <option value="clinic">🏥 Клініка</option>
-                        <option value="restaurant">🍽️ Ресторан</option>
-                        <option value="cafe">☕ Кафе</option>
-                        <option value="hotel">🏨 Готель</option>
-                        <option value="gym">💪 Спортзал</option>
-                        <option value="beauty">💄 Салон краси</option>
-                        <option value="auto">🚗 Автосервіс</option>
-                        <option value="realty">🏠 Нерухомість</option>
-                        <option value="it">💻 IT-компанія</option>
-                        <option value="marketing">📊 Маркетинг</option>
-                        <option value="legal">⚖️ Юридична</option>
-                        <option value="finance">💰 Фінанси</option>
-                        <option value="education">📖 Освіта</option>
-                        <option value="medical">🏥 Медицина</option>
-                        <option value="sport">⚽ Спорт</option>
-                        <option value="art">🎨 Мистецтво</option>
-                        <option value="music">🎵 Музика</option>
-                        <option value="photo">📸 Фото</option>
-                        <option value="video">🎬 Відео</option>
-                        <option value="construction">🏗️ Будівництво</option>
-                        <option value="repair">🔧 Ремонт</option>
-                        <option value="cleaning">🧹 Клінінг</option>
-                        <option value="delivery">📦 Доставка</option>
-                        <option value="logistics">🚚 Логістика</option>
-                        <option value="agriculture">🌾 Сільське господарство</option>
-                        <option value="tourism">✈️ Туризм</option>
-                        <option value="event">🎉 Івент</option>
-                        <option value="charity">❤️ Благодійність</option>
-                        <option value="government">🏛️ Державна</option>
-                        <option value="gamedev">🎮 GameDev</option>
-                        <option value="indie">🚀 Інді-розробка</option>
-                        <option value="publishing">📰 Видавництво</option>
-                        <option value="animation">🎬 Анімація</option>
-                        <option value="vr">🥽 VR/AR</option>
-                        <option value="esports">🏆 Кіберспорт</option>
-                        <option value="streaming">📡 Стримінг</option>
-                        <option value="podcast">🎙️ Подкаст</option>
-                        <option value="blogging">📝 Блогінг</option>
-                        <option value="social">📱 Соцмережі</option>
-                        <option value="startup">💡 Стартап</option>
-                        <option value="agency">📢 Агентство</option>
-                        <option value="consulting">🤝 Консалтинг</option>
-                        <option value="freelance">👔 Фриланс</option>
-                        <option value="remote">🌍 Віддалена робота</option>
-                        <option value="coworking">🏢 Коворкінг</option>
-                        <option value="incubator">🌱 Інкубатор</option>
-                        <option value="accelerator">🚀 Акселератор</option>
-                        <option value="venture">📊 Венчур</option>
-                        <option value="nonprofit">❤️ Некомерційна</option>
-                        <option value="community">👥 Спільнота</option>
-                        <option value="religious">⛪ Релігійна</option>
-                        <option value="cultural">🏛️ Культурна</option>
-                        <option value="research">🔬 Дослідження</option>
-                        <option value="science">⚛️ Наука</option>
-                        <option value="space">🚀 Космос</option>
-                        <option value="robotics">🤖 Робототехніка</option>
-                        <option value="ai">🧠 ШІ</option>
-                        <option value="blockchain">⛓️ Блокчейн</option>
-                        <option value="crypto">🪙 Криптовалюта</option>
-                        <option value="defi">📈 DeFi</option>
-                        <option value="nft">🖼️ NFT</option>
-                        <option value="metaverse">🌐 Метавсесвіт</option>
-                        <option value="web3">🌍 Web3</option>
-                        <option value="other">📋 Інше</option>
+                        <option value="shop">Магазин</option>
+                        <option value="library">Бібліотека</option>
+                        <option value="company">Компанія</option>
+                        <option value="school">Школа</option>
+                        <option value="clinic">Клініка</option>
+                        <option value="restaurant">Ресторан</option>
+                        <option value="cafe">Кафе</option>
+                        <option value="hotel">Готель</option>
+                        <option value="gym">Спортзал</option>
+                        <option value="beauty">Салон краси</option>
+                        <option value="auto">Автосервіс</option>
+                        <option value="realty">Нерухомість</option>
+                        <option value="it">IT-компанія</option>
+                        <option value="marketing">Маркетинг</option>
+                        <option value="legal">Юридична</option>
+                        <option value="finance">Фінанси</option>
+                        <option value="education">Освіта</option>
+                        <option value="medical">Медицина</option>
+                        <option value="sport">Спорт</option>
+                        <option value="art">Мистецтво</option>
+                        <option value="music">Музика</option>
+                        <option value="photo">Фото</option>
+                        <option value="video">Відео</option>
+                        <option value="construction">Будівництво</option>
+                        <option value="repair">Ремонт</option>
+                        <option value="cleaning">Клінінг</option>
+                        <option value="delivery">Доставка</option>
+                        <option value="logistics">Логістика</option>
+                        <option value="agriculture">Сільське господарство</option>
+                        <option value="tourism">Туризм</option>
+                        <option value="event">Івент</option>
+                        <option value="charity">Благодійність</option>
+                        <option value="government">Державна</option>
+                        <option value="gamedev">GameDev</option>
+                        <option value="indie">Інді-розробка</option>
+                        <option value="publishing">Видавництво</option>
+                        <option value="animation">Анімація</option>
+                        <option value="vr">VR/AR</option>
+                        <option value="esports">Кіберспорт</option>
+                        <option value="streaming">Стримінг</option>
+                        <option value="podcast">Подкаст</option>
+                        <option value="blogging">Блогінг</option>
+                        <option value="social">Соцмережі</option>
+                        <option value="startup">Стартап</option>
+                        <option value="agency">Агентство</option>
+                        <option value="consulting">Консалтинг</option>
+                        <option value="freelance">Фриланс</option>
+                        <option value="remote">Віддалена робота</option>
+                        <option value="coworking">Коворкінг</option>
+                        <option value="incubator">Інкубатор</option>
+                        <option value="accelerator">Акселератор</option>
+                        <option value="venture">Венчур</option>
+                        <option value="nonprofit">Некомерційна</option>
+                        <option value="community">Спільнота</option>
+                        <option value="religious">Релігійна</option>
+                        <option value="cultural">Культурна</option>
+                        <option value="research">Дослідження</option>
+                        <option value="science">Наука</option>
+                        <option value="space">Космос</option>
+                        <option value="robotics">Робототехніка</option>
+                        <option value="ai">ШІ</option>
+                        <option value="blockchain">Блокчейн</option>
+                        <option value="crypto">Криптовалюта</option>
+                        <option value="defi">DeFi</option>
+                        <option value="nft">NFT</option>
+                        <option value="metaverse">Метавсесвіт</option>
+                        <option value="web3">Web3</option>
+                        <option value="other">Інше</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -494,6 +517,59 @@
             document.getElementById(id).classList.remove('active');
         }
 
+        var typeLabels = {
+            'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
+            'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
+            'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
+            'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
+            'it': 'IT-компанія', 'marketing': 'Маркетинг', 'legal': 'Юридична',
+            'finance': 'Фінанси', 'education': 'Освіта', 'medical': 'Медицина',
+            'sport': 'Спорт', 'art': 'Мистецтво', 'music': 'Музика',
+            'photo': 'Фото', 'video': 'Відео', 'construction': 'Будівництво',
+            'repair': 'Ремонт', 'cleaning': 'Клінінг', 'delivery': 'Доставка',
+            'logistics': 'Логістика', 'agriculture': 'Сільське господарство',
+            'tourism': 'Туризм', 'event': 'Івент', 'charity': 'Благодійність',
+            'government': 'Державна', 'gamedev': 'GameDev', 'indie': 'Інді-розробка',
+            'publishing': 'Видавництво', 'animation': 'Анімація', 'vr': 'VR/AR',
+            'esports': 'Кіберспорт', 'streaming': 'Стримінг', 'podcast': 'Подкаст',
+            'blogging': 'Блогінг', 'social': 'Соцмережі', 'startup': 'Стартап',
+            'agency': 'Агентство', 'consulting': 'Консалтинг', 'freelance': 'Фриланс',
+            'remote': 'Віддалена робота', 'coworking': 'Коворкінг', 'incubator': 'Інкубатор',
+            'accelerator': 'Акселератор', 'venture': 'Венчур', 'nonprofit': 'Некомерційна',
+            'community': 'Спільнота', 'religious': 'Релігійна', 'cultural': 'Культурна',
+            'research': 'Дослідження', 'science': 'Наука', 'space': 'Космос',
+            'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
+            'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
+            'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
+        };
+
+        var iconMap = {
+            'shop': 'fa-store', 'library': 'fa-book', 'company': 'fa-building',
+            'school': 'fa-graduation-cap', 'clinic': 'fa-heartbeat',
+            'restaurant': 'fa-utensils', 'cafe': 'fa-coffee', 'hotel': 'fa-hotel',
+            'gym': 'fa-dumbbell', 'beauty': 'fa-spa', 'auto': 'fa-car',
+            'realty': 'fa-home', 'it': 'fa-code', 'marketing': 'fa-chart-line',
+            'legal': 'fa-gavel', 'finance': 'fa-coins', 'education': 'fa-graduation-cap',
+            'medical': 'fa-heartbeat', 'sport': 'fa-running', 'art': 'fa-palette',
+            'music': 'fa-music', 'photo': 'fa-camera', 'video': 'fa-video',
+            'construction': 'fa-hard-hat', 'repair': 'fa-tools', 'cleaning': 'fa-broom',
+            'delivery': 'fa-truck', 'logistics': 'fa-shipping-fast',
+            'agriculture': 'fa-tractor', 'tourism': 'fa-plane', 'event': 'fa-calendar-check',
+            'charity': 'fa-hand-holding-heart', 'government': 'fa-landmark',
+            'gamedev': 'fa-gamepad', 'indie': 'fa-rocket', 'publishing': 'fa-newspaper',
+            'animation': 'fa-film', 'vr': 'fa-vr-cardboard', 'esports': 'fa-trophy',
+            'streaming': 'fa-broadcast', 'podcast': 'fa-microphone', 'blogging': 'fa-blog',
+            'social': 'fa-share-alt', 'startup': 'fa-lightbulb', 'agency': 'fa-ad',
+            'consulting': 'fa-handshake', 'freelance': 'fa-user-tie', 'remote': 'fa-globe',
+            'coworking': 'fa-building', 'incubator': 'fa-seedling', 'accelerator': 'fa-rocket',
+            'venture': 'fa-chart-pie', 'nonprofit': 'fa-heart', 'community': 'fa-users',
+            'religious': 'fa-church', 'cultural': 'fa-landmark', 'research': 'fa-flask',
+            'science': 'fa-atom', 'space': 'fa-rocket', 'robotics': 'fa-robot',
+            'ai': 'fa-brain', 'blockchain': 'fa-link', 'crypto': 'fa-coins',
+            'defi': 'fa-chart-line', 'nft': 'fa-image', 'metaverse': 'fa-vr-cardboard',
+            'web3': 'fa-globe', 'other': 'fa-cubes'
+        };
+
         async function loadDashboard() {
             var user = auth.getCurrentUser();
             if (!user) {
@@ -519,72 +595,46 @@
         }
 
         async function loadOrganizations() {
+            var loading = document.getElementById('orgLoading');
+            var grid = document.getElementById('orgGrid');
+            var emptyState = document.getElementById('emptyState');
+
             try {
-                var orgs = await db.getUserAllOrganizations();
-                var grid = document.getElementById('orgGrid');
-                var emptyState = document.getElementById('emptyState');
+                var user = auth.getCurrentUser();
+                if (!user) throw new Error('Користувач не авторизований');
 
-                grid.innerHTML = '';
-
-                if (!orgs || orgs.length === 0) {
+                // Отримуємо організації через учасника
+                var members = await db.supabaseQuery('org_members?user_id=eq.' + user.id);
+                
+                if (!members || members.length === 0) {
+                    loading.style.display = 'none';
+                    grid.style.display = 'none';
                     emptyState.style.display = 'block';
                     return;
                 }
 
+                var orgIds = members.map(function(m) { return m.organization_id; }).join(',');
+                
+                if (!orgIds) {
+                    loading.style.display = 'none';
+                    grid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                var orgs = await db.supabaseQuery('organizations?id=in.(' + orgIds + ')');
+
+                loading.style.display = 'none';
+                grid.innerHTML = '';
+                grid.style.display = 'grid';
+
+                if (!orgs || orgs.length === 0) {
+                    emptyState.style.display = 'block';
+                    grid.style.display = 'none';
+                    return;
+                }
+
                 emptyState.style.display = 'none';
-
-                var iconMap = {
-                    'shop': 'fa-store', 'library': 'fa-book', 'company': 'fa-building',
-                    'school': 'fa-graduation-cap', 'clinic': 'fa-heartbeat',
-                    'restaurant': 'fa-utensils', 'cafe': 'fa-coffee', 'hotel': 'fa-hotel',
-                    'gym': 'fa-dumbbell', 'beauty': 'fa-spa', 'auto': 'fa-car',
-                    'realty': 'fa-home', 'it': 'fa-code', 'marketing': 'fa-chart-line',
-                    'legal': 'fa-gavel', 'finance': 'fa-coins', 'education': 'fa-graduation-cap',
-                    'medical': 'fa-heartbeat', 'sport': 'fa-running', 'art': 'fa-palette',
-                    'music': 'fa-music', 'photo': 'fa-camera', 'video': 'fa-video',
-                    'construction': 'fa-hard-hat', 'repair': 'fa-tools', 'cleaning': 'fa-broom',
-                    'delivery': 'fa-truck', 'logistics': 'fa-shipping-fast',
-                    'agriculture': 'fa-tractor', 'tourism': 'fa-plane', 'event': 'fa-calendar-check',
-                    'charity': 'fa-hand-holding-heart', 'government': 'fa-landmark',
-                    'gamedev': 'fa-gamepad', 'indie': 'fa-rocket', 'publishing': 'fa-newspaper',
-                    'animation': 'fa-film', 'vr': 'fa-vr-cardboard', 'esports': 'fa-trophy',
-                    'streaming': 'fa-broadcast', 'podcast': 'fa-microphone', 'blogging': 'fa-blog',
-                    'social': 'fa-share-alt', 'startup': 'fa-lightbulb', 'agency': 'fa-ad',
-                    'consulting': 'fa-handshake', 'freelance': 'fa-user-tie', 'remote': 'fa-globe',
-                    'coworking': 'fa-building', 'incubator': 'fa-seedling', 'accelerator': 'fa-rocket',
-                    'venture': 'fa-chart-pie', 'nonprofit': 'fa-heart', 'community': 'fa-users',
-                    'religious': 'fa-church', 'cultural': 'fa-landmark', 'research': 'fa-flask',
-                    'science': 'fa-atom', 'space': 'fa-rocket', 'robotics': 'fa-robot',
-                    'ai': 'fa-brain', 'blockchain': 'fa-link', 'crypto': 'fa-coins',
-                    'defi': 'fa-chart-line', 'nft': 'fa-image', 'metaverse': 'fa-vr-cardboard',
-                    'web3': 'fa-globe', 'other': 'fa-cubes'
-                };
-
-                var typeLabels = {
-                    'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
-                    'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
-                    'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
-                    'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
-                    'it': 'IT-компанія', 'marketing': 'Маркетинг', 'legal': 'Юридична',
-                    'finance': 'Фінанси', 'education': 'Освіта', 'medical': 'Медицина',
-                    'sport': 'Спорт', 'art': 'Мистецтво', 'music': 'Музика',
-                    'photo': 'Фото', 'video': 'Відео', 'construction': 'Будівництво',
-                    'repair': 'Ремонт', 'cleaning': 'Клінінг', 'delivery': 'Доставка',
-                    'logistics': 'Логістика', 'agriculture': 'Сільське господарство',
-                    'tourism': 'Туризм', 'event': 'Івент', 'charity': 'Благодійність',
-                    'government': 'Державна', 'gamedev': 'GameDev', 'indie': 'Інді-розробка',
-                    'publishing': 'Видавництво', 'animation': 'Анімація', 'vr': 'VR/AR',
-                    'esports': 'Кіберспорт', 'streaming': 'Стримінг', 'podcast': 'Подкаст',
-                    'blogging': 'Блогінг', 'social': 'Соцмережі', 'startup': 'Стартап',
-                    'agency': 'Агентство', 'consulting': 'Консалтинг', 'freelance': 'Фриланс',
-                    'remote': 'Віддалена робота', 'coworking': 'Коворкінг', 'incubator': 'Інкубатор',
-                    'accelerator': 'Акселератор', 'venture': 'Венчур', 'nonprofit': 'Некомерційна',
-                    'community': 'Спільнота', 'religious': 'Релігійна', 'cultural': 'Культурна',
-                    'research': 'Дослідження', 'science': 'Наука', 'space': 'Космос',
-                    'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
-                    'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
-                    'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
-                };
 
                 orgs.forEach(function(org) {
                     var iconClass = iconMap[org.type] || 'fa-cubes';
@@ -603,6 +653,8 @@
                 });
 
             } catch (error) {
+                loading.style.display = 'none';
+                console.error('loadOrganizations error:', error);
                 showAlert('Помилка завантаження організацій: ' + error.message, 'error');
             }
         }
@@ -637,7 +689,7 @@
                     settings: {}
                 });
 
-                showToast('Організацію створено! 🎉', 'success');
+                showToast('Організацію створено!', 'success');
                 closeModal('createOrgModal');
                 document.getElementById('createOrgForm').reset();
                 await loadOrganizations();
