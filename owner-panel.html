@@ -819,7 +819,7 @@
                 
                 for (var i = 0; i < users.length; i++) {
                     if (users[i].id === user.id) continue;
-                    if (users[i].role === 'owner') continue; // Захист: не чіпаємо засновників
+                    if (users[i].role === 'owner') continue;
                     var isChecked = users[i].role === 'admin' || users[i].role === 'moderator';
                     html += '<div style="padding:0.3rem 0;display:flex;align-items:center;gap:0.75rem;">';
                     html += '<input type="checkbox" id="bulk_user_' + users[i].id + '" ' + (isChecked ? 'checked' : '') + ' value="' + users[i].id + '">';
@@ -830,19 +830,6 @@
                 html += '</div></div>';
                 
                 openModal('Масове призначення ролей', html);
-                
-                document.getElementById('bulkRoleSelect').addEventListener('change', function() {
-                    var role = this.value;
-                    var checkboxes = document.querySelectorAll('[id^="bulk_user_"]');
-                    checkboxes.forEach(function(cb) {
-                        var userId = cb.value;
-                        var userData = users.find(function(u) { return u.id === userId; });
-                        if (userData && userData.role === 'owner') {
-                            cb.checked = false;
-                            cb.disabled = true;
-                        }
-                    });
-                });
                 
                 // Додаємо кнопку підтвердження
                 var confirmBtn = document.createElement('button');
@@ -929,31 +916,26 @@
             
             var html = '';
             
-            // Загальні налаштування
             html += '<div class="card">';
             html += '<div class="card-header"><h3 class="card-title">⚙️ Загальні налаштування</h3></div>';
             html += '<button class="btn btn-gold" onclick="systemSettings()"><i class="fas fa-cog"></i> Налаштування системи</button>';
             html += '</div>';
             
-            // Типи організацій
             html += '<div class="card">';
             html += '<div class="card-header"><h3 class="card-title">🏷️ Типи організацій</h3></div>';
             html += '<button class="btn btn-teal" onclick="manageOrgTypes()"><i class="fas fa-tags"></i> Керувати типами</button>';
             html += '</div>';
             
-            // Email домени
             html += '<div class="card">';
             html += '<div class="card-header"><h3 class="card-title">📧 Email домени</h3></div>';
             html += '<button class="btn btn-primary" onclick="manageEmailDomains()"><i class="fas fa-envelope"></i> Керувати доменами</button>';
             html += '</div>';
             
-            // Глобальні оголошення
             html += '<div class="card">';
             html += '<div class="card-header"><h3 class="card-title">📢 Глобальні оголошення</h3></div>';
             html += '<button class="btn btn-warning" onclick="manageAnnouncements()"><i class="fas fa-bullhorn"></i> Керувати оголошеннями</button>';
             html += '</div>';
             
-            // Резервне копіювання
             html += '<div class="card">';
             html += '<div class="card-header"><h3 class="card-title">💾 Резервне копіювання</h3></div>';
             html += '<button class="btn btn-purple" onclick="backupDatabase()"><i class="fas fa-database"></i> Створити резервну копію</button>';
@@ -962,6 +944,8 @@
             
             container.innerHTML = html;
         }
+
+        // ============= ІНІЦІАЛІЗАЦІЯ =============
 
         async function systemSettings() {
             try {
@@ -1302,7 +1286,7 @@
                 var backup = {};
                 
                 for (var i = 0; i < tables.length; i++) {
-                    var data = await db.supabaseQuery(tables + '?select=*');
+                    var data = await db.supabaseQuery(tables[i] + '?select=*');
                     backup[tables[i]] = data || [];
                 }
                 
@@ -1353,10 +1337,8 @@
                                 var tableName = tables[i];
                                 if (tableName === 'created_at' || tableName === 'version') continue;
                                 
-                                // Видаляємо старі дані
                                 await db.supabaseQuery(tableName + '?select=id', { method: 'DELETE' });
                                 
-                                // Вставляємо нові дані
                                 if (backup[tableName] && backup[tableName].length > 0) {
                                     for (var j = 0; j < backup[tableName].length; j++) {
                                         await db.supabaseQuery(tableName, {
@@ -1637,9 +1619,7 @@
                 var messages = await db.supabaseQuery('org_chat_messages?select=*');
                 var vacations = await db.supabaseQuery('org_vacations?select=*');
                 var reports = await db.supabaseQuery('reports?select=*');
-                var logs = await db.supabaseQuery('activity_logs?select=*');
                 
-                // Статистика по ролях
                 var roles = { owner: 0, admin: 0, moderator: 0, user: 0 };
                 var banned = 0;
                 if (users) {
@@ -1649,7 +1629,6 @@
                     }
                 }
                 
-                // Статистика по організаціях
                 var activeOrgs = 0;
                 var frozenOrgs = 0;
                 if (orgs) {
@@ -1659,7 +1638,6 @@
                     }
                 }
                 
-                // Статистика по скаргах
                 var pendingReports = 0;
                 var resolvedReports = 0;
                 if (reports) {
@@ -2031,8 +2009,6 @@
                         userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач';
                     }
                 }
-                
-                var currentUser = auth.getCurrentUser();
                 
                 var html = '<div style="margin-bottom:1rem;">';
                 html += '<p><strong>Тема:</strong> ' + t.subject + '</p>';
