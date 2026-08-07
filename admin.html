@@ -156,6 +156,11 @@
             gap:1.5rem;
             margin-bottom:2rem;
         }
+        .grid-2{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:1.5rem;
+        }
         .stat-card{
             background:var(--ink-soft);
             border:1px solid var(--ink-line);
@@ -286,14 +291,112 @@
         .flex-wrap{flex-wrap:wrap;}
         .items-center{align-items:center;}
         .justify-between{justify-content:space-between;}
-        @media(max-width:768px){
+
+        /* ===== ТЕМНИЙ ПОШУК ===== */
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-wrapper .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+
+        .search-wrapper .search-input {
+            width: 100%;
+            padding: 0.65rem 1rem 0.65rem 36px;
+            background: var(--ink);
+            border: 1px solid var(--ink-line);
+            border-radius: 6px;
+            color: var(--text-onink);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .search-wrapper .search-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(242, 169, 59, 0.15);
+        }
+
+        .search-wrapper .search-input::placeholder {
+            color: var(--muted);
+        }
+
+        .search-wrapper .search-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            display: none;
+            font-size: 0.8rem;
+        }
+
+        .search-wrapper .search-clear:hover {
+            color: var(--text-onink);
+        }
+
+        .search-wrapper .search-clear.visible {
+            display: block;
+        }
+
+        .filter-select {
+            background: var(--ink);
+            border: 1px solid var(--ink-line);
+            border-radius: 6px;
+            color: var(--text-onink);
+            padding: 0.65rem 2rem 0.65rem 1rem;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B93A6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            min-width: 120px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .filter-select option {
+            background: var(--ink-soft);
+            color: var(--text-onink);
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
             .sidebar{display:none;}
             .main-content{margin-left:0;padding:1rem;}
             .page-header h1{font-size:1.5rem;}
             .grid-4{grid-template-columns:1fr 1fr;}
+            .grid-2{grid-template-columns:1fr;}
+            .search-wrapper{min-width:100%;}
+            .filter-select{min-width:100%;}
         }
         @media(max-width:480px){
             .grid-4{grid-template-columns:1fr;}
+            .search-filters{flex-direction:column;}
         }
     </style>
 </head>
@@ -315,6 +418,11 @@
         <ul class="nav-menu">
             <li><a href="/dashboard"><i class="fas fa-arrow-left"></i> Назад</a></li>
             <li><a class="active" onclick="loadSection('overview')"><i class="fas fa-th-large"></i> Огляд</a></li>
+            <li id="ownerPanelLink" style="display:none;">
+                <a onclick="loadSection('owner')">
+                    <i class="fas fa-crown" style="color:var(--gold);"></i> Панель засновника
+                </a>
+            </li>
             <li><a onclick="loadSection('users')"><i class="fas fa-users"></i> Користувачі</a></li>
             <li><a onclick="loadSection('orgs')"><i class="fas fa-building"></i> Організації</a></li>
             <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чати</a></li>
@@ -328,8 +436,8 @@
     <main class="main-content">
         <div class="page-header">
             <div>
-                <h1>Адмін-панель</h1>
-                <p>Управління системою</p>
+                <h1 id="pageTitle">Адмін-панель</h1>
+                <p id="pageSubtitle">Управління системою</p>
             </div>
         </div>
 
