@@ -1,3 +1,7 @@
+// ============================================
+// TYPEBIZ - ОРГАНІЗАЦІЯ (ПОВНА ВЕРСІЯ)
+// ============================================
+
 var currentOrgId = null;
 var currentOrg = null;
 var allPatients = [];
@@ -349,6 +353,10 @@ async function loadOverview() {
     }
 }
 
+// ============================================
+// УЧАСНИКИ З КНОПКОЮ СКАРГИ
+// ============================================
+
 async function loadMembers() {
     if (!checkOrgActive()) {
         var container = document.getElementById('sectionContent');
@@ -425,14 +433,20 @@ async function loadMembers() {
                     var isCurrentUser = member.user_id === (user ? user.id : null);
                     var canManage = isLeader && !isLeaderUser && !isCurrentUser;
 
+                    // ===== ДОДАЄМО КНОПКУ СКАРГИ =====
                     html += 
                         '<tr>' +
                             '<td><strong>' + userName + (isLeaderUser ? ' (керівник)' : '') + (isCurrentUser ? ' (ви)' : '') + '</strong></td>' +
                             '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' (основна)' : '') + '</span>' : 'Без посади') + '</td>' +
                             '<td>' + departmentName + '</td>' +
                             '<td>' + new Date(member.joined_at).toLocaleDateString('uk-UA') + '</td>' +
-                            '<td>' + (canManage ? 
-                                '<div style="display:flex;gap:0.25rem;flex-wrap:wrap;">' +
+                            '<td>' + 
+                                // ===== КНОПКА СКАРГИ (для всіх, крім себе) =====
+                                (!isCurrentUser && userData && userData.length > 0 ? 
+                                    '<button class="btn btn-sm btn-danger" onclick="reportUser(\'' + member.user_id + '\', \'' + userName + '\')" title="Поскаржитися на користувача" style="margin-right:0.25rem;">' +
+                                        '<i class="fas fa-flag"></i> Скарга' +
+                                    '</button>' : '') +
+                                (canManage ? 
                                     '<button class="btn btn-sm btn-teal" onclick="openAssignRank(\'' + member.id + '\', \'' + userName + '\')" title="Змінити посаду">' +
                                         '<i class="fas fa-crown"></i>' +
                                     '</button>' +
@@ -446,8 +460,8 @@ async function loadMembers() {
                                         '</button>' : '') +
                                     '<button class="btn btn-sm btn-danger" onclick="removeMember(\'' + member.id + '\', \'' + userName + '\')" title="Вигнати з організації">' +
                                         '<i class="fas fa-user-minus"></i>' +
-                                    '</button>' +
-                                '</div>' : (isCurrentUser ? '—' : '—')) + '</td>' +
+                                    '</button>' : '') + 
+                            '</td>' +
                         '</tr>';
                 } catch (e) {}
             }
@@ -465,6 +479,95 @@ async function loadMembers() {
     } catch (error) {
         container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
     }
+}
+
+// ============================================
+// СКАРГА НА КОРИСТУВАЧА (ПОВНА ФУНКЦІЯ)
+// ============================================
+
+function reportUser(userId, userName) {
+    var user = auth.getCurrentUser();
+    if (!user) {
+        showAlert('Увійдіть в акаунт', 'warning');
+        return;
+    }
+    
+    if (userId === user.id) {
+        showAlert('Не можна поскаржитися на себе', 'warning');
+        return;
+    }
+    
+    var html = '<form id="reportForm">';
+    html += '<div style="margin-bottom:1rem;padding:0.75rem;background:var(--ink-raised);border-radius:8px;">';
+    html += 'Скарга на користувача: <strong>' + userName + '</strong>';
+    html += '</div>';
+    html += '<div class="form-group">';
+    html += '<label class="form-label">Причина скарги <span style="color:var(--gold);">*</span></label>';
+    html += '<select class="form-control" id="reportReason" required>';
+    html += '<option value="">Оберіть причину...</option>';
+    html += '<option value="spam">Спам</option>';
+    html += '<option value="harassment">Цькування/Образи</option>';
+    html += '<option value="inappropriate">Неприйнятна поведінка</option>';
+    html += '<option value="scam">Шахрайство</option>';
+    html += '<option value="fake">Фейковий акаунт</option>';
+    html += '<option value="other">Інше</option>';
+    html += '</select>';
+    html += '</div>';
+    html += '<div class="form-group">';
+    html += '<label class="form-label">Додатковий опис</label>';
+    html += '<textarea class="form-control" id="reportDesc" rows="4" placeholder="Деталі скарги..."></textarea>';
+    html += '</div>';
+    html += '<button type="submit" class="btn btn-danger btn-block">';
+    html += '<i class="fas fa-flag"></i> Відправити скаргу';
+    html += '</button>';
+    html += '</form>';
+    
+    document.getElementById('reportModalTitle').textContent = 'Поскаржитися на користувача';
+    document.getElementById('reportModalBody').innerHTML = html;
+    document.getElementById('reportModal').classList.add('active');
+    
+    document.getElementById('reportForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        var reason = document.getElementById('reportReason').value;
+        var desc = document.getElementById('reportDesc').value.trim();
+        
+        if (!reason) {
+            showAlert('Виберіть причину скарги', 'warning');
+            return;
+        }
+        
+        var submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
+        
+        try {
+            var user = auth.getCurrentUser();
+            
+            await db.supabaseQuery('reports', {
+                method: 'POST',
+                body: JSON.stringify({
+                    from_user_id: user.id,
+                    target_user_id: userId,
+                    reason: reason,
+                    description: desc || '',
+                    status: 'pending',
+                    organization_id: currentOrgId,
+                    created_at: new Date().toISOString()
+                })
+            });
+            
+            await db.addLog('Створено скаргу на користувача', 'report', null, { target: userName, reason: reason });
+            showToast('Скаргу відправлено! Модератори розглянуть її.', 'success');
+            document.getElementById('reportModal').classList.remove('active');
+            
+        } catch (error) {
+            showAlert('Помилка: ' + error.message, 'error');
+        }
+        
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-flag"></i> Відправити скаргу';
+    });
 }
 
 async function removeRankFromMember(memberId) {
@@ -2295,8 +2398,6 @@ async function deleteUserAccount() {
         await showAlert('Помилка: ' + error.message, 'error');
     }
 }
-
-init();
 
 // ===== МОДУЛЬ: КЛІНІКА =====
 async function loadClinic() {
@@ -5886,3 +5987,5 @@ document.getElementById('itBugForm')?.addEventListener('submit', async function(
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
+
+init();
