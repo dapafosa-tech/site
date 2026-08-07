@@ -846,7 +846,7 @@
                     html += '<div class="ticket-card-meta">';
                     html += '<span><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></span>';
                     html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
-                    html += '<span>' + new Date(t.created_at).toLocaleDateString('uk-UA') + '</span>';
+                    html += '<span>' + formatDateKyiv(t.created_at) + '</span>';
                     html += '</div></div>';
                 }
 
@@ -880,7 +880,7 @@
                 html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
                 html += '</div>';
 
-                html += '<div class="support-msg"><div class="support-msg-top"><span>👤 Ви</span><span>' + new Date(t.created_at).toLocaleString('uk-UA') + '</span></div><div class="support-msg-body">' + (t.message || '') + '</div></div>';
+                html += '<div class="support-msg"><div class="support-msg-top"><span>👤 Ви</span><span>' + formatDateTimeKyiv(t.created_at) + '</span></div><div class="support-msg-body">' + (t.message || '') + '</div></div>';
 
                 if (messages && messages.length > 0) {
                     for (var i = 0; i < messages.length; i++) {
@@ -888,7 +888,7 @@
                         var isStaff = isStaffRole(msg.sender_type);
                         var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
                         html += '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
-                        html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + new Date(msg.created_at).toLocaleString('uk-UA') + '</span></div>';
+                        html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
                         html += '<div class="support-msg-body">' + msg.message + '</div></div>';
                     }
                 }

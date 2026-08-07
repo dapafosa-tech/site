@@ -344,7 +344,7 @@ async function loadOverview() {
                     '</div>' +
                     '<div>' +
                         '<p><strong>Код вступу:</strong> <span style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;background:var(--ink);padding:0.2rem 0.8rem;border-radius:var(--radius-sm);color:var(--gold);text-transform:lowercase;">' + (currentOrg ? currentOrg.join_code || '---' : '---') + '</span></p>' +
-                        '<p><strong>Створено:</strong> ' + (currentOrg ? new Date(currentOrg.created_at).toLocaleDateString('uk-UA') : '') + '</p>' +
+                        '<p><strong>Створено:</strong> ' + (currentOrg ? formatDateKyiv(currentOrg.created_at) : '') + '</p>' +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -439,7 +439,7 @@ async function loadMembers() {
                             '<td><strong>' + userName + (isLeaderUser ? ' (керівник)' : '') + (isCurrentUser ? ' (ви)' : '') + '</strong></td>' +
                             '<td>' + (rank ? '<span style="color:' + rank.color + '">' + rank.name + (rank.is_default ? ' (основна)' : '') + '</span>' : 'Без посади') + '</td>' +
                             '<td>' + departmentName + '</td>' +
-                            '<td>' + new Date(member.joined_at).toLocaleDateString('uk-UA') + '</td>' +
+                            '<td>' + formatDateKyiv(member.joined_at) + '</td>' +
                             '<td>' + 
                                 // ===== КНОПКА СКАРГИ (для всіх, крім себе) =====
                                 (!isCurrentUser && userData && userData.length > 0 ? 
@@ -673,7 +673,7 @@ async function loadRequests() {
                             '<td><strong>' + userName + '</strong></td>' +
                             '<td>' + (req.message || 'Без повідомлення') + '</td>' +
                             '<td><span class="badge ' + statusClass + '">' + (statusLabels[req.status] || req.status) + '</span></td>' +
-                            '<td>' + new Date(req.created_at).toLocaleDateString('uk-UA') + '</td>' +
+                            '<td>' + formatDateKyiv(req.created_at) + '</td>' +
                             '<td>' + (isPending && isLeader ? 
                                 '<button class="btn btn-sm btn-teal" onclick="handleRequest(\'' + req.id + '\', \'approved\')">' +
                                     '<i class="fas fa-check"></i>' +
@@ -1298,7 +1298,7 @@ async function loadChat() {
                     '<div style="display:flex;justify-content:' + (isOwn ? 'flex-end' : 'flex-start') + ';margin-bottom:0.5rem;">' +
                         '<div style="max-width:70%;background:' + (isOwn ? 'var(--gold)' : 'var(--ink)') + ';color:' + (isOwn ? 'var(--ink)' : 'var(--text-onink)') + ';padding:0.5rem 1rem;border-radius:12px;border-bottom-' + (isOwn ? 'right' : 'left') + '-radius:4px;border:' + (isOwn ? 'none' : '1px solid var(--ink-line)') + ';">' +
                             '<div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.2rem;">' +
-                                userName + ' · ' + new Date(msg.created_at).toLocaleTimeString('uk-UA') +
+                                userName + ' · ' + formatTimeKyiv(msg.created_at) +
                                 (hasMention ? ' (згадування)' : '') +
                             '</div>' +
                             '<div>' + msg.message + '</div>' +
@@ -1444,7 +1444,7 @@ async function loadVacations() {
                 html += 
                     '<tr>' +
                         '<td><strong>' + userName + '</strong></td>' +
-                        '<td>' + new Date(vac.start_date).toLocaleDateString('uk-UA') + ' - ' + new Date(vac.end_date).toLocaleDateString('uk-UA') + '</td>' +
+                        '<td>' + formatDateKyiv(vac.start_date) + ' - ' + formatDateKyiv(vac.end_date) + '</td>' +
                         '<td>' + (vacationTypeLabels[vac.type] || vac.type) + '</td>' +
                         '<td><span class="badge ' + statusClass + '">' + (vacationStatusLabels[vac.status] || vac.status) + '</span></td>' +
                         '<td>' + (isPending && isLeader ? 
@@ -1602,7 +1602,7 @@ async function loadEvents() {
                 html += 
                     '<tr>' +
                         '<td><strong>' + ev.title + '</strong></td>' +
-                        '<td>' + new Date(ev.start_date).toLocaleString('uk-UA') + '</td>' +
+                        '<td>' + formatDateTimeKyiv(ev.start_date) + '</td>' +
                         '<td>' + (ev.location || '—') + '</td>' +
                         '<td>' + (isLeader ? 
                             '<button class="btn btn-sm btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">' +
@@ -1734,7 +1734,7 @@ async function loadTasks() {
                     '<tr>' +
                         '<td><strong>' + task.title + '</strong></td>' +
                         '<td>' + assignedName + '</td>' +
-                        '<td>' + (task.due_date ? new Date(task.due_date).toLocaleDateString('uk-UA') : '—') + '</td>' +
+                        '<td>' + (task.due_date ? formatDateKyiv(task.due_date) : '—') + '</td>' +
                         '<td><span class="badge ' + (task.status === 'done' ? 'badge-success' : task.status === 'in_progress' ? 'badge-warning' : 'badge-primary') + '">' + (taskStatusLabels[task.status] || task.status) + '</span></td>' +
                         '<td><span class="badge ' + (task.priority === 'high' || task.priority === 'urgent' ? 'badge-danger' : task.priority === 'medium' ? 'badge-warning' : 'badge-success') + '">' + (taskPriorityLabels[task.priority] || task.priority) + '</span></td>' +
                         '<td>' + (isLeader || isAssignee ? 
@@ -2258,7 +2258,7 @@ async function loadClinic() {
                 var p = patients[i];
                 html += '<div class="patient-item" data-name="' + (p.full_name || '').toLowerCase() + '" data-phone="' + (p.phone || '') + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="viewClinicPatient(\'' + p.id + '\')">';
                 html += '<div><strong>' + (p.full_name || 'Без імені') + '</strong>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + new Date(p.birth_date).toLocaleDateString('uk-UA') : '') + '</div></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.phone || '') + (p.birth_date ? ' · ' + formatDateKyiv(p.birth_date) : '') + '</div></div>';
                 html += '<div><button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteClinicPatient(\'' + p.id + '\')"><i class="fas fa-trash"></i></button></div>';
                 html += '</div>';
             }
@@ -2295,7 +2295,7 @@ async function loadClinic() {
                 html += '</button>';
                 html += '</div>';
                 html += '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + (a.reason ? ' · ' + a.reason : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? formatDateTimeKyiv(a.appointment_date) : '') + (a.reason ? ' · ' + a.reason : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -2342,7 +2342,7 @@ async function viewClinicPatient(patientId) {
         html += '<h3 style="color:var(--gold);">' + patient.full_name + '</h3>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">';
         html += '<div><strong>Телефон:</strong> ' + (patient.phone || '—') + '</div>';
-        html += '<div><strong>Дата народження:</strong> ' + (patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата народження:</strong> ' + (patient.birth_date ? formatDateKyiv(patient.birth_date) : '—') + '</div>';
         html += '<div><strong>Група крові:</strong> ' + (patient.blood_type || '—') + '</div>';
         html += '<div><strong>Алергії:</strong> ' + (patient.allergies || 'Немає') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Адреса:</strong> ' + (patient.address || '—') + '</div>';
@@ -2600,7 +2600,7 @@ async function loadShop() {
                 var s = sales[i];
                 html += '<div class="shop-sale-item" data-id="' + s.id + '" data-customer="' + (s.customer_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewShopSale(\'' + s.id + '\')">';
                 html += '<div><strong>' + (s.product_name || 'Товар') + '</strong> × ' + (s.quantity || 1) + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (s.total || 0) + ' грн · ' + (s.sale_date ? new Date(s.sale_date).toLocaleDateString('uk-UA') : '') + (s.customer_name ? ' · ' + s.customer_name : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (s.total || 0) + ' грн · ' + (s.sale_date ? formatDateKyiv(s.sale_date) : '') + (s.customer_name ? ' · ' + s.customer_name : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -2695,7 +2695,7 @@ async function viewShopSale(saleId) {
         html += '<div><strong>Ціна:</strong> ' + (sale.price || 0) + ' грн</div>';
         html += '<div><strong>Сума:</strong> ' + (sale.total || 0) + ' грн</div>';
         html += '<div><strong>Клієнт:</strong> ' + (sale.customer_name || '—') + '</div>';
-        html += '<div><strong>Дата:</strong> ' + (sale.sale_date ? new Date(sale.sale_date).toLocaleString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата:</strong> ' + (sale.sale_date ? formatDateTimeKyiv(sale.sale_date) : '—') + '</div>';
         html += '<div><strong>Статус:</strong> ' + (sale.status || 'completed') + '</div>';
         html += '</div></div>';
         
@@ -2895,7 +2895,7 @@ async function loadLibrary() {
                 var r = readers[i];
                 html += '<div class="library-reader-item" data-name="' + (r.full_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewLibraryReader(\'' + r.id + '\')">';
                 html += '<div><strong>' + r.full_name + '</strong></div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (r.phone || '') + ' · ' + new Date(r.joined_at).toLocaleDateString('uk-UA') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (r.phone || '') + ' · ' + formatDateKyiv(r.joined_at) + '</div>';
                 html += '</div>';
             }
         } else {
@@ -2913,7 +2913,7 @@ async function loadLibrary() {
                 var statusClass = l.status === 'active' ? 'badge-warning' : 'badge-success';
                 html += '<div style="padding:0.5rem;border-bottom:1px solid var(--ink-line);">';
                 html += '<div><strong>' + (l.book_title || 'Книга') + '</strong> → ' + (l.reader_name || 'Читач') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (l.loan_date ? new Date(l.loan_date).toLocaleDateString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (l.status || 'active') + '</span></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (l.loan_date ? formatDateKyiv(l.loan_date) : '') + ' <span class="badge ' + statusClass + '">' + (l.status || 'active') + '</span></div>';
                 html += '</div>';
             }
         } else {
@@ -3004,7 +3004,7 @@ async function viewLibraryReader(readerId) {
         html += '<div><strong>Телефон:</strong> ' + (reader.phone || '—') + '</div>';
         html += '<div><strong>Email:</strong> ' + (reader.email || '—') + '</div>';
         html += '<div><strong>Адреса:</strong> ' + (reader.address || '—') + '</div>';
-        html += '<div><strong>Дата реєстрації:</strong> ' + (reader.joined_at ? new Date(reader.joined_at).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата реєстрації:</strong> ' + (reader.joined_at ? formatDateKyiv(reader.joined_at) : '—') + '</div>';
         html += '</div></div>';
         
         await showAlert(html, 'info', 'Читач');
@@ -3219,7 +3219,7 @@ async function loadSchool() {
                 }
                 html += '<div class="school-student-item" data-name="' + (s.full_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewSchoolStudent(\'' + s.id + '\')">';
                 html += '<div><strong>' + s.full_name + '</strong></div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (className ? 'Клас: ' + className : 'Без класу') + (s.birth_date ? ' · ' + new Date(s.birth_date).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (className ? 'Клас: ' + className : 'Без класу') + (s.birth_date ? ' · ' + formatDateKyiv(s.birth_date) : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -3291,7 +3291,7 @@ async function viewSchoolStudent(studentId) {
         html += '<h3 style="color:var(--gold);">' + student.full_name + '</h3>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">';
         html += '<div><strong>Клас:</strong> ' + (className || 'Без класу') + '</div>';
-        html += '<div><strong>Дата народження:</strong> ' + (student.birth_date ? new Date(student.birth_date).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата народження:</strong> ' + (student.birth_date ? formatDateKyiv(student.birth_date) : '—') + '</div>';
         html += '<div><strong>Телефон батьків:</strong> ' + (student.parent_phone || '—') + '</div>';
         html += '<div><strong>Email батьків:</strong> ' + (student.parent_email || '—') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Адреса:</strong> ' + (student.address || '—') + '</div>';
@@ -3486,7 +3486,7 @@ async function loadRestaurant() {
                 html += '<div><strong>Стіл ' + (o.table_number || '?') + '</strong> · ' + (o.total || 0) + ' грн</div>';
                 html += '<span class="badge ' + statusClass + '">' + (orderStatusLabels[o.status] || o.status) + '</span>';
                 html += '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (o.customer_name || 'Гість') + ' · ' + new Date(o.created_at).toLocaleTimeString('uk-UA') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (o.customer_name || 'Гість') + ' · ' + formatTimeKyiv(o.created_at) + '</div>';
                 html += '</div>';
             }
         } else {
@@ -3510,7 +3510,7 @@ async function loadRestaurant() {
                 var statusClass = b.status === 'confirmed' ? 'badge-success' : b.status === 'cancelled' ? 'badge-danger' : 'badge-secondary';
                 html += '<div class="restaurant-booking-item" data-name="' + (b.customer_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewRestaurantBooking(\'' + b.id + '\')">';
                 html += '<div><strong>' + b.customer_name + '</strong> → Стіл ' + b.table_number + ' (' + (b.guests_count || 1) + ' ос.)</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (b.booking_date ? new Date(b.booking_date).toLocaleString('uk-UA') : '') + ' · <span class="badge ' + statusClass + '">' + (statusLabels[b.status] || b.status) + '</span></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (b.booking_date ? formatDateTimeKyiv(b.booking_date) : '') + ' · <span class="badge ' + statusClass + '">' + (statusLabels[b.status] || b.status) + '</span></div>';
                 html += '</div>';
             }
         } else {
@@ -3611,7 +3611,7 @@ async function viewRestaurantBooking(bookingId) {
         html += '<div><strong>Стіл:</strong> ' + booking.table_number + '</div>';
         html += '<div><strong>Телефон:</strong> ' + (booking.customer_phone || '—') + '</div>';
         html += '<div><strong>Кількість гостей:</strong> ' + (booking.guests_count || 1) + '</div>';
-        html += '<div><strong>Дата:</strong> ' + (booking.booking_date ? new Date(booking.booking_date).toLocaleString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата:</strong> ' + (booking.booking_date ? formatDateTimeKyiv(booking.booking_date) : '—') + '</div>';
         html += '<div><strong>Статус:</strong> ' + (booking.status || 'confirmed') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Примітка:</strong> ' + (booking.note || '—') + '</div>';
         html += '</div></div>';
@@ -3929,7 +3929,7 @@ async function viewRestaurantOrder(orderId) {
         html += '<div><strong>Статус:</strong> <span class="badge ' + (order.status === 'new' ? 'badge-warning' : order.status === 'in_progress' ? 'badge-primary' : order.status === 'completed' ? 'badge-success' : 'badge-danger') + '">' + (orderStatusLabels[order.status] || order.status) + '</span></div>';
         html += '<div><strong>Клієнт:</strong> ' + (order.customer_name || 'Гість') + '</div>';
         html += '<div><strong>Телефон:</strong> ' + (order.customer_phone || '—') + '</div>';
-        html += '<div><strong>Створено:</strong> ' + new Date(order.created_at).toLocaleString('uk-UA') + '</div>';
+        html += '<div><strong>Створено:</strong> ' + formatDateTimeKyiv(order.created_at) + '</div>';
         html += '<div><strong>Чайові:</strong> ' + (order.tip_percent || 0) + '% (' + (order.tip_amount || 0) + ' грн)</div>';
         html += '</div></div>';
         
@@ -4078,7 +4078,7 @@ async function loadHotel() {
                 var b = bookings[i];
                 html += '<div class="hotel-booking-item" data-guest="' + (b.guest_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewHotelBooking(\'' + b.id + '\')">';
                 html += '<div><strong>' + b.guest_name + '</strong> → №' + (b.room_number || '?') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (b.check_in ? new Date(b.check_in).toLocaleDateString('uk-UA') : '') + ' - ' + (b.check_out ? new Date(b.check_out).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (b.check_in ? formatDateKyiv(b.check_in) : '') + ' - ' + (b.check_out ? formatDateKyiv(b.check_out) : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -4171,8 +4171,8 @@ async function viewHotelBooking(bookingId) {
         html += '<div><strong>Гість:</strong> ' + booking.guest_name + '</div>';
         html += '<div><strong>Номер:</strong> №' + (booking.room_number || '?') + '</div>';
         html += '<div><strong>Телефон:</strong> ' + (booking.guest_phone || '—') + '</div>';
-        html += '<div><strong>Заїзд:</strong> ' + (booking.check_in ? new Date(booking.check_in).toLocaleDateString('uk-UA') : '—') + '</div>';
-        html += '<div><strong>Виїзд:</strong> ' + (booking.check_out ? new Date(booking.check_out).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Заїзд:</strong> ' + (booking.check_in ? formatDateKyiv(booking.check_in) : '—') + '</div>';
+        html += '<div><strong>Виїзд:</strong> ' + (booking.check_out ? formatDateKyiv(booking.check_out) : '—') + '</div>';
         html += '<div><strong>Статус:</strong> ' + (booking.status || 'confirmed') + '</div>';
         html += '</div></div>';
         
@@ -4331,7 +4331,7 @@ async function loadGym() {
                 var statusClass = m.status === 'active' ? 'badge-success' : 'badge-danger';
                 html += '<div class="gym-membership-item" data-name="' + (m.user_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewGymMembership(\'' + m.id + '\')">';
                 html += '<div><strong>' + (m.user_name || 'Користувач') + '</strong> — ' + (m.type || 'Стандарт') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (m.start_date ? new Date(m.start_date).toLocaleDateString('uk-UA') : '') + ' - ' + (m.end_date ? new Date(m.end_date).toLocaleDateString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (m.status || 'active') + '</span></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (m.start_date ? formatDateKyiv(m.start_date) : '') + ' - ' + (m.end_date ? formatDateKyiv(m.end_date) : '') + ' <span class="badge ' + statusClass + '">' + (m.status || 'active') + '</span></div>';
                 html += '</div>';
             }
         } else {
@@ -4393,8 +4393,8 @@ async function viewGymMembership(membershipId) {
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">';
         html += '<div><strong>Користувач:</strong> ' + (membership.user_name || '—') + '</div>';
         html += '<div><strong>Тип:</strong> ' + (membership.type || 'Стандарт') + '</div>';
-        html += '<div><strong>Початок:</strong> ' + (membership.start_date ? new Date(membership.start_date).toLocaleDateString('uk-UA') : '—') + '</div>';
-        html += '<div><strong>Закінчення:</strong> ' + (membership.end_date ? new Date(membership.end_date).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Початок:</strong> ' + (membership.start_date ? formatDateKyiv(membership.start_date) : '—') + '</div>';
+        html += '<div><strong>Закінчення:</strong> ' + (membership.end_date ? formatDateKyiv(membership.end_date) : '—') + '</div>';
         html += '<div><strong>Ціна:</strong> ' + (membership.price || 0) + ' грн</div>';
         html += '<div><strong>Статус:</strong> <span class="badge ' + (membership.status === 'active' ? 'badge-success' : 'badge-danger') + '">' + (membership.status || 'active') + '</span></div>';
         html += '</div></div>';
@@ -4561,7 +4561,7 @@ async function loadBeauty() {
                 var statusClass = a.status === 'scheduled' ? 'badge-warning' : 'badge-success';
                 html += '<div class="beauty-appointment-item" data-client="' + (a.client_name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewBeautyAppointment(\'' + a.id + '\')">';
                 html += '<div><strong>' + a.client_name + '</strong> → ' + (a.service_name || 'Послуга') + '</div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? new Date(a.appointment_date).toLocaleString('uk-UA') : '') + ' <span class="badge ' + statusClass + '">' + (a.status || 'scheduled') + '</span></div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (a.appointment_date ? formatDateTimeKyiv(a.appointment_date) : '') + ' <span class="badge ' + statusClass + '">' + (a.status || 'scheduled') + '</span></div>';
                 html += '</div>';
             }
         } else {
@@ -4649,7 +4649,7 @@ async function viewBeautyAppointment(appointmentId) {
         html += '<div><strong>Послуга:</strong> ' + (appointment.service_name || '—') + '</div>';
         html += '<div><strong>Телефон:</strong> ' + (appointment.client_phone || '—') + '</div>';
         html += '<div><strong>Майстер:</strong> ' + (appointment.master || '—') + '</div>';
-        html += '<div><strong>Дата:</strong> ' + (appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата:</strong> ' + (appointment.appointment_date ? formatDateTimeKyiv(appointment.appointment_date) : '—') + '</div>';
         html += '<div><strong>Статус:</strong> ' + (appointment.status || 'scheduled') + '</div>';
         html += '</div></div>';
         
@@ -4875,7 +4875,7 @@ async function viewAutoOrder(orderId) {
         html += '<div><strong>Авто:</strong> ' + (order.car_model || '—') + '</div>';
         html += '<div><strong>Номер:</strong> ' + (order.car_number || '—') + '</div>';
         html += '<div><strong>Статус:</strong> ' + (order.status || 'new') + '</div>';
-        html += '<div><strong>Дата:</strong> ' + new Date(order.created_at).toLocaleString('uk-UA') + '</div>';
+        html += '<div><strong>Дата:</strong> ' + formatDateTimeKyiv(order.created_at) + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (order.description || 'Немає опису') + '</div>';
         html += '</div></div>';
         
@@ -5155,7 +5155,7 @@ async function viewRealtyDeal(dealId) {
         html += '<div><strong>Тип:</strong> ' + (deal.deal_type || '—') + '</div>';
         html += '<div><strong>Сума:</strong> ' + (deal.amount || 0) + ' грн</div>';
         html += '<div><strong>Статус:</strong> ' + (deal.status || 'pending') + '</div>';
-        html += '<div><strong>Дата:</strong> ' + (deal.deal_date ? new Date(deal.deal_date).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дата:</strong> ' + (deal.deal_date ? formatDateKyiv(deal.deal_date) : '—') + '</div>';
         html += '</div></div>';
         
         html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">';
@@ -5320,7 +5320,7 @@ async function loadLogistics() {
             for (var i = 0; i < orders.length; i++) {
                 var o = orders[i];
                 var statusClass = o.status === 'new' ? 'badge-warning' : 'badge-success';
-                html += '<tr><td><strong>' + (o.order_number || '—') + '</strong></td><td>' + (o.client_name || '—') + '</td><td>' + (o.weight || 0) + ' кг</td><td><span class="badge ' + statusClass + '">' + (o.status || 'new') + '</span></td><td>' + (o.delivery_date ? new Date(o.delivery_date).toLocaleDateString('uk-UA') : '—') + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteLogisticsOrder(\'' + o.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+                html += '<tr><td><strong>' + (o.order_number || '—') + '</strong></td><td>' + (o.client_name || '—') + '</td><td>' + (o.weight || 0) + ' кг</td><td><span class="badge ' + statusClass + '">' + (o.status || 'new') + '</span></td><td>' + (o.delivery_date ? formatDateKyiv(o.delivery_date) : '—') + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteLogisticsOrder(\'' + o.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
             }
         } else {
             html += '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>';
@@ -5429,7 +5429,7 @@ async function loadDelivery() {
             for (var i = 0; i < orders.length; i++) {
                 var o = orders[i];
                 var statusClass = o.status === 'pending' ? 'badge-warning' : o.status === 'delivered' ? 'badge-success' : 'badge-primary';
-                html += '<tr><td><strong>' + (o.order_number || '—') + '</strong></td><td>' + (o.client_name || '—') + '</td><td>' + (o.courier_name || 'Не призначено') + '</td><td><span class="badge ' + statusClass + '">' + (o.status || 'pending') + '</span></td><td>' + (o.delivery_time ? new Date(o.delivery_time).toLocaleString('uk-UA') : '—') + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteDeliveryOrder(\'' + o.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+                html += '<tr><td><strong>' + (o.order_number || '—') + '</strong></td><td>' + (o.client_name || '—') + '</td><td>' + (o.courier_name || 'Не призначено') + '</td><td><span class="badge ' + statusClass + '">' + (o.status || 'pending') + '</span></td><td>' + (o.delivery_time ? formatDateTimeKyiv(o.delivery_time) : '—') + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteDeliveryOrder(\'' + o.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
             }
         } else {
             html += '<tr><td colspan="6" class="text-center text-muted">Немає замовлень</td></tr>';
@@ -5542,7 +5542,7 @@ async function loadIT() {
                 var p = projects[i];
                 html += '<div class="it-project-item" data-name="' + (p.name || '').toLowerCase() + '" style="padding:0.5rem;border-bottom:1px solid var(--ink-line);cursor:pointer;" onclick="viewITProject(\'' + p.id + '\')">';
                 html += '<div><strong>' + p.name + '</strong></div>';
-                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.status || 'active') + (p.deadline ? ' · ' + new Date(p.deadline).toLocaleDateString('uk-UA') : '') + '</div>';
+                html += '<div style="font-size:0.75rem;color:var(--muted);">' + (p.status || 'active') + (p.deadline ? ' · ' + formatDateKyiv(p.deadline) : '') + '</div>';
                 html += '</div>';
             }
         } else {
@@ -5617,7 +5617,7 @@ async function viewITProject(projectId) {
         html += '<h3 style="color:var(--gold);">' + project.name + '</h3>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">';
         html += '<div><strong>Статус:</strong> ' + (project.status || 'active') + '</div>';
-        html += '<div><strong>Дедлайн:</strong> ' + (project.deadline ? new Date(project.deadline).toLocaleDateString('uk-UA') : '—') + '</div>';
+        html += '<div><strong>Дедлайн:</strong> ' + (project.deadline ? formatDateKyiv(project.deadline) : '—') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Опис:</strong> ' + (project.description || 'Немає опису') + '</div>';
         html += '<div style="grid-column:span 2;"><strong>Repo:</strong> ' + (project.repo_url ? '<a href="' + project.repo_url + '" target="_blank" style="color:var(--teal);">' + project.repo_url + '</a>' : '—') + '</div>';
         html += '</div></div>';

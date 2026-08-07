@@ -1625,7 +1625,7 @@
                         html += '<tr>';
                         html += '<td>' + (a.message || '') + '</td>';
                         html += '<td><span class="badge ' + (a.is_active ? 'badge-success' : 'badge-secondary') + '">' + (a.is_active ? 'Активне' : 'Неактивне') + '</span></td>';
-                        html += '<td>' + new Date(a.created_at).toLocaleDateString('uk-UA') + '</td>';
+                        html += '<td>' + formatDateKyiv(a.created_at) + '</td>';
                         html += '<td style="white-space:nowrap;">';
                         html += '<button class="btn btn-sm btn-teal" onclick="toggleAnnouncement(\'' + a.id + '\', ' + (!a.is_active) + ')"><i class="fas ' + (a.is_active ? 'fa-eye-slash' : 'fa-eye') + '"></i></button>';
                         html += '<button class="btn btn-sm btn-danger" onclick="deleteAnnouncement(\'' + a.id + '\')"><i class="fas fa-trash"></i></button>';
@@ -1859,7 +1859,7 @@
                         html += '<td>' + targetUser + '</td>';
                         html += '<td>' + (r.reason || '—') + '</td>';
                         html += '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>';
-                        html += '<td>' + new Date(r.created_at).toLocaleDateString('uk-UA') + '</td>';
+                        html += '<td>' + formatDateKyiv(r.created_at) + '</td>';
                         html += '<td style="white-space:nowrap;">' +
                             (r.status === 'pending' ? 
                                 '<button class="btn btn-sm btn-success" onclick="resolveReport(\'' + r.id + '\')"><i class="fas fa-check"></i></button>' +
@@ -1944,7 +1944,7 @@
                             '<td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td>' +
                             '<td>' + (orgMap[msg.organization_id] || '—') + '</td>' +
                             '<td style="max-width:300px;word-wrap:break-word;">' + (msg.message || '') + '</td>' +
-                            '<td>' + new Date(msg.created_at).toLocaleString('uk-UA') + '</td>' +
+                            '<td>' + formatDateTimeKyiv(msg.created_at) + '</td>' +
                             '<td><button class="btn btn-sm btn-danger" onclick="deleteMessage(\'' + msg.id + '\')"><i class="fas fa-trash"></i></button></td>' +
                         '</tr>';
                     }
@@ -2308,7 +2308,7 @@
                             '<td><strong>' + userName + '</strong>' + (isCurrent ? ' (ви)' : '') + '</td>' +
                             '<td><code>' + (s.ip || '—') + '</code></td>' +
                             '<td style="max-width:200px;word-wrap:break-word;font-size:0.8rem;">' + (s.user_agent || '—') + '</td>' +
-                            '<td>' + (s.last_activity ? new Date(s.last_activity).toLocaleString('uk-UA') : '—') + '</td>' +
+                            '<td>' + (s.last_activity ? formatDateTimeKyiv(s.last_activity) : '—') + '</td>' +
                             '<td>' +
                                 (!isCurrent ? '<button class="btn btn-sm btn-danger" onclick="terminateSession(\'' + s.id + '\')"><i class="fas fa-times"></i></button>' : '—') +
                             '</td>' +
@@ -2441,7 +2441,7 @@
                         '<td>' + (t.subject || '—') + '</td>' +
                         '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
                         '<td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td>' +
-                        '<td>' + new Date(t.created_at).toLocaleDateString('uk-UA') + '</td>' +
+                        '<td>' + formatDateKyiv(t.created_at) + '</td>' +
                         '<td style="white-space:nowrap;">' +
                             '<button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' +
                             (t.status !== 'closed' ?
@@ -2504,7 +2504,7 @@
                         html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : 'var(--teal)') + ';">';
                         html += '<div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;">';
                         html += '<span>' + senderLabel + '</span>';
-                        html += '<span>' + new Date(msg.created_at).toLocaleString('uk-UA') + '</span>';
+                        html += '<span>' + formatDateTimeKyiv(msg.created_at) + '</span>';
                         html += '</div>';
                         html += '<div style="margin-top:0.4rem;">' + msg.message + '</div>';
                         html += '</div>';

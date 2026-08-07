@@ -89,7 +89,7 @@ async function loadRecentLogs() {
         
         for (var i = 0; i < logs.length; i++) {
             var log = logs[i];
-            var date = new Date(log.created_at).toLocaleString('uk-UA');
+            var date = formatDateTimeKyiv(log.created_at);
             var userName = log.user_name || 'Система';
             html += '<tr>' +
                 '<td style="font-size:0.85rem;">' + date + '</td>' +
@@ -1028,7 +1028,7 @@ async function viewChat(orgId, orgName) {
                 '<div style="padding:0.75rem;border-bottom:1px solid var(--ink-line);">' +
                     '<div style="font-size:0.8rem;color:var(--gold);display:flex;justify-content:space-between;">' +
                         '<span><i class="fas fa-user"></i> ' + userName + '</span>' +
-                        '<span style="color:var(--muted);font-size:0.7rem;">' + new Date(msg.created_at).toLocaleString('uk-UA') + '</span>' +
+                        '<span style="color:var(--muted);font-size:0.7rem;">' + formatDateTimeKyiv(msg.created_at) + '</span>' +
                     '</div>' +
                     '<div style="margin-top:0.4rem;font-size:0.95rem;">' + (msg.message || '') + '</div>' +
                 '</div>';
@@ -1180,7 +1180,7 @@ async function viewVacations(orgId, orgName) {
             html += 
                 '<tr>' +
                     '<td><strong>' + userName + '</strong></td>' +
-                    '<td>' + new Date(vac.start_date).toLocaleDateString('uk-UA') + ' - ' + new Date(vac.end_date).toLocaleDateString('uk-UA') + '</td>' +
+                    '<td>' + formatDateKyiv(vac.start_date) + ' - ' + formatDateKyiv(vac.end_date) + '</td>' +
                     '<td>' + (vacationTypeLabels[vac.type] || vac.type || '—') + '</td>' +
                     '<td><span class="badge ' + statusClass + '">' + (vacationStatusLabels[vac.status] || vac.status || '—') + '</span></td>' +
                 '</tr>';
@@ -1279,7 +1279,7 @@ async function loadRequests() {
                         '<td>' + orgName + '</td>' +
                         '<td>' + (req.message || 'Без повідомлення') + '</td>' +
                         '<td><span class="badge ' + statusClass + '">' + (statusLabels[req.status] || req.status) + '</span></td>' +
-                        '<td>' + new Date(req.created_at).toLocaleDateString('uk-UA') + '</td>' +
+                        '<td>' + formatDateKyiv(req.created_at) + '</td>' +
                     '</tr>';
             }
         } else {
@@ -1383,7 +1383,7 @@ async function loadLogs() {
                 
                 html += 
                     '<tr data-user="' + userName.toLowerCase() + '" data-action="' + action.toLowerCase() + '" data-entity="' + entity.toLowerCase() + '">' +
-                        '<td>' + new Date(log.created_at).toLocaleString('uk-UA') + '</td>' +
+                        '<td>' + formatDateTimeKyiv(log.created_at) + '</td>' +
                         '<td><strong>' + userName + '</strong></td>' +
                         '<td><span class="badge badge-primary">' + action + '</span></td>' +
                         '<td>' + entity + '</td>' +
