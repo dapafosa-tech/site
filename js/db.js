@@ -101,6 +101,74 @@ async function supabaseQuery(endpoint, options) {
 }
 
 // ============================================
+// СИСТЕМНІ НАЛАШТУВАННЯ (owner-panel -> реальне застосування)
+// ============================================
+
+var _systemSettingsCache = null;
+
+async function getSystemSettings() {
+    if (_systemSettingsCache) return _systemSettingsCache;
+    try {
+        var rows = await supabaseQuery('system_settings?select=*');
+        var map = {};
+        if (rows) {
+            for (var i = 0; i < rows.length; i++) {
+                map[rows[i].key] = rows[i].value;
+            }
+        }
+        _systemSettingsCache = map;
+        return map;
+    } catch (e) {
+        return {};
+    }
+}
+
+function clearSystemSettingsCache() {
+    _systemSettingsCache = null;
+}
+
+var _bannedWordsCache = null;
+
+async function getBannedWords() {
+    if (_bannedWordsCache) return _bannedWordsCache;
+    try {
+        var rows = await supabaseQuery('banned_words?select=word');
+        _bannedWordsCache = (rows || [])
+            .map(function (r) { return (r.word || '').toLowerCase().trim(); })
+            .filter(function (w) { return w.length > 0; });
+        return _bannedWordsCache;
+    } catch (e) {
+        return [];
+    }
+}
+
+function clearBannedWordsCache() {
+    _bannedWordsCache = null;
+}
+
+// Повертає перше знайдене заборонене слово в тексті, або null
+async function findBannedWord(text) {
+    var words = await getBannedWords();
+    if (!words.length || !text) return null;
+    var lower = text.toLowerCase();
+    for (var i = 0; i < words.length; i++) {
+        if (words[i] && lower.indexOf(words[i]) !== -1) {
+            return words[i];
+        }
+    }
+    return null;
+}
+
+async function getActiveAnnouncements() {
+    try {
+        var rows = await supabaseQuery('announcements?is_active=eq.true&order=created_at.desc');
+        return rows || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// ============================================
 // ЛОГИ
 // ============================================
 
@@ -218,9 +286,13 @@ async function createOrganization(data) {
     }
     
     if (user.role !== 'admin' && user.role !== 'owner') {
+        var sysSettings = await getSystemSettings();
+        var maxOrgs = parseInt(sysSettings['max_organizations'], 10);
+        if (!maxOrgs || isNaN(maxOrgs) || maxOrgs < 1) maxOrgs = 1;
+
         var orgs = await getUserAllOrganizations();
-        if (orgs && orgs.length >= 1) {
-            throw new Error('Ви можете створити лише 1 організацію. Адміністратори та засновники можуть створювати безлімітно.');
+        if (orgs && orgs.length >= maxOrgs) {
+            throw new Error('Ви досягли ліміту організацій (' + maxOrgs + '). Адміністратори та засновники можуть створювати безлімітно.');
         }
     }
     
@@ -274,9 +346,9 @@ async function createOrganization(data) {
         });
         
         if (rankResult && rankResult.length > 0) {
-            await addMemberToOrganization(orgId, user.id, rankResult[0].id);
+            await addMemberToOrganization(orgId, user.id, rankResult[0].id, true);
         } else {
-            await addMemberToOrganization(orgId, user.id, null);
+            await addMemberToOrganization(orgId, user.id, null, true);
         }
         
         await addLog('Створено організацію', 'organization', orgId, {
@@ -416,13 +488,24 @@ async function deleteRank(id) {
 // УЧАСНИКИ
 // ============================================
 
-async function addMemberToOrganization(orgId, userId, rankId) {
+async function addMemberToOrganization(orgId, userId, rankId, skipLimitCheck) {
     if (rankId === undefined) rankId = null;
-    
+
     if (await isUserBanned(userId)) {
         throw new Error('Користувача заблоковано');
     }
-    
+
+    if (!skipLimitCheck) {
+        var sysSettings = await getSystemSettings();
+        var maxMembers = parseInt(sysSettings['max_members'], 10);
+        if (maxMembers && !isNaN(maxMembers) && maxMembers > 0) {
+            var existingMembers = await getOrganizationMembers(orgId);
+            if (existingMembers && existingMembers.length >= maxMembers) {
+                throw new Error('Досягнуто максимальної кількості учасників організації (' + maxMembers + ').');
+            }
+        }
+    }
+
     var result = await supabaseQuery('org_members', {
         method: 'POST',
         body: JSON.stringify({
@@ -746,40 +829,6 @@ async function deleteEvent(id) {
         method: 'DELETE'
     });
     await addLog('Видалено подію', 'event', id, { deleted: true });
-    return result;
-}
-
-// ============================================
-// ФАЙЛИ
-// ============================================
-
-async function createFile(data) {
-    var result = await supabaseQuery('org_files', {
-        method: 'POST',
-        body: JSON.stringify({
-            id: generateUUID(),
-            organization_id: data.organization_id,
-            name: data.name,
-            url: data.url,
-            size: data.size || 0,
-            mime_type: data.mime_type || '',
-            uploaded_by: data.uploaded_by
-        }),
-        headers: { 'Prefer': 'return=representation' }
-    });
-    await addLog('Завантажено файл', 'file', data.organization_id, { name: data.name });
-    return result;
-}
-
-async function getFiles(organizationId) {
-    return supabaseQuery('org_files?organization_id=eq.' + organizationId + '&order=created_at.desc');
-}
-
-async function deleteFile(id) {
-    var result = await supabaseQuery('org_files?id=eq.' + id, {
-        method: 'DELETE'
-    });
-    await addLog('Видалено файл', 'file', id, { deleted: true });
     return result;
 }
 
@@ -1434,6 +1483,14 @@ window.db = {
     // Логи
     addLog: addLog,
     getUserName: getUserName,
+
+    // Системні налаштування (owner-panel)
+    getSystemSettings: getSystemSettings,
+    clearSystemSettingsCache: clearSystemSettingsCache,
+    getBannedWords: getBannedWords,
+    clearBannedWordsCache: clearBannedWordsCache,
+    findBannedWord: findBannedWord,
+    getActiveAnnouncements: getActiveAnnouncements,
     
     // Користувачі
     getUserRole: getUserRole,
