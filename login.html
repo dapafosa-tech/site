@@ -210,8 +210,8 @@
     <script src="/js/ui.js"></script>
     <script>
         function togglePassword() {
-            const input = document.getElementById('password');
-            const icon = document.querySelector('.toggle-btn i');
+            var input = document.getElementById('password');
+            var icon = document.querySelector('.toggle-btn i');
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.className = 'fas fa-eye-slash';
@@ -221,12 +221,12 @@
             }
         }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const submitBtn = document.getElementById('loginBtn');
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value;
+            var submitBtn = document.getElementById('loginBtn');
 
             if (!email || !password) {
                 await showAlert('Заповніть усі поля', 'warning');
@@ -236,26 +236,39 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вхід...';
 
-            const result = await auth.loginUser(email, password);
+            try {
+                var result = await auth.loginUser(email, password);
 
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Увійти';
+                if (!result.success) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Увійти';
+                    await showAlert(result.error, 'error');
+                    return;
+                }
 
-            if (!result.success) {
-                await showAlert(result.error, 'error');
-                return;
+                // auth.loginUser() вже робить редірект на /dashboard
+                // Але залишаємо для безпеки
+                await showToast('Ласкаво просимо до Typebiz!', 'success');
+                setTimeout(function() {
+                    window.location.href = '/dashboard';
+                }, 500);
+
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Увійти';
+                await showAlert('Помилка: ' + error.message, 'error');
             }
-
-            await showToast('Ласкаво просимо до Typebiz!', 'success');
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 1000);
         });
 
-        (async () => {
-            const isAuth = await auth.checkAuth();
-            if (isAuth) {
-                window.location.href = '/dashboard';
+        // Якщо користувач вже авторизований і намагається зайти на /login — редірект на дашборд
+        (async function() {
+            try {
+                var isAuth = await auth.checkAuth();
+                if (isAuth) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (e) {
+                // Не авторизовано — залишаємось на сторінці
             }
         })();
     </script>
