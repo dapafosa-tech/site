@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ З ПОШУКОМ)
+// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ)
 // ============================================
 
 async function loadStats() {
@@ -65,7 +65,10 @@ async function loadUsers() {
                     '<span class="badge badge-primary">' + (users ? users.length : 0) + '</span>' +
                 '</div>' +
                 '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<input type="text" class="form-control" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." style="flex:1;min-width:200px;" oninput="filterUsersTable()">' +
+                    '<div style="position:relative;flex:1;min-width:200px;">' +
+                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);"></i>' +
+                        '<input type="text" class="form-control" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." style="padding-left:36px;" oninput="filterUsersTable()">' +
+                    '</div>' +
                     '<select class="form-control" id="userRoleFilter" style="width:auto;min-width:120px;" onchange="filterUsersTable()">' +
                         '<option value="">Всі ролі</option>' +
                         '<option value="admin">Адмін</option>' +
@@ -105,48 +108,28 @@ async function loadUsers() {
                     'user': '<span class="badge badge-primary">Користувач</span>'
                 };
                 
-                var rowClass = isUserBanned ? 'banned-row' : '';
-                var statusText = isUserBanned ? 'Заблоковано' : 'Активний';
-                var statusClass = isUserBanned ? 'badge-danger' : 'badge-success';
-                
                 html += 
-                    '<tr class="' + rowClass + '" data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '">' +
+                    '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '">' +
                         '<td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td>' +
                         '<td>' + (u.email || '—') + '</td>' +
                         '<td>' + (roleLabels[u.role] || roleLabels.user) + '</td>' +
-                        '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                        '<td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
                             (isAdmin && !isCurrentUser ? 
                                 (isUserBanned ? 
-                                    '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                        '<i class="fas fa-user-check"></i>' +
-                                    '</button>' :
-                                    '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                        '<i class="fas fa-user-slash"></i>' +
-                                    '</button>'
+                                    '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-check"></i></button>' :
+                                    '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-slash"></i></button>'
                                 ) +
                                 (isUserAdmin ? 
-                                    '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти адміна" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                        '<i class="fas fa-user-minus"></i>' +
-                                    '</button>' :
+                                    '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти адміна" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-minus"></i></button>' :
                                     (isUserModerator ?
-                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                            '<i class="fas fa-user-crown"></i>' +
-                                        '</button>' +
-                                        '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти модератора" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                            '<i class="fas fa-user-minus"></i>' +
-                                        '</button>' :
-                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'moderator\')" title="Зробити модератором" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                            '<i class="fas fa-user-shield"></i>' +
-                                        '</button>' +
-                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                            '<i class="fas fa-user-crown"></i>' +
-                                        '</button>'
+                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-crown"></i></button>' +
+                                        '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти модератора" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-minus"></i></button>' :
+                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'moderator\')" title="Зробити модератором" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-shield"></i></button>' +
+                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-crown"></i></button>'
                                     )
                                 ) +
-                                '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-trash"></i>' +
-                                '</button>' : (isCurrentUser ? '—' : '—')
+                                '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-trash"></i></button>' : (isCurrentUser ? '—' : '—')
                             ) +
                         '</td>' +
                     '</tr>';
@@ -401,6 +384,18 @@ async function loadOrgs() {
             }
         }
         
+        // Отримуємо лідерів для кожної організації
+        var members = await db.supabaseQuery('org_members?select=*');
+        var leaderMap = {};
+        if (members) {
+            for (var i = 0; i < members.length; i++) {
+                var m = members[i];
+                if (m.is_leader) {
+                    leaderMap[m.organization_id] = m.user_id;
+                }
+            }
+        }
+        
         var typeLabels = {
             'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
             'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
@@ -416,7 +411,10 @@ async function loadOrgs() {
                     '<span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span>' +
                 '</div>' +
                 '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<input type="text" class="form-control" id="orgSearchInput" placeholder="Пошук за назвою або типом..." style="flex:1;min-width:200px;" oninput="filterOrgsTable()">' +
+                    '<div style="position:relative;flex:1;min-width:200px;">' +
+                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);"></i>' +
+                        '<input type="text" class="form-control" id="orgSearchInput" placeholder="Пошук за назвою або типом..." style="padding-left:36px;" oninput="filterOrgsTable()">' +
+                    '</div>' +
                     '<select class="form-control" id="orgStatusFilter" style="width:auto;min-width:120px;" onchange="filterOrgsTable()">' +
                         '<option value="">Всі статуси</option>' +
                         '<option value="active">Активна</option>' +
@@ -430,7 +428,7 @@ async function loadOrgs() {
                                 '<th>Назва</th>' +
                                 '<th>Тип</th>' +
                                 '<th>Код</th>' +
-                                '<th>Створив</th>' +
+                                '<th>Лідер</th>' +
                                 '<th>Статус</th>' +
                                 '<th>Дії</th>' +
                             '</tr>' +
@@ -441,6 +439,7 @@ async function loadOrgs() {
             for (var i = 0; i < orgs.length; i++) {
                 var org = orgs[i];
                 var creatorName = userMap[org.created_by] || 'Невідомо';
+                var leaderName = userMap[leaderMap[org.id]] || creatorName;
                 var isActive = org.is_active !== false;
                 var freezeReason = org.freeze_reason || '';
                 var statusText = isActive ? 'Активна' : 'Заморожена';
@@ -452,22 +451,17 @@ async function loadOrgs() {
                         '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
                         '<td>' + (typeLabels[org.type] || org.type || '—') + '</td>' +
                         '<td style="font-family:monospace;font-size:0.8rem;text-transform:lowercase;">' + (org.join_code || '—') + '</td>' +
-                        '<td>' + creatorName + '</td>' +
+                        '<td>' + leaderName + '</td>' +
                         '<td><span class="badge ' + statusClass + '">' + statusText + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
                             (isAdmin || isModerator ? 
                                 (isActive ? 
-                                    '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                        '<i class="fas fa-pause"></i>' +
-                                    '</button>' :
-                                    '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                        '<i class="fas fa-play"></i>' +
-                                    '</button>'
+                                    '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-pause"></i></button>' :
+                                    '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-play"></i></button>'
                                 ) + 
                                 (isAdmin ? 
-                                    '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                        '<i class="fas fa-trash"></i>' +
-                                    '</button>' : ''
+                                    '<button class="btn btn-sm btn-primary" onclick="openTransferLeadership(\'' + org.id + '\', \'' + (org.name || '') + '\')" title="Передати лідерство" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-user-crown"></i></button>' +
+                                    '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-trash"></i></button>' : ''
                                 ) : ''
                             ) +
                         '</td>' +
@@ -487,6 +481,70 @@ async function loadOrgs() {
     } catch (error) {
         console.error('Load orgs error:', error);
         container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження організацій</p></div>';
+    }
+}
+
+async function openTransferLeadership(orgId, orgName) {
+    try {
+        var members = await db.getOrganizationMembers(orgId);
+        var users = await db.supabaseQuery('users?select=id,full_name,email');
+        var userMap = {};
+        for (var i = 0; i < users.length; i++) {
+            userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач';
+        }
+        
+        var currentLeader = await db.supabaseQuery('org_members?organization_id=eq.' + orgId + '&is_leader=eq.true');
+        var currentLeaderId = currentLeader && currentLeader.length > 0 ? currentLeader[0].user_id : null;
+        
+        var options = '';
+        for (var i = 0; i < members.length; i++) {
+            var m = members[i];
+            if (m.user_id === currentLeaderId) continue;
+            var userName = userMap[m.user_id] || 'Невідомо';
+            options += '<option value="' + m.id + '" data-user-id="' + m.user_id + '">' + userName + '</option>';
+        }
+        
+        if (!options) {
+            await showAlert('Немає інших учасників для передачі лідерства', 'warning');
+            return;
+        }
+        
+        var html = '';
+        html += '<div style="margin-bottom:1rem;">';
+        html += '<p>Передати лідерство в організації <strong>"' + orgName + '"</strong> іншому учаснику:</p>';
+        html += '<select class="form-control" id="transferLeaderSelect" style="margin-top:0.5rem;">' + options + '</select>';
+        html += '</div>';
+        
+        await showAlert(html, 'info', 'Передача лідерства');
+        
+        var select = document.getElementById('transferLeaderSelect');
+        if (!select) return;
+        
+        var selectedMemberId = select.value;
+        if (!selectedMemberId) return;
+        
+        var confirmed = await showConfirm('Ви впевнені, що хочете передати лідерство цьому учаснику?', 'Підтвердження');
+        if (!confirmed) return;
+        
+        // Знімаємо старого лідера
+        if (currentLeader && currentLeader.length > 0) {
+            await db.supabaseQuery('org_members?id=eq.' + currentLeader[0].id, {
+                method: 'PATCH',
+                body: JSON.stringify({ is_leader: false })
+            });
+        }
+        
+        // Призначаємо нового лідера
+        await db.supabaseQuery('org_members?id=eq.' + selectedMemberId, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_leader: true })
+        });
+        
+        await db.addLog('Передано лідерство в організації', 'organization', orgId, {});
+        await showToast('Лідерство передано!', 'success');
+        loadOrgs();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
     }
 }
 
@@ -550,7 +608,10 @@ async function loadChat() {
                     '<h3 class="card-title">Чати організацій</h3>' +
                 '</div>' +
                 '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<input type="text" class="form-control" id="chatSearchInput" placeholder="Пошук за назвою організації..." style="flex:1;min-width:200px;" oninput="filterChatsTable()">' +
+                    '<div style="position:relative;flex:1;min-width:200px;">' +
+                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);"></i>' +
+                        '<input type="text" class="form-control" id="chatSearchInput" placeholder="Пошук за назвою організації..." style="padding-left:36px;" oninput="filterChatsTable()">' +
+                    '</div>' +
                 '</div>' +
                 '<div style="overflow-x:auto;">' +
                     '<table class="table" id="chatsTable">' +
@@ -577,9 +638,7 @@ async function loadChat() {
                         '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
                         '<td>' + count + '</td>' +
                         '<td>' +
-                            '<button class="btn btn-sm btn-teal" onclick="viewChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                '<i class="fas fa-eye"></i>' +
-                            '</button>' +
+                            '<button class="btn btn-sm btn-teal" onclick="viewChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-eye"></i></button>' +
                         '</td>' +
                     '</tr>';
             }
@@ -654,7 +713,10 @@ async function loadVacations() {
                     '<h3 class="card-title">Відпустки в організаціях</h3>' +
                 '</div>' +
                 '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<input type="text" class="form-control" id="vacationSearchInput" placeholder="Пошук за назвою організації..." style="flex:1;min-width:200px;" oninput="filterVacationsTable()">' +
+                    '<div style="position:relative;flex:1;min-width:200px;">' +
+                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);"></i>' +
+                        '<input type="text" class="form-control" id="vacationSearchInput" placeholder="Пошук за назвою організації..." style="padding-left:36px;" oninput="filterVacationsTable()">' +
+                    '</div>' +
                 '</div>' +
                 '<div style="overflow-x:auto;">' +
                     '<table class="table" id="vacationsTable">' +
@@ -684,9 +746,7 @@ async function loadVacations() {
                         '<td>' + count + '</td>' +
                         '<td><span class="badge badge-warning">' + pending + '</span></td>' +
                         '<td>' +
-                            '<button class="btn btn-sm btn-teal" onclick="viewVacations(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                '<i class="fas fa-eye"></i>' +
-                            '</button>' +
+                            '<button class="btn btn-sm btn-teal" onclick="viewVacations(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-eye"></i></button>' +
                         '</td>' +
                     '</tr>';
             }
@@ -797,7 +857,10 @@ async function loadRequests() {
                     '<span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span>' +
                 '</div>' +
                 '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<input type="text" class="form-control" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." style="flex:1;min-width:200px;" oninput="filterRequestsTable()">' +
+                    '<div style="position:relative;flex:1;min-width:200px;">' +
+                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);"></i>' +
+                        '<input type="text" class="form-control" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." style="padding-left:36px;" oninput="filterRequestsTable()">' +
+                    '</div>' +
                     '<select class="form-control" id="requestStatusFilter" style="width:auto;min-width:120px;" onchange="filterRequestsTable()">' +
                         '<option value="">Всі статуси</option>' +
                         '<option value="pending">Очікує</option>' +
@@ -872,7 +935,10 @@ async function loadLogs() {
                     '<span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span>' +
                 '</div>' +
                 '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<input type="text" class="form-control" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." style="flex:1;min-width:200px;" oninput="filterLogsTable()">' +
+                    '<div style="position:relative;flex:1;min-width:200px;">' +
+                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);"></i>' +
+                        '<input type="text" class="form-control" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." style="padding-left:36px;" oninput="filterLogsTable()">' +
+                    '</div>' +
                 '</div>' +
                 '<div style="overflow-x:auto;">' +
                     '<table class="table" id="logsTable">' +
