@@ -8,6 +8,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- ===== ПЕРЕВІРКА АВТОРИЗАЦІЇ ПЕРЕД ЗАВАНТАЖЕННЯМ ===== -->
+<script>
+    (function() {
+        try {
+            var userData = localStorage.getItem('userData');
+            if (userData) {
+                var user = JSON.parse(userData);
+                if (user && user.id) {
+                    window.location.href = '/dashboard';
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Auth check error:', e);
+        }
+    })();
+</script>
+
 <style>
   :root{
     --ink:#0F1115;
