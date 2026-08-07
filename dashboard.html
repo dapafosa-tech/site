@@ -273,7 +273,6 @@
         .flex-wrap{flex-wrap:wrap;}
         .justify-center{justify-content:center;}
         
-        /* Скелетон для завантаження */
         .org-card-skeleton {
             background:var(--ink-soft);
             border:1px solid var(--ink-line);
@@ -492,7 +491,7 @@
     <script src="/js/ui.js"></script>
     <script>
         // ============================================
-        // TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ)
+        // TYPEBIZ - ДАШБОРД
         // ============================================
 
         function logoutUser() {
@@ -587,7 +586,8 @@
                 avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
             }
 
-            if (user.role === 'admin') {
+            // Показуємо адмін-панель для owner, admin, moderator
+            if (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator') {
                 document.getElementById('adminLink').style.display = 'block';
             }
 
@@ -603,7 +603,6 @@
                 var user = auth.getCurrentUser();
                 if (!user) throw new Error('Користувач не авторизований');
 
-                // Отримуємо організації через учасника
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + user.id);
                 
                 if (!members || members.length === 0) {
