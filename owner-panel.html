@@ -505,6 +505,20 @@
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
+
+        // Додайте на початку скрипта, після підключення js файлів
+console.log('Owner panel loaded');
+var user = auth.getCurrentUser();
+console.log('User:', user);
+if (!user) {
+    window.location.href = '/login';
+} else if (user.role !== 'owner') {
+    // Не редиректимо, а показуємо помилку
+    document.getElementById('ownerContent').innerHTML = 
+        '<div class="card"><p class="text-danger">Доступ заборонено. Ваша роль: ' + user.role + '. Потрібна роль: owner.</p></div>';
+    // Зупиняємо виконання
+    return;
+}
         // ============================================
         // TYPEBIZ - ПАНЕЛЬ ЗАСНОВНИКА
         // ============================================
