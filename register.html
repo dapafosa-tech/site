@@ -296,6 +296,7 @@
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
+    <script src="/js/check-auth.js"></script>
     <script>
         var selectedAvatarFile = null;
         var toastTimeout = null;
@@ -433,51 +434,6 @@
             }
         }
 
-        async function findUserIdByEmail(email) {
-            try {
-                var rows = await db.supabaseQuery('users?email=eq.' + encodeURIComponent(email) + '&select=id');
-                return rows && rows.length > 0 ? rows[0].id : null;
-            } catch (e) {
-                console.error('findUserIdByEmail error:', e);
-                return null;
-            }
-        }
-
-        async function handleAvatarUploadAfterRegister(email) {
-            if (!selectedAvatarFile) return;
-
-            try {
-                var userId = await findUserIdByEmail(email);
-                if (!userId) {
-                    console.warn('Не вдалося знайти id користувача');
-                    return;
-                }
-
-                await ensureBucketExists();
-                var avatarUrl = await uploadAvatarToBucket(userId, selectedAvatarFile);
-                if (!avatarUrl) {
-                    showToast('Акаунт створено, але не вдалося завантажити аватар.', 'warning');
-                    return;
-                }
-
-                await db.updateUser(userId, { avatar_url: avatarUrl });
-
-                try {
-                    var stored = localStorage.getItem('userData');
-                    if (stored) {
-                        var parsed = JSON.parse(stored);
-                        if (parsed && parsed.id === userId) {
-                            parsed.avatar_url = avatarUrl;
-                            localStorage.setItem('userData', JSON.stringify(parsed));
-                        }
-                    }
-                } catch (e) {}
-            } catch (e) {
-                console.error('handleAvatarUploadAfterRegister error:', e);
-                showToast('Акаунт створено, але не вдалося завантажити аватар.', 'warning');
-            }
-        }
-
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -517,19 +473,40 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
             try {
+                // 1. Створюємо акаунт
                 var result = await auth.registerUser(email, password, fullName);
                 
                 if (!result.success) {
                     throw new Error(result.error);
                 }
 
+                var user = result.user;
+
+                // 2. Якщо є аватарка - завантажуємо
                 if (selectedAvatarFile) {
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження фото...';
-                    await handleAvatarUploadAfterRegister(email);
+                    
+                    try {
+                        await ensureBucketExists();
+                        var avatarUrl = await uploadAvatarToBucket(user.id, selectedAvatarFile);
+                        
+                        if (avatarUrl) {
+                            // Оновлюємо URL в БД
+                            await db.updateUser(user.id, { avatar_url: avatarUrl });
+                            
+                            // Оновлюємо в localStorage
+                            user.avatar_url = avatarUrl;
+                            localStorage.setItem('userData', JSON.stringify(user));
+                        }
+                    } catch (avatarError) {
+                        console.error('Avatar upload error:', avatarError);
+                        showToast('Акаунт створено, але не вдалося завантажити аватар.', 'warning');
+                    }
                 }
 
                 showToast('Акаунт успішно створено!', 'success');
                 
+                // 3. Редірект після всього
                 setTimeout(function() {
                     window.location.href = '/dashboard';
                 }, 1500);
@@ -540,48 +517,6 @@
                 showToast('Помилка: ' + error.message, 'error');
             }
         });
-
-        // ============================================
-        // ПЕРЕВІРКА НА БАН ПРИ ЗАВАНТАЖЕННІ СТОРІНКИ
-        // ============================================
-        
-        (async function() {
-            try {
-                var userData = localStorage.getItem('userData');
-                if (userData) {
-                    var user = JSON.parse(userData);
-                    if (user && user.id) {
-                        // Перевіряємо чи користувач забанений
-                        var response = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id + '&select=is_banned,ban_reason', {
-                            headers: {
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            var data = await response.json();
-                            if (data && data.length > 0 && data[0].is_banned === true) {
-                                // Користувач забанений - зберігаємо причину і редіректимо на banned
-                                var banReason = data[0].ban_reason || 'Порушення правил платформи';
-                                user.ban_reason = banReason;
-                                user.is_banned = true;
-                                localStorage.setItem('userData', JSON.stringify(user));
-                                window.location.href = '/banned';
-                                return;
-                            }
-                            
-                            // Якщо не забанений і намагається зайти на реєстрацію - редірект на дашборд
-                            if (data && data.length > 0) {
-                                window.location.href = '/dashboard';
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                // Не авторизовано - залишаємось на сторінці
-            }
-        })();
     </script>
 </body>
 </html>
