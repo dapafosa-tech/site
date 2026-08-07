@@ -8,25 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-<!-- ===== ПЕРЕВІРКА АВТОРИЗАЦІЇ ПЕРЕД ЗАВАНТАЖЕННЯМ ===== -->
-<script>
-    (function() {
-        try {
-            var userData = localStorage.getItem('userData');
-            if (userData) {
-                var user = JSON.parse(userData);
-                if (user && user.id) {
-                    window.location.href = '/dashboard';
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn('Auth check error:', e);
-        }
-    })();
-</script>
-
 <style>
   :root{
     --ink:#0F1115;
@@ -324,7 +305,7 @@
     <h1 class="display">Кожна анкета і заявка — <em>на своєму місці</em>.</h1>
     <p class="lead">Typebiz збирає людей, анкети та запити вашої організації в одну базу замість розкиданих гугл-форм, таблиць і чатів. Заповнили — одразу видно в системі.</p>
     <div class="hero-actions">
-      <a href="/register" class="btn btn-gold btn-lg"><i class="fas fa-rocket"></i> Почати безкоштовно</a>
+      <a href="/register" class="btn btn-gold btn-lg" id="mainCta"><i class="fas fa-rocket"></i> Почати безкоштовно</a>
       <a href="#pricing" class="btn btn-ghost btn-lg">Тарифи</a>
     </div>
     <div class="hero-note"><span class="dot"></span> Безкоштовний тариф без обмеження за часом</div>
@@ -583,6 +564,15 @@
     }
   }
 
+  // ===== АВТОМАТИЧНИЙ РЕДІРЕКТ ТІЛЬКИ ДЛЯ ОСОБИСТОГО КАБІНЕТУ =====
+  // Ця функція викликається ТІЛЬКИ при спробі зайти в /dashboard
+  // Головна сторінка (/) НЕ робить редірект
+  async function redirectToDashboardIfAuth() {
+    // Ця функція викликається з dashboard.html, а не з index.html
+    // Тут вона не використовується
+  }
+
+  // Оновлюємо навігацію при завантаженні та зміні даних
   document.addEventListener('DOMContentLoaded', () => {
     updateNavbar();
     window.addEventListener('storage', (e) => {
