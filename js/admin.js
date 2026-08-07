@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ)
+// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ З БАНАМИ ТА ЗАМОРОЗКОЮ)
 // ============================================
 
 async function loadStats() {
@@ -67,6 +67,7 @@ async function loadUsers() {
                                 '<th>Ім\'я</th>' +
                                 '<th>Email</th>' +
                                 '<th>Роль</th>' +
+                                '<th>Статус</th>' +
                                 '<th>Дії</th>' +
                             '</tr>' +
                         '</thead>' +
@@ -76,21 +77,31 @@ async function loadUsers() {
             for (var i = 0; i < users.length; i++) {
                 var user = users[i];
                 var isAdmin = user.role === 'admin';
+                var isBanned = user.is_banned === true;
                 
                 html += 
                     '<tr>' +
                         '<td><strong>' + (user.full_name || 'Без імені') + '</strong></td>' +
                         '<td>' + (user.email || '—') + '</td>' +
                         '<td><span class="badge ' + (isAdmin ? 'badge-danger' : 'badge-primary') + '">' + (user.role || 'user') + '</span></td>' +
-                        '<td>' +
+                        '<td><span class="badge ' + (isBanned ? 'badge-danger' : 'badge-success') + '">' + (isBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
+                        '<td style="white-space:nowrap;">' +
+                            (isBanned ? 
+                                '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + user.id + '\')" title="Розблокувати користувача" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                    '<i class="fas fa-user-check"></i>' +
+                                '</button>' :
+                                '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + user.id + '\')" title="Заблокувати користувача" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                    '<i class="fas fa-user-slash"></i>' +
+                                '</button>'
+                            ) +
                             (isAdmin ? 
-                                '<button class="btn btn-sm btn-warning" onclick="removeAdmin(\'' + user.id + '\')" title="Зняти адміністратора">' +
+                                '<button class="btn btn-sm btn-warning" onclick="removeAdmin(\'' + user.id + '\')" title="Зняти адміністратора" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
                                     '<i class="fas fa-user-minus"></i>' +
                                 '</button>' :
-                                '<button class="btn btn-sm btn-teal" onclick="makeAdmin(\'' + user.id + '\')" title="Зробити адміністратором">' +
+                                '<button class="btn btn-sm btn-teal" onclick="makeAdmin(\'' + user.id + '\')" title="Зробити адміністратором" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
                                     '<i class="fas fa-user-crown"></i>' +
                                 '</button>' +
-                                '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + user.id + '\')">' +
+                                '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + user.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
                                     '<i class="fas fa-trash"></i>' +
                                 '</button>'
                             ) +
@@ -98,7 +109,7 @@ async function loadUsers() {
                     '</tr>';
             }
         } else {
-            html += '<tr><td colspan="4" class="text-center text-muted">Немає користувачів</td></tr>';
+            html += '<tr><td colspan="5" class="text-center text-muted">Немає користувачів</td></tr>';
         }
 
         html += 
@@ -120,7 +131,6 @@ async function loadOrgs() {
     try {
         var orgs = await db.supabaseQuery('organizations?select=*');
         
-        // Отримуємо інформацію про користувачів окремо
         var users = await db.supabaseQuery('users?select=id,full_name,email');
         var userMap = {};
         if (users) {
@@ -161,6 +171,8 @@ async function loadOrgs() {
             for (var i = 0; i < orgs.length; i++) {
                 var org = orgs[i];
                 var creatorName = userMap[org.created_by] || 'Невідомо';
+                var isActive = org.is_active !== false;
+                var freezeReason = org.freeze_reason || '';
                 
                 html += 
                     '<tr>' +
@@ -168,12 +180,17 @@ async function loadOrgs() {
                         '<td>' + (typeLabels[org.type] || org.type || '—') + '</td>' +
                         '<td style="font-family:monospace;font-size:0.8rem;text-transform:lowercase;">' + (org.join_code || '—') + '</td>' +
                         '<td>' + creatorName + '</td>' +
-                        '<td><span class="badge ' + (org.is_active !== false ? 'badge-success' : 'badge-danger') + '">' + (org.is_active !== false ? 'Активна' : 'Неактивна') + '</span></td>' +
-                        '<td>' +
-                            '<button class="btn btn-sm btn-outline" onclick="toggleOrg(\'' + org.id + '\', ' + (org.is_active !== false ? 'false' : 'true') + ')">' +
-                                '<i class="fas ' + (org.is_active !== false ? 'fa-pause' : 'fa-play') + '"></i>' +
-                            '</button>' +
-                            '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')">' +
+                        '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td>' +
+                        '<td style="white-space:nowrap;">' +
+                            (isActive ? 
+                                '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити організацію" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                    '<i class="fas fa-pause"></i>' +
+                                '</button>' :
+                                '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити організацію" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                    '<i class="fas fa-play"></i>' +
+                                '</button>'
+                            ) +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
                                 '<i class="fas fa-trash"></i>' +
                             '</button>' +
                         '</td>' +
@@ -200,7 +217,7 @@ async function loadChat() {
     var container = document.getElementById('adminContent');
     
     try {
-        var orgs = await db.supabaseQuery('organizations?select=id,name');
+        var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
         
         var html = 
             '<div class="card">' +
@@ -212,6 +229,7 @@ async function loadChat() {
                         '<thead>' +
                             '<tr>' +
                                 '<th>Організація</th>' +
+                                '<th>Статус</th>' +
                                 '<th>Повідомлень</th>' +
                                 '<th>Дії</th>' +
                             '</tr>' +
@@ -223,20 +241,22 @@ async function loadChat() {
                 var org = orgs[i];
                 var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + org.id);
                 var count = messages ? messages.length : 0;
+                var isActive = org.is_active !== false;
                 
                 html += 
                     '<tr>' +
                         '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
+                        '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
                         '<td>' + count + '</td>' +
                         '<td>' +
-                            '<button class="btn btn-sm btn-teal" onclick="viewChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')">' +
-                                '<i class="fas fa-eye"></i> Переглянути' +
+                            '<button class="btn btn-sm btn-teal" onclick="viewChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                '<i class="fas fa-eye"></i>' +
                             '</button>' +
                         '</td>' +
                     '</tr>';
             }
         } else {
-            html += '<tr><td colspan="3" class="text-center text-muted">Немає організацій</td></tr>';
+            html += '<tr><td colspan="4" class="text-center text-muted">Немає організацій</td></tr>';
         }
 
         html += 
@@ -298,7 +318,7 @@ async function loadVacations() {
     var container = document.getElementById('adminContent');
     
     try {
-        var orgs = await db.supabaseQuery('organizations?select=id,name');
+        var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
         
         var html = 
             '<div class="card">' +
@@ -310,6 +330,7 @@ async function loadVacations() {
                         '<thead>' +
                             '<tr>' +
                                 '<th>Організація</th>' +
+                                '<th>Статус</th>' +
                                 '<th>Заявок</th>' +
                                 '<th>Очікують</th>' +
                                 '<th>Дії</th>' +
@@ -323,21 +344,23 @@ async function loadVacations() {
                 var vacations = await db.supabaseQuery('org_vacations?organization_id=eq.' + org.id);
                 var count = vacations ? vacations.length : 0;
                 var pending = vacations ? vacations.filter(function(v) { return v.status === 'pending'; }).length : 0;
+                var isActive = org.is_active !== false;
                 
                 html += 
                     '<tr>' +
                         '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
+                        '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
                         '<td>' + count + '</td>' +
                         '<td><span class="badge badge-warning">' + pending + '</span></td>' +
                         '<td>' +
-                            '<button class="btn btn-sm btn-teal" onclick="viewVacations(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')">' +
-                                '<i class="fas fa-eye"></i> Переглянути' +
+                            '<button class="btn btn-sm btn-teal" onclick="viewVacations(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                '<i class="fas fa-eye"></i>' +
                             '</button>' +
                         '</td>' +
                     '</tr>';
             }
         } else {
-            html += '<tr><td colspan="4" class="text-center text-muted">Немає організацій</td></tr>';
+            html += '<tr><td colspan="5" class="text-center text-muted">Немає організацій</td></tr>';
         }
 
         html += 
@@ -420,7 +443,6 @@ async function loadRequests() {
     try {
         var requests = await db.supabaseQuery('join_requests?select=*');
         
-        // Отримуємо інформацію про користувачів та організації
         var users = await db.supabaseQuery('users?select=id,full_name,email');
         var userMap = {};
         if (users) {
@@ -611,13 +633,73 @@ async function loadOverview() {
     await loadStats();
 }
 
-// ===== УПРАВЛІННЯ РОЛЯМИ (АДМІН) =====
+// ===== УПРАВЛІННЯ КОРИСТУВАЧАМИ =====
+async function banUser(userId) {
+    var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
+    if (reason === null) return;
+    if (!reason || reason.trim() === '') {
+        await showAlert('Введіть причину блокування', 'warning');
+        return;
+    }
+    
+    var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача? Він буде вигнаний з усіх організацій.', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        // Отримуємо всі організації користувача
+        var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
+        if (members && members.length > 0) {
+            for (var i = 0; i < members.length; i++) {
+                await db.removeMemberFromOrganization(members[i].id);
+            }
+        }
+        
+        // Блокуємо користувача
+        await db.supabaseQuery('users?id=eq.' + userId, {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+                is_banned: true, 
+                ban_reason: reason.trim(),
+                role: 'user'
+            })
+        });
+        
+        await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim() });
+        await showToast('Користувача заблоковано!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function unbanUser(userId) {
+    var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.supabaseQuery('users?id=eq.' + userId, {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+                is_banned: false, 
+                ban_reason: null 
+            })
+        });
+        
+        await db.addLog('Розблоковано користувача', 'user', userId, {});
+        await showToast('Користувача розблоковано!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 async function makeAdmin(userId) {
     var confirmed = await showConfirm('Зробити цього користувача адміністратором? Він зможе створювати безліміт організацій.', 'Підтвердження');
     if (!confirmed) return;
     
     try {
         await db.setUserRole(userId, 'admin');
+        await db.addLog('Призначено адміністратора', 'user', userId, {});
         await showToast('Користувача підвищено до адміністратора!', 'success');
         loadUsers();
     } catch (error) {
@@ -631,6 +713,7 @@ async function removeAdmin(userId) {
     
     try {
         await db.setUserRole(userId, 'user');
+        await db.addLog('Знято роль адміністратора', 'user', userId, {});
         await showToast('Роль адміністратора знято!', 'success');
         loadUsers();
     } catch (error) {
@@ -651,10 +734,48 @@ async function deleteUser(id) {
     }
 }
 
-async function toggleOrg(id, newStatus) {
+// ===== УПРАВЛІННЯ ОРГАНІЗАЦІЯМИ =====
+async function freezeOrg(orgId) {
+    var reason = await showPrompt('Введіть причину заморозки організації:', 'Порушення правил', 'Заморозка організації');
+    if (reason === null) return;
+    if (!reason || reason.trim() === '') {
+        await showAlert('Введіть причину заморозки', 'warning');
+        return;
+    }
+    
+    var confirmed = await showConfirm('Ви впевнені, що хочете заморозити цю організацію?', 'Підтвердження');
+    if (!confirmed) return;
+    
     try {
-        await db.updateOrganization(id, { is_active: newStatus });
-        await showToast('Статус оновлено!', 'success');
+        await db.updateOrganization(orgId, { 
+            is_active: false, 
+            freeze_reason: reason.trim(),
+            frozen_by: (await auth.getCurrentUser()).id,
+            frozen_at: new Date().toISOString()
+        });
+        
+        await db.addLog('Заморожено організацію', 'organization', orgId, { reason: reason.trim() });
+        await showToast('Організацію заморожено!', 'success');
+        loadOrgs();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function unfreezeOrg(orgId) {
+    var confirmed = await showConfirm('Розморозити цю організацію?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.updateOrganization(orgId, { 
+            is_active: true, 
+            freeze_reason: null,
+            frozen_by: null,
+            frozen_at: null
+        });
+        
+        await db.addLog('Розморожено організацію', 'organization', orgId, {});
+        await showToast('Організацію розморожено!', 'success');
         loadOrgs();
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
