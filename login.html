@@ -156,6 +156,30 @@
         }
         .register-link a{color:var(--teal);font-weight:600;}
         .register-link a:hover{color:var(--gold);}
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--ink-soft);
+            border: 1px solid var(--ink-line);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            color: var(--text-onink);
+            font-size: 0.9rem;
+            max-width: 350px;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease;
+            display: none;
+        }
+        .toast.show { display: block; }
+        .toast.success { border-left: 4px solid var(--teal); }
+        .toast.error { border-left: 4px solid #E2503E; }
+        .toast.warning { border-left: 4px solid var(--gold); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
         @media(max-width:480px){
             .login-container{padding:2rem 1.5rem;}
             .form-options{flex-direction:column;gap:0.75rem;align-items:flex-start;}
@@ -163,6 +187,8 @@
     </style>
 </head>
 <body>
+    <div id="toast" class="toast"></div>
+    
     <div class="login-container">
         <div class="logo">
             <span class="tab">Tb</span>
@@ -208,7 +234,20 @@
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
+    <script src="/js/check-auth.js"></script>
     <script>
+        var toastTimeout = null;
+
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + (type || '');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(function() {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
         function togglePassword() {
             var input = document.getElementById('password');
             var icon = document.querySelector('.toggle-btn i');
@@ -229,7 +268,7 @@
             var submitBtn = document.getElementById('loginBtn');
 
             if (!email || !password) {
-                await showAlert('Заповніть усі поля', 'warning');
+                showToast('Заповніть усі поля', 'warning');
                 return;
             }
 
@@ -239,38 +278,29 @@
             try {
                 var result = await auth.loginUser(email, password);
 
+                // Якщо користувач забанений - loginUser зробить редірект на /banned
+                if (result && result.banned === true) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Увійти';
+                    return;
+                }
+
                 if (!result.success) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Увійти';
-                    await showAlert(result.error, 'error');
+                    showToast(result.error, 'error');
                     return;
                 }
 
                 // auth.loginUser() вже робить редірект на /dashboard
-                // Але залишаємо для безпеки
-                await showToast('Ласкаво просимо до Typebiz!', 'success');
-                setTimeout(function() {
-                    window.location.href = '/dashboard';
-                }, 500);
+                showToast('Ласкаво просимо до Typebiz!', 'success');
 
             } catch (error) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Увійти';
-                await showAlert('Помилка: ' + error.message, 'error');
+                showToast('Помилка: ' + error.message, 'error');
             }
         });
-
-        // Якщо користувач вже авторизований і намагається зайти на /login — редірект на дашборд
-        (async function() {
-            try {
-                var isAuth = await auth.checkAuth();
-                if (isAuth) {
-                    window.location.href = '/dashboard';
-                }
-            } catch (e) {
-                // Не авторизовано — залишаємось на сторінці
-            }
-        })();
     </script>
 </body>
 </html>
