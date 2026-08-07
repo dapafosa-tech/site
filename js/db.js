@@ -290,9 +290,9 @@ async function createOrganization(data) {
         var maxOrgs = parseInt(sysSettings['max_organizations'], 10);
         if (!maxOrgs || isNaN(maxOrgs) || maxOrgs < 1) maxOrgs = 1;
 
-        var orgs = await getUserAllOrganizations();
-        if (orgs && orgs.length >= maxOrgs) {
-            throw new Error('Ви досягли ліміту організацій (' + maxOrgs + '). Адміністратори та засновники можуть створювати безлімітно.');
+        var ledOrgs = await getUserLedOrganizations();
+        if (ledOrgs && ledOrgs.length >= maxOrgs) {
+            throw new Error('Ви досягли ліміту організацій, де можете бути лідером (' + maxOrgs + '). Адміністратори та засновники можуть створювати безлімітно.');
         }
     }
     
@@ -385,6 +385,19 @@ async function getUserAllOrganizations() {
         if (!orgIds) return [];
         
         var orgs = await supabaseQuery('organizations?id=in.(' + orgIds + ')');
+        return orgs || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+// Організації, де користувач саме ЛІДЕР (не просто учасник)
+async function getUserLedOrganizations() {
+    var user = getCurrentUser();
+    if (!user) throw new Error('Не авторизовано');
+
+    try {
+        var orgs = await supabaseQuery('organizations?leader_id=eq.' + user.id);
         return orgs || [];
     } catch (error) {
         return [];
