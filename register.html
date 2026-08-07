@@ -191,12 +191,38 @@
         .avatar-upload .avatar-preview:hover .overlay{opacity:1;}
         .avatar-upload .avatar-hint{font-size:0.8rem;color:var(--muted);margin-top:0.5rem;}
         #avatarInput{display:none;}
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--ink-soft);
+            border: 1px solid var(--ink-line);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            color: var(--text-onink);
+            font-size: 0.9rem;
+            max-width: 350px;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease;
+            display: none;
+        }
+        .toast.show { display: block; }
+        .toast.success { border-left: 4px solid var(--teal); }
+        .toast.error { border-left: 4px solid #E2503E; }
+        .toast.warning { border-left: 4px solid var(--gold); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
         @media(max-width:480px){
             .register-container{padding:2rem 1.5rem;}
         }
     </style>
 </head>
 <body>
+    <div id="toast" class="toast"></div>
+    
     <div class="register-container">
         <div class="logo">
             <span class="tab">Tb</span>
@@ -272,15 +298,25 @@
     <script src="/js/ui.js"></script>
     <script>
         var selectedAvatarFile = null;
+        var toastTimeout = null;
+
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + (type || '');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(function() {
+                toast.classList.remove('show');
+            }, 5000);
+        }
 
         function previewAvatar(event) {
             var file = event.target.files[0];
             if (!file) return;
 
-            // Невеликий захист від надто важких файлів (Supabase Storage free tier тощо)
-            var maxSizeBytes = 5 * 1024 * 1024; // 5 МБ
+            var maxSizeBytes = 5 * 1024 * 1024;
             if (file.size > maxSizeBytes) {
-                showAlert('Файл занадто великий. Оберіть зображення до 5 МБ.', 'warning');
+                showToast('Файл занадто великий. Оберіть зображення до 5 МБ.', 'warning');
                 event.target.value = '';
                 return;
             }
@@ -329,49 +365,74 @@
         });
 
         // ============================================
-        // ЗАВАНТАЖЕННЯ АВАТАРА В SUPABASE STORAGE (bucket "avatars")
+        // ЗАВАНТАЖЕННЯ АВАТАРА В SUPABASE STORAGE
         // ============================================
 
-        // Завантажує файл у публічний бакет "avatars" через Storage REST API
-        // (без supabase-js SDK — так само, як решта проєкту працює через fetch)
-        // і повертає публічне посилання на файл, або null у разі помилки.
+        async function ensureBucketExists() {
+            try {
+                var checkResponse = await fetch(SUPABASE_URL + '/storage/v1/bucket/avatars', {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    }
+                });
+                
+                if (checkResponse.status === 404) {
+                    var createResponse = await fetch(SUPABASE_URL + '/storage/v1/bucket', {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: 'avatars',
+                            name: 'avatars',
+                            public: true
+                        })
+                    });
+                    
+                    if (!createResponse.ok) {
+                        console.error('Failed to create bucket');
+                        return false;
+                    }
+                }
+                return true;
+            } catch (e) {
+                console.error('Bucket check error:', e);
+                return false;
+            }
+        }
+
         async function uploadAvatarToBucket(userId, file) {
             try {
-                var rawExt = (file.name && file.name.indexOf('.') !== -1)
-                    ? file.name.split('.').pop()
-                    : (file.type && file.type.indexOf('/') !== -1 ? file.type.split('/').pop() : 'jpg');
-                var ext = (rawExt || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-
-                var path = userId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
-                var uploadUrl = SUPABASE_URL + '/storage/v1/object/avatars/' + path;
+                var ext = file.name.split('.').pop().toLowerCase();
+                var fileName = userId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+                var uploadUrl = SUPABASE_URL + '/storage/v1/object/avatars/' + fileName;
 
                 var uploadResponse = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                        'Content-Type': file.type || 'application/octet-stream',
-                        'x-upsert': 'true'
+                        'Content-Type': file.type || 'application/octet-stream'
                     },
                     body: file
                 });
 
                 if (!uploadResponse.ok) {
                     var errText = await uploadResponse.text();
-                    console.error('Avatar storage upload failed:', uploadResponse.status, errText);
+                    console.error('Avatar upload failed:', uploadResponse.status, errText);
                     return null;
                 }
 
-                // Публічний URL файлу в публічному бакеті
-                return SUPABASE_URL + '/storage/v1/object/public/avatars/' + path;
+                return SUPABASE_URL + '/storage/v1/object/public/avatars/' + fileName;
             } catch (e) {
                 console.error('Avatar upload error:', e);
                 return null;
             }
         }
 
-        // Знаходить id щойно створеного користувача за email
-        // (не залежить від того, що саме повертає auth.registerUser)
         async function findUserIdByEmail(email) {
             try {
                 var rows = await db.supabaseQuery('users?email=eq.' + encodeURIComponent(email) + '&select=id');
@@ -382,22 +443,20 @@
             }
         }
 
-        // Завантажує обраний аватар (якщо є) для щойно зареєстрованого користувача,
-        // проставляє avatar_url у таблиці users і синхронізує localStorage,
-        // щоб фото одразу відобразилось без перезавантаження сторінки.
         async function handleAvatarUploadAfterRegister(email) {
             if (!selectedAvatarFile) return;
 
             try {
                 var userId = await findUserIdByEmail(email);
                 if (!userId) {
-                    console.warn('Не вдалося знайти id щойно створеного користувача для завантаження аватара');
+                    console.warn('Не вдалося знайти id користувача');
                     return;
                 }
 
+                await ensureBucketExists();
                 var avatarUrl = await uploadAvatarToBucket(userId, selectedAvatarFile);
                 if (!avatarUrl) {
-                    showToast('Акаунт створено, але не вдалося завантажити аватар. Додайте фото пізніше в налаштуваннях.', 'warning');
+                    showToast('Акаунт створено, але не вдалося завантажити аватар.', 'warning');
                     return;
                 }
 
@@ -415,7 +474,7 @@
                 } catch (e) {}
             } catch (e) {
                 console.error('handleAvatarUploadAfterRegister error:', e);
-                showToast('Акаунт створено, але не вдалося завантажити аватар. Додайте фото пізніше в налаштуваннях.', 'warning');
+                showToast('Акаунт створено, але не вдалося завантажити аватар.', 'warning');
             }
         }
 
@@ -430,27 +489,27 @@
             var submitBtn = document.getElementById('registerBtn');
 
             if (!fullName) {
-                await showAlert('Введіть ваше ім\'я', 'warning');
+                showToast('Введіть ваше ім\'я', 'warning');
                 return;
             }
 
             if (!email) {
-                await showAlert('Введіть електронну пошту', 'warning');
+                showToast('Введіть електронну пошту', 'warning');
                 return;
             }
 
             if (password.length < 6) {
-                await showAlert('Пароль має бути мінімум 6 символів', 'warning');
+                showToast('Пароль має бути мінімум 6 символів', 'warning');
                 return;
             }
 
             if (password !== confirmPassword) {
-                await showAlert('Паролі не співпадають!', 'error');
+                showToast('Паролі не співпадають!', 'error');
                 return;
             }
 
             if (!terms) {
-                await showAlert('Прийміть умови використання', 'warning');
+                showToast('Прийміть умови використання', 'warning');
                 return;
             }
 
@@ -464,37 +523,36 @@
                     throw new Error(result.error);
                 }
 
-                // Якщо користувач обрав фото — завантажуємо його в бакет "avatars"
-                // і прив'язуємо до щойно створеного акаунту.
-                // Помилка завантаження аватара НЕ повинна блокувати реєстрацію.
                 if (selectedAvatarFile) {
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження фото...';
                     await handleAvatarUploadAfterRegister(email);
                 }
 
-                // НЕ робимо редірект тут — це робить auth.registerUser()
-                // Але залишаємо для безпеки
+                showToast('Акаунт успішно створено!', 'success');
+                
                 setTimeout(function() {
                     window.location.href = '/dashboard';
-                }, 500);
+                }, 1500);
 
             } catch (error) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Створити акаунт';
-                await showAlert('Помилка: ' + error.message, 'error');
+                showToast('Помилка: ' + error.message, 'error');
             }
         });
 
-        // НЕМАЄ АВТОМАТИЧНОГО РЕДІРЕКТУ НА ГОЛОВНІЙ
-        // ТІЛЬКИ ЯКЩО КОРИСТУВАЧ ВЖЕ АВТОРИЗОВАНИЙ І НАМАГАЄТЬСЯ ЗАЙТИ НА /REGISTER
+        // ============================================
+        // ПЕРЕВІРКА НА БАН ПРИ ЗАВАНТАЖЕННІ СТОРІНКИ
+        // ============================================
+        
         (async function() {
             try {
                 var userData = localStorage.getItem('userData');
                 if (userData) {
                     var user = JSON.parse(userData);
                     if (user && user.id) {
-                        // Перевіряємо чи дійсний токен
-                        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(user.email), {
+                        // Перевіряємо чи користувач забанений
+                        var response = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id + '&select=is_banned,ban_reason', {
                             headers: {
                                 'apikey': SUPABASE_ANON_KEY,
                                 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
@@ -503,15 +561,25 @@
                         
                         if (response.ok) {
                             var data = await response.json();
+                            if (data && data.length > 0 && data[0].is_banned === true) {
+                                // Користувач забанений - зберігаємо причину і редіректимо на banned
+                                var banReason = data[0].ban_reason || 'Порушення правил платформи';
+                                user.ban_reason = banReason;
+                                user.is_banned = true;
+                                localStorage.setItem('userData', JSON.stringify(user));
+                                window.location.href = '/banned';
+                                return;
+                            }
+                            
+                            // Якщо не забанений і намагається зайти на реєстрацію - редірект на дашборд
                             if (data && data.length > 0) {
-                                // Якщо вже авторизований і намагається зайти на реєстрацію — редірект на дашборд
                                 window.location.href = '/dashboard';
                             }
                         }
                     }
                 }
             } catch (e) {
-                // Не авторизовано — залишаємось на сторінці
+                // Не авторизовано - залишаємось на сторінці
             }
         })();
     </script>
