@@ -97,6 +97,27 @@ async function supabaseQuery(endpoint, options) {
     }
 }
 
+// ===== ЛОГИ =====
+async function addLog(action, entityType, entityId, details) {
+    try {
+        var user = getCurrentUser();
+        return await supabaseQuery('activity_logs', {
+            method: 'POST',
+            body: JSON.stringify({
+                id: generateUUID(),
+                user_id: user ? user.id : null,
+                action: action,
+                entity_type: entityType,
+                entity_id: entityId || null,
+                details: details || {},
+                created_at: new Date().toISOString()
+            })
+        });
+    } catch (e) {
+        console.warn('Failed to add log:', e);
+    }
+}
+
 // ===== КОРИСТУВАЧІ =====
 async function updateUser(id, data) {
     return supabaseQuery('users?id=eq.' + id, {
