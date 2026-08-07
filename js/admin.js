@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ З БАНАМИ ТА ЗАМОРОЗКОЮ)
+// TYPEBIZ - АДМІН-ПАНЕЛЬ (З РОЛЯМИ: USER, MODERATOR, ADMIN)
 // ============================================
 
 async function loadStats() {
@@ -28,13 +28,15 @@ async function loadRecentLogs() {
             return;
         }
 
-        var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Дія</th><th>Тип</th></tr></thead><tbody>';
+        var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody>';
         
         for (var i = 0; i < logs.length; i++) {
             var log = logs[i];
             var date = new Date(log.created_at).toLocaleString('uk-UA');
+            var userName = log.user_name || 'Система';
             html += '<tr>' +
                 '<td style="font-size:0.85rem;">' + date + '</td>' +
+                '<td><strong>' + userName + '</strong></td>' +
                 '<td><span class="badge badge-primary">' + (log.action || '—') + '</span></td>' +
                 '<td>' + (log.entity_type || '—') + '</td>' +
             '</tr>';
@@ -50,6 +52,8 @@ async function loadRecentLogs() {
 
 async function loadUsers() {
     var container = document.getElementById('adminContent');
+    var user = auth.getCurrentUser();
+    var isAdmin = user && user.role === 'admin';
     
     try {
         var users = await db.supabaseQuery('users?select=*');
@@ -75,35 +79,57 @@ async function loadUsers() {
 
         if (users && users.length > 0) {
             for (var i = 0; i < users.length; i++) {
-                var user = users[i];
-                var isAdmin = user.role === 'admin';
-                var isBanned = user.is_banned === true;
+                var u = users[i];
+                var isUserAdmin = u.role === 'admin';
+                var isUserModerator = u.role === 'moderator';
+                var isUserBanned = u.is_banned === true;
+                var isCurrentUser = u.id === user.id;
+                
+                var roleLabels = {
+                    'admin': '<span class="badge badge-danger">Адмін</span>',
+                    'moderator': '<span class="badge badge-warning">Модератор</span>',
+                    'user': '<span class="badge badge-primary">Користувач</span>'
+                };
                 
                 html += 
                     '<tr>' +
-                        '<td><strong>' + (user.full_name || 'Без імені') + '</strong></td>' +
-                        '<td>' + (user.email || '—') + '</td>' +
-                        '<td><span class="badge ' + (isAdmin ? 'badge-danger' : 'badge-primary') + '">' + (user.role || 'user') + '</span></td>' +
-                        '<td><span class="badge ' + (isBanned ? 'badge-danger' : 'badge-success') + '">' + (isBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
+                        '<td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td>' +
+                        '<td>' + (u.email || '—') + '</td>' +
+                        '<td>' + (roleLabels[u.role] || roleLabels.user) + '</td>' +
+                        '<td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
-                            (isBanned ? 
-                                '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + user.id + '\')" title="Розблокувати користувача" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-user-check"></i>' +
-                                '</button>' :
-                                '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + user.id + '\')" title="Заблокувати користувача" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-user-slash"></i>' +
-                                '</button>'
-                            ) +
-                            (isAdmin ? 
-                                '<button class="btn btn-sm btn-warning" onclick="removeAdmin(\'' + user.id + '\')" title="Зняти адміністратора" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-user-minus"></i>' +
-                                '</button>' :
-                                '<button class="btn btn-sm btn-teal" onclick="makeAdmin(\'' + user.id + '\')" title="Зробити адміністратором" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-user-crown"></i>' +
-                                '</button>' +
-                                '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + user.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                            // Кнопки для адмінів
+                            (isAdmin && !isCurrentUser ? 
+                                (isUserBanned ? 
+                                    '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                        '<i class="fas fa-user-check"></i>' +
+                                    '</button>' :
+                                    '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                        '<i class="fas fa-user-slash"></i>' +
+                                    '</button>'
+                                ) +
+                                (isUserAdmin ? 
+                                    '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти адміна" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                        '<i class="fas fa-user-minus"></i>' +
+                                    '</button>' :
+                                    (isUserModerator ?
+                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                            '<i class="fas fa-user-crown"></i>' +
+                                        '</button>' +
+                                        '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти модератора" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                            '<i class="fas fa-user-minus"></i>' +
+                                        '</button>' :
+                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'moderator\')" title="Зробити модератором" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                            '<i class="fas fa-user-shield"></i>' +
+                                        '</button>' +
+                                        '<button class="btn btn-sm btn-teal" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                            '<i class="fas fa-user-crown"></i>' +
+                                        '</button>'
+                                    )
+                                ) +
+                                '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
                                     '<i class="fas fa-trash"></i>' +
-                                '</button>'
+                                '</button>' : (isCurrentUser ? '—' : '—')
                             ) +
                         '</td>' +
                     '</tr>';
@@ -125,8 +151,88 @@ async function loadUsers() {
     }
 }
 
+async function changeUserRole(userId, newRole) {
+    var roleLabels = {
+        'admin': 'адміністратора',
+        'moderator': 'модератора',
+        'user': 'звичайного користувача'
+    };
+    
+    var confirmed = await showConfirm('Змінити роль цього користувача на "' + roleLabels[newRole] + '"?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.setUserRole(userId, newRole);
+        await db.addLog('Змінено роль користувача', 'user', userId, { new_role: newRole });
+        await showToast('Роль змінено!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function banUser(userId) {
+    var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
+    if (reason === null) return;
+    if (!reason || reason.trim() === '') {
+        await showAlert('Введіть причину блокування', 'warning');
+        return;
+    }
+    
+    var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача? Він буде вигнаний з усіх організацій.', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
+        if (members && members.length > 0) {
+            for (var i = 0; i < members.length; i++) {
+                await db.removeMemberFromOrganization(members[i].id);
+            }
+        }
+        
+        await db.supabaseQuery('users?id=eq.' + userId, {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+                is_banned: true, 
+                ban_reason: reason.trim(),
+                role: 'user'
+            })
+        });
+        
+        await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim() });
+        await showToast('Користувача заблоковано!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function unbanUser(userId) {
+    var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.supabaseQuery('users?id=eq.' + userId, {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+                is_banned: false, 
+                ban_reason: null 
+            })
+        });
+        
+        await db.addLog('Розблоковано користувача', 'user', userId, {});
+        await showToast('Користувача розблоковано!', 'success');
+        loadUsers();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 async function loadOrgs() {
     var container = document.getElementById('adminContent');
+    var user = auth.getCurrentUser();
+    var isAdmin = user && user.role === 'admin';
+    var isModerator = user && user.role === 'moderator';
     
     try {
         var orgs = await db.supabaseQuery('organizations?select=*');
@@ -182,17 +288,21 @@ async function loadOrgs() {
                         '<td>' + creatorName + '</td>' +
                         '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
-                            (isActive ? 
-                                '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити організацію" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-pause"></i>' +
-                                '</button>' :
-                                '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити організацію" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                    '<i class="fas fa-play"></i>' +
-                                '</button>'
+                            (isAdmin || isModerator ? 
+                                (isActive ? 
+                                    '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                        '<i class="fas fa-pause"></i>' +
+                                    '</button>' :
+                                    '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                        '<i class="fas fa-play"></i>' +
+                                    '</button>'
+                                ) + 
+                                (isAdmin ? 
+                                    '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
+                                        '<i class="fas fa-trash"></i>' +
+                                    '</button>' : ''
+                                ) : ''
                             ) +
-                            '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
-                                '<i class="fas fa-trash"></i>' +
-                            '</button>' +
                         '</td>' +
                     '</tr>';
             }
@@ -210,6 +320,54 @@ async function loadOrgs() {
     } catch (error) {
         console.error('Load orgs error:', error);
         container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження організацій</p></div>';
+    }
+}
+
+async function freezeOrg(orgId) {
+    var user = auth.getCurrentUser();
+    var reason = await showPrompt('Введіть причину заморозки організації:', 'Порушення правил', 'Заморозка організації');
+    if (reason === null) return;
+    if (!reason || reason.trim() === '') {
+        await showAlert('Введіть причину заморозки', 'warning');
+        return;
+    }
+    
+    var confirmed = await showConfirm('Ви впевнені, що хочете заморозити цю організацію?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.updateOrganization(orgId, { 
+            is_active: false, 
+            freeze_reason: reason.trim(),
+            frozen_by: user.id,
+            frozen_at: new Date().toISOString()
+        });
+        
+        await db.addLog('Заморожено організацію', 'organization', orgId, { reason: reason.trim() });
+        await showToast('Організацію заморожено!', 'success');
+        loadOrgs();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function unfreezeOrg(orgId) {
+    var confirmed = await showConfirm('Розморозити цю організацію?', 'Підтвердження');
+    if (!confirmed) return;
+    
+    try {
+        await db.updateOrganization(orgId, { 
+            is_active: true, 
+            freeze_reason: null,
+            frozen_by: null,
+            frozen_at: null
+        });
+        
+        await db.addLog('Розморожено організацію', 'organization', orgId, {});
+        await showToast('Організацію розморожено!', 'success');
+        loadOrgs();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
     }
 }
 
@@ -535,9 +693,9 @@ async function loadLogs() {
                         '<thead>' +
                             '<tr>' +
                                 '<th>Час</th>' +
+                                '<th>Користувач</th>' +
                                 '<th>Дія</th>' +
                                 '<th>Тип</th>' +
-                                '<th>Користувач</th>' +
                             '</tr>' +
                         '</thead>' +
                         '<tbody>';
@@ -553,13 +711,13 @@ async function loadLogs() {
             
             for (var i = 0; i < logs.length; i++) {
                 var log = logs[i];
-                var userName = userMap[log.user_id] || 'Система';
+                var userName = log.user_name || userMap[log.user_id] || 'Система';
                 html += 
                     '<tr>' +
                         '<td>' + new Date(log.created_at).toLocaleString('uk-UA') + '</td>' +
+                        '<td><strong>' + userName + '</strong></td>' +
                         '<td><span class="badge badge-primary">' + (log.action || '—') + '</span></td>' +
                         '<td>' + (log.entity_type || '—') + '</td>' +
-                        '<td>' + userName + '</td>' +
                     '</tr>';
             }
         } else {
@@ -633,91 +791,14 @@ async function loadOverview() {
     await loadStats();
 }
 
-// ===== УПРАВЛІННЯ КОРИСТУВАЧАМИ =====
-async function banUser(userId) {
-    var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
-    if (reason === null) return;
-    if (!reason || reason.trim() === '') {
-        await showAlert('Введіть причину блокування', 'warning');
-        return;
-    }
-    
-    var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача? Він буде вигнаний з усіх організацій.', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        // Отримуємо всі організації користувача
-        var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
-        if (members && members.length > 0) {
-            for (var i = 0; i < members.length; i++) {
-                await db.removeMemberFromOrganization(members[i].id);
-            }
-        }
-        
-        // Блокуємо користувача
-        await db.supabaseQuery('users?id=eq.' + userId, {
-            method: 'PATCH',
-            body: JSON.stringify({ 
-                is_banned: true, 
-                ban_reason: reason.trim(),
-                role: 'user'
-            })
-        });
-        
-        await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim() });
-        await showToast('Користувача заблоковано!', 'success');
-        loadUsers();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
 }
 
-async function unbanUser(userId) {
-    var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.supabaseQuery('users?id=eq.' + userId, {
-            method: 'PATCH',
-            body: JSON.stringify({ 
-                is_banned: false, 
-                ban_reason: null 
-            })
-        });
-        
-        await db.addLog('Розблоковано користувача', 'user', userId, {});
-        await showToast('Користувача розблоковано!', 'success');
-        loadUsers();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function makeAdmin(userId) {
-    var confirmed = await showConfirm('Зробити цього користувача адміністратором? Він зможе створювати безліміт організацій.', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.setUserRole(userId, 'admin');
-        await db.addLog('Призначено адміністратора', 'user', userId, {});
-        await showToast('Користувача підвищено до адміністратора!', 'success');
-        loadUsers();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function removeAdmin(userId) {
-    var confirmed = await showConfirm('Зняти роль адміністратора з цього користувача?', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.setUserRole(userId, 'user');
-        await db.addLog('Знято роль адміністратора', 'user', userId, {});
-        await showToast('Роль адміністратора знято!', 'success');
-        loadUsers();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
+async function handleLogout() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете вийти?', 'Вихід');
+    if (confirmed) {
+        auth.logoutUser();
     }
 }
 
@@ -729,54 +810,6 @@ async function deleteUser(id) {
         await db.deleteUser(id);
         await showToast('Користувача видалено', 'success');
         loadUsers();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-// ===== УПРАВЛІННЯ ОРГАНІЗАЦІЯМИ =====
-async function freezeOrg(orgId) {
-    var reason = await showPrompt('Введіть причину заморозки організації:', 'Порушення правил', 'Заморозка організації');
-    if (reason === null) return;
-    if (!reason || reason.trim() === '') {
-        await showAlert('Введіть причину заморозки', 'warning');
-        return;
-    }
-    
-    var confirmed = await showConfirm('Ви впевнені, що хочете заморозити цю організацію?', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.updateOrganization(orgId, { 
-            is_active: false, 
-            freeze_reason: reason.trim(),
-            frozen_by: (await auth.getCurrentUser()).id,
-            frozen_at: new Date().toISOString()
-        });
-        
-        await db.addLog('Заморожено організацію', 'organization', orgId, { reason: reason.trim() });
-        await showToast('Організацію заморожено!', 'success');
-        loadOrgs();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function unfreezeOrg(orgId) {
-    var confirmed = await showConfirm('Розморозити цю організацію?', 'Підтвердження');
-    if (!confirmed) return;
-    
-    try {
-        await db.updateOrganization(orgId, { 
-            is_active: true, 
-            freeze_reason: null,
-            frozen_by: null,
-            frozen_at: null
-        });
-        
-        await db.addLog('Розморожено організацію', 'organization', orgId, {});
-        await showToast('Організацію розморожено!', 'success');
-        loadOrgs();
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }
@@ -795,17 +828,6 @@ async function deleteOrg(id) {
     }
 }
 
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
-
-async function handleLogout() {
-    var confirmed = await showConfirm('Ви впевнені, що хочете вийти?', 'Вихід');
-    if (confirmed) {
-        auth.logoutUser();
-    }
-}
-
 document.querySelectorAll('.modal').forEach(function(modal) {
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
@@ -815,7 +837,7 @@ document.querySelectorAll('.modal').forEach(function(modal) {
 });
 
 (async function init() {
-    var hasAccess = await auth.requireAdmin();
+    var hasAccess = await auth.requireModerator();
     if (!hasAccess) return;
 
     await loadStats();
