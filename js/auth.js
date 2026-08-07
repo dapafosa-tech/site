@@ -158,8 +158,71 @@ async function loginUser(email, password) {
     }
 }
 
+async function isRegistrationAllowed() {
+    try {
+        var response = await fetch(SUPABASE_URL + '/rest/v1/system_settings?key=eq.allow_registration', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            }
+        });
+        if (!response.ok) return true;
+        var rows = await response.json();
+        if (rows && rows.length > 0) {
+            return rows[0].value !== 'false';
+        }
+        return true;
+    } catch {
+        return true;
+    }
+}
+
+async function checkEmailDomainAllowed(email) {
+    try {
+        var domain = (email.split('@')[1] || '').toLowerCase().trim();
+        if (!domain) return true;
+
+        var response = await fetch(SUPABASE_URL + '/rest/v1/email_domains?select=domain,type', {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            }
+        });
+        if (!response.ok) return true;
+
+        var rows = await response.json();
+        if (!rows || rows.length === 0) return true;
+
+        var blocked = [];
+        var allowed = [];
+        for (var i = 0; i < rows.length; i++) {
+            var d = (rows[i].domain || '').toLowerCase().trim();
+            if (!d) continue;
+            if (rows[i].type === 'block') blocked.push(d);
+            else allowed.push(d);
+        }
+
+        if (blocked.indexOf(domain) !== -1) return false;
+        if (allowed.length > 0 && allowed.indexOf(domain) === -1) return false;
+
+        return true;
+    } catch {
+        return true;
+    }
+}
+
 async function registerUser(email, password, fullName) {
     try {
+        var allowed = await isRegistrationAllowed();
+        if (!allowed) {
+            throw new Error('Реєстрація нових користувачів тимчасово вимкнена адміністрацією.');
+        }
+
+        var domainOk = await checkEmailDomainAllowed(email);
+        if (!domainOk) {
+            throw new Error('Реєстрація з поштою цього домену заборонена. Зверніться до адміністрації.');
+        }
+
         var checkResponse = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -256,6 +319,8 @@ window.auth = {
     logoutUser: logoutUser,
     loginUser: loginUser,
     registerUser: registerUser,
+    isRegistrationAllowed: isRegistrationAllowed,
+    checkEmailDomainAllowed: checkEmailDomainAllowed,
     isAdmin: isAdmin,
     isOwner: isOwner,
     isModerator: isModerator,

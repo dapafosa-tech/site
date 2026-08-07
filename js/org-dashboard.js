@@ -104,21 +104,21 @@ var orderStatusLabels = {
 
 function setupNavigationByType(orgType) {
     var navMap = {
-        'clinic': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'clinic'],
-        'shop': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'shop'],
-        'library': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'library'],
-        'school': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'school'],
-        'restaurant': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'restaurant'],
-        'cafe': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'restaurant'],
-        'hotel': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'hotel'],
-        'gym': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'gym'],
-        'beauty': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'beauty'],
-        'auto': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'auto'],
-        'realty': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'realty'],
-        'logistics': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'logistics'],
-        'delivery': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'delivery'],
-        'it': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'it'],
-        'gamedev': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'it']
+        'clinic': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'clinic'],
+        'shop': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'shop'],
+        'library': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'library'],
+        'school': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'school'],
+        'restaurant': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'restaurant'],
+        'cafe': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'restaurant'],
+        'hotel': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'hotel'],
+        'gym': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'gym'],
+        'beauty': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'beauty'],
+        'auto': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'auto'],
+        'realty': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'realty'],
+        'logistics': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'logistics'],
+        'delivery': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'delivery'],
+        'it': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'it'],
+        'gamedev': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings', 'it']
     };
 
     var navMenu = document.querySelector('.nav-menu');
@@ -141,7 +141,7 @@ function setupNavigationByType(orgType) {
         }
     });
 
-    var allowedModules = navMap[orgType] || ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings'];
+    var allowedModules = navMap[orgType] || ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'settings'];
     
     allLinks.forEach(function(link) {
         var onclick = link.getAttribute('onclick') || '';
@@ -165,6 +165,7 @@ function setupNavigationByType(orgType) {
 async function init() {
     var isAuth = await auth.requireAuth();
     if (!isAuth) return;
+    if (window.renderGlobalAnnouncements) renderGlobalAnnouncements();
     await loadOrganization();
 }
 
@@ -271,7 +272,6 @@ function loadSection(section) {
         case 'events': loadEvents(); break;
         case 'tasks': loadTasks(); break;
         case 'polls': loadPolls(); break;
-        case 'files': loadFiles(); break;
         case 'settings': loadSettings(); break;
         case 'clinic': loadClinic(); break;
         case 'shop': loadShop(); break;
@@ -702,15 +702,15 @@ async function loadRequests() {
 
 async function handleRequest(requestId, status) {
     try {
-        await db.updateJoinRequest(requestId, status);
-
         if (status === 'approved') {
             var request = await db.supabaseQuery('join_requests?id=eq.' + requestId);
             if (request && request.length > 0) {
                 await db.addMemberToOrganization(request[0].organization_id, request[0].user_id);
-                await showToast('Заявку схвалено! Користувача додано.', 'success');
             }
+            await db.updateJoinRequest(requestId, status);
+            await showToast('Заявку схвалено! Користувача додано.', 'success');
         } else {
+            await db.updateJoinRequest(requestId, status);
             await showToast('Заявку відхилено.', 'warning');
         }
 
@@ -1336,6 +1336,14 @@ async function loadChat() {
             var message = input.value.trim();
 
             if (!message) return;
+
+            if (window.db && db.findBannedWord) {
+                var badWord = await db.findBannedWord(message);
+                if (badWord) {
+                    await showAlert('Повідомлення містить заборонене слово. Відредагуйте текст.', 'warning');
+                    return;
+                }
+            }
 
             var mentionRegex = /@(\S+)/g;
             var mentions = [];
@@ -2074,190 +2082,6 @@ async function deletePoll(pollId) {
         await db.deletePoll(pollId);
         await showToast('Опитування видалено', 'success');
         loadPolls();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function loadFiles() {
-    if (!checkOrgActive()) {
-        var container = document.getElementById('sectionContent');
-        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
-        return;
-    }
-    
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Файли';
-    document.getElementById('pageSubtitle').textContent = 'Сховище файлів організації';
-
-    try {
-        var files = await db.getFiles(currentOrgId);
-        var user = auth.getCurrentUser();
-
-        var html = 
-            '<div class="card">' +
-                '<div class="card-header">' +
-                    '<h3 class="card-title">Файли (' + (files ? files.length : 0) + ')</h3>' +
-                    '<button class="btn btn-gold btn-sm" onclick="openUploadFile()">' +
-                        '<i class="fas fa-upload"></i> Завантажити' +
-                    '</button>' +
-                '</div>' +
-                '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
-                        '<thead>' +
-                            '<tr>' +
-                                '<th>Назва</th>' +
-                                '<th>Розмір</th>' +
-                                '<th>Завантажив</th>' +
-                                '<th>Дії</th>' +
-                            '</tr>' +
-                        '</thead>' +
-                        '<tbody>';
-
-        if (files && files.length > 0) {
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-                var uploader = await db.supabaseQuery('users?id=eq.' + file.uploaded_by);
-                var uploaderName = uploader && uploader.length > 0 ? (uploader[0].full_name || uploader[0].email) : 'Невідомо';
-                var size = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : (file.size / 1024).toFixed(0) + ' KB';
-
-                html += 
-                    '<tr>' +
-                        '<td><strong>' + file.name + '</strong></td>' +
-                        '<td>' + size + '</td>' +
-                        '<td>' + uploaderName + '</td>' +
-                        '<td>' +
-                            '<a href="' + file.url + '" target="_blank" class="btn btn-sm btn-teal">' +
-                                '<i class="fas fa-download"></i>' +
-                            '</a>' +
-                            '<button class="btn btn-sm btn-danger" onclick="deleteFile(\'' + file.id + '\')">' +
-                                '<i class="fas fa-trash"></i>' +
-                            '</button>' +
-                        '</td>' +
-                    '</tr>';
-            }
-        } else {
-            html += '<tr><td colspan="4" class="text-center text-muted">Немає файлів</td></tr>';
-        }
-
-        html += 
-                        '</tbody>' +
-                    '</table>' +
-                '</div>' +
-            '</div>';
-
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження даних</div>';
-    }
-}
-
-function openUploadFile() {
-    document.getElementById('fileModal').classList.add('active');
-}
-
-document.getElementById('fileForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    var fileInput = document.getElementById('fileInput');
-    var file = fileInput.files[0];
-
-    if (!file) {
-        await showAlert('Оберіть файл', 'warning');
-        return;
-    }
-
-    var submitBtn = this.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження...';
-
-    try {
-        var user = auth.getCurrentUser();
-        var fileExt = file.name.split('.').pop();
-        var fileName = Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + fileExt;
-        
-        var uploadUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
-
-        var uploadResponse = await fetch(uploadUrl, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            },
-            body: file
-        });
-
-        if (!uploadResponse.ok) {
-            var errorText = await uploadResponse.text();
-            
-            if (uploadResponse.status === 404) {
-                await showAlert('Сховище не знайдено. Перевірте назву bucket: "org_files"', 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-upload"></i> Завантажити';
-                return;
-            }
-            
-            if (uploadResponse.status === 403) {
-                await showAlert('Немає прав на завантаження. Перевірте політики.', 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-upload"></i> Завантажити';
-                return;
-            }
-            
-            throw new Error('Помилка завантаження: ' + uploadResponse.status + ' - ' + errorText);
-        }
-
-        var fileUrl = SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName;
-
-        await db.createFile({
-            organization_id: currentOrgId,
-            name: file.name,
-            url: fileUrl,
-            size: file.size,
-            mime_type: file.type || 'application/octet-stream',
-            uploaded_by: user ? user.id : null
-        });
-
-        await showToast('Файл завантажено!', 'success');
-        closeModal('fileModal');
-        document.getElementById('fileForm').reset();
-        loadFiles();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-upload"></i> Завантажити';
-});
-
-async function deleteFile(fileId) {
-    var confirmed = await showConfirm('Ви впевнені, що хочете видалити цей файл?', 'Підтвердження');
-    if (!confirmed) return;
-
-    try {
-        var files = await db.getFiles(currentOrgId);
-        var file = null;
-        for (var i = 0; i < files.length; i++) {
-            if (files[i].id === fileId) {
-                file = files[i];
-                break;
-            }
-        }
-
-        if (file) {
-            var fileName = file.url.split('/').pop();
-            await fetch(SUPABASE_URL + '/storage/v1/object/public/org_files/' + fileName, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-                }
-            });
-        }
-
-        await db.deleteFile(fileId);
-        await showToast('Файл видалено', 'success');
-        loadFiles();
     } catch (error) {
         await showAlert('Помилка: ' + error.message, 'error');
     }

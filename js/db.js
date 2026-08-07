@@ -1556,11 +1556,6 @@ window.db = {
     getEvents: getEvents,
     deleteEvent: deleteEvent,
     
-    // Файли
-    createFile: createFile,
-    getFiles: getFiles,
-    deleteFile: deleteFile,
-    
     // Завдання
     createTask: createTask,
     getTasks: getTasks,

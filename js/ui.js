@@ -242,6 +242,89 @@ style.textContent =
     '@keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
 document.head.appendChild(style);
 
+// ============================================
+// СИСТЕМНІ НАЛАШТУВАННЯ: НАЗВА САЙТУ + ОГОЛОШЕННЯ
+// (реальне застосування налаштувань з панелі засновника)
+// ============================================
+
+async function applySiteBranding() {
+    try {
+        if (!window.db || !window.db.getSystemSettings) return;
+        var settings = await window.db.getSystemSettings();
+        var siteName = settings['site_name'];
+        if (!siteName || siteName === 'Typebiz') return;
+
+        if (document.title) {
+            document.title = document.title.replace(/Typebiz/g, siteName);
+        }
+        document.querySelectorAll('.brand-name').forEach(function (el) {
+            el.textContent = siteName;
+        });
+    } catch (e) {
+        // тихо ігноруємо — стандартна назва залишиться
+    }
+}
+
+async function renderGlobalAnnouncements(containerId) {
+    if (containerId === undefined) containerId = 'globalAnnouncements';
+    var container = document.getElementById(containerId);
+    if (!container || !window.db || !window.db.getActiveAnnouncements) return;
+
+    try {
+        var announcements = await window.db.getActiveAnnouncements();
+        if (!announcements || announcements.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        var dismissed = [];
+        try {
+            dismissed = JSON.parse(sessionStorage.getItem('dismissedAnnouncements') || '[]');
+        } catch (e) {}
+
+        var html = '';
+        for (var i = 0; i < announcements.length; i++) {
+            var a = announcements[i];
+            if (dismissed.indexOf(a.id) !== -1) continue;
+
+            html +=
+                '<div class="global-announcement" data-announcement-id="' + a.id + '" style="background:var(--gold-glow,rgba(242,169,59,0.16));border:1px solid var(--gold,#F2A93B);border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:0.75rem;">' +
+                    '<i class="fas fa-bullhorn" style="color:var(--gold,#F2A93B);flex-shrink:0;"></i>' +
+                    '<span style="flex:1;font-size:0.92rem;">' + a.message + '</span>' +
+                    '<button onclick="dismissGlobalAnnouncement(\'' + a.id + '\', \'' + containerId + '\')" style="background:none;border:none;color:inherit;cursor:pointer;opacity:0.6;font-size:0.9rem;" title="Приховати">' +
+                        '<i class="fas fa-times"></i>' +
+                    '</button>' +
+                '</div>';
+        }
+
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '';
+    }
+}
+
+function dismissGlobalAnnouncement(id, containerId) {
+    var dismissed = [];
+    try {
+        dismissed = JSON.parse(sessionStorage.getItem('dismissedAnnouncements') || '[]');
+    } catch (e) {}
+
+    if (dismissed.indexOf(id) === -1) dismissed.push(id);
+    sessionStorage.setItem('dismissedAnnouncements', JSON.stringify(dismissed));
+
+    var el = document.querySelector('[data-announcement-id="' + id + '"]');
+    if (el) el.remove();
+}
+
+window.applySiteBranding = applySiteBranding;
+window.renderGlobalAnnouncements = renderGlobalAnnouncements;
+window.dismissGlobalAnnouncement = dismissGlobalAnnouncement;
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Назва сайту застосовується всюди, де підключено ui.js + db.js
+    if (window.db) applySiteBranding();
+});
+
 window.showToast = showToast;
 window.showAlert = showAlert;
 window.showConfirm = showConfirm;

@@ -417,7 +417,7 @@
     <aside class="sidebar">
         <div class="logo">
             <span class="tab">Tb</span>
-            <span>Typebiz</span>
+            <span class="brand-name">Typebiz</span>
         </div>
 
         <div class="user-info">
@@ -453,6 +453,7 @@
     </aside>
 
     <main class="main-content">
+        <div id="globalAnnouncements"></div>
         <div class="page-header">
             <div>
                 <div class="eyebrow">Картотека організацій</div>
@@ -678,6 +679,37 @@
 
         function openCreateOrg() {
             document.getElementById('createOrgModal').classList.add('active');
+        }
+
+        // Довантажує типи організацій, додані засновником у панелі "Управління системою",
+        // і додає їх у список типів, якщо їх там ще немає
+        async function loadCustomOrgTypes() {
+            try {
+                var customTypes = await db.supabaseQuery('org_types?order=name.asc');
+                if (!customTypes || customTypes.length === 0) return;
+
+                var select = document.getElementById('orgType');
+                if (!select) return;
+
+                var existingValues = [];
+                for (var i = 0; i < select.options.length; i++) {
+                    existingValues.push(select.options[i].value);
+                }
+
+                for (var j = 0; j < customTypes.length; j++) {
+                    var ct = customTypes[j];
+                    if (!ct.code || existingValues.indexOf(ct.code) !== -1) continue;
+
+                    var opt = document.createElement('option');
+                    opt.value = ct.code;
+                    opt.textContent = ct.name;
+                    select.appendChild(opt);
+
+                    typeLabels[ct.code] = ct.name;
+                }
+            } catch (e) {
+                // якщо не вдалось довантажити — стандартні типи все одно доступні
+            }
         }
 
         function openJoinOrg() {
@@ -1019,6 +1051,8 @@
             var isAuth = await auth.requireAuth();
             if (!isAuth) return;
             await loadDashboard();
+            loadCustomOrgTypes();
+            if (window.renderGlobalAnnouncements) renderGlobalAnnouncements();
         })();
     </script>
 </body>

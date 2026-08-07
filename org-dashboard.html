@@ -750,7 +750,7 @@
     <aside class="sidebar">
         <div class="logo">
             <span class="tab">Tb</span>
-            <span>Typebiz</span>
+            <span class="brand-name">Typebiz</span>
         </div>
 
         <div class="org-info" id="orgInfo">
@@ -771,7 +771,6 @@
             <li><a onclick="loadSection('events')"><i class="fas fa-calendar-alt"></i> Події</a></li>
             <li><a onclick="loadSection('tasks')"><i class="fas fa-tasks"></i> Завдання</a></li>
             <li><a onclick="loadSection('polls')"><i class="fas fa-poll"></i> Опитування</a></li>
-            <li><a onclick="loadSection('files')"><i class="fas fa-folder"></i> Файли</a></li>
             <li><a onclick="loadSection('settings')"><i class="fas fa-cog"></i> Налаштування</a></li>
 
             <li><a onclick="loadSection('clinic')"><i class="fas fa-heartbeat"></i> Клініка</a></li>
@@ -795,6 +794,8 @@
         <a href="/dashboard" class="back-link">
             <i class="fas fa-arrow-left"></i> До моїх організацій
         </a>
+
+        <div id="globalAnnouncements"></div>
 
         <div class="page-header">
             <div>
@@ -880,9 +881,6 @@
                         </label>
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
                             <input type="checkbox" class="rank-permission" value="view_polls"> Опитування
-                        </label>
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
-                            <input type="checkbox" class="rank-permission" value="view_files"> Файли
                         </label>
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer;padding:0.3rem 0.5rem;border-radius:4px;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
                             <input type="checkbox" class="rank-permission" value="view_settings"> Налаштування
@@ -1128,25 +1126,6 @@
                     <small style="color:var(--text-secondary);">Кожен варіант з нового рядка</small>
                 </div>
                 <button type="submit" class="btn btn-gold btn-block" id="pollSubmitText">Створити</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- ===== МОДАЛКА ФАЙЛУ ===== -->
-    <div class="modal" id="fileModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Завантажити файл</h2>
-                <button class="modal-close" onclick="closeModal('fileModal')">&times;</button>
-            </div>
-            <form id="fileForm">
-                <div class="form-group">
-                    <label class="form-label">Файл <span style="color:var(--gold);">*</span></label>
-                    <input type="file" class="form-control" id="fileInput" required style="padding:0.5rem;background:var(--bg-input);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);">
-                </div>
-                <button type="submit" class="btn btn-gold btn-block">
-                    <i class="fas fa-upload"></i> Завантажити
-                </button>
             </form>
         </div>
     </div>
