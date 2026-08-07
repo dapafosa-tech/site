@@ -274,6 +274,52 @@ async function getUsersWithRoles() {
 }
 
 // ============================================
+// ПІДТРИМКА (SUPPORT TICKETS)
+// ============================================
+
+async function createSupportTicket(data) {
+    return supabaseQuery('support_tickets', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
+async function getSupportTickets(filters) {
+    if (filters === undefined) filters = {};
+    var query = 'support_tickets?order=created_at.desc';
+    if (filters.userId) {
+        query += '&user_id=eq.' + filters.userId;
+    }
+    if (filters.status) {
+        query += '&status=eq.' + filters.status;
+    }
+    return supabaseQuery(query);
+}
+
+async function getSupportTicket(ticketId) {
+    var result = await supabaseQuery('support_tickets?id=eq.' + ticketId);
+    return result && result.length > 0 ? result[0] : null;
+}
+
+async function updateSupportTicket(ticketId, data) {
+    return supabaseQuery('support_tickets?id=eq.' + ticketId, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    });
+}
+
+async function getSupportMessages(ticketId) {
+    return supabaseQuery('support_messages?ticket_id=eq.' + ticketId + '&order=created_at.asc');
+}
+
+async function sendSupportMessage(data) {
+    return supabaseQuery('support_messages', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
+// ============================================
 // ОРГАНІЗАЦІЇ
 // ============================================
 
@@ -1672,5 +1718,13 @@ window.db = {
     getReport: getReport,
     updateReportStatus: updateReportStatus,
     deleteReport: deleteReport,
-    getUserReports: getUserReports
+    getUserReports: getUserReports,
+
+    // ===== ПІДТРИМКА (ТІКЕТИ) =====
+    createSupportTicket: createSupportTicket,
+    getSupportTickets: getSupportTickets,
+    getSupportTicket: getSupportTicket,
+    updateSupportTicket: updateSupportTicket,
+    getSupportMessages: getSupportMessages,
+    sendSupportMessage: sendSupportMessage
 };

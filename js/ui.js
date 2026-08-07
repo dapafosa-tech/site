@@ -2,6 +2,28 @@
 // TYPEBIZ - UI КОМПОНЕНТИ (КАСТОМНІ МОДАЛКИ)
 // ============================================
 
+// ============= РОЛІ / РАНГИ =============
+
+var ROLE_INFO = {
+    owner: { label: 'Засновник', emoji: '👑', color: '#8B5CF6' },
+    admin: { label: 'Адміністратор', emoji: '⭐', color: '#E2503E' },
+    moderator: { label: 'Модератор', emoji: '🛡️', color: '#F59E0B' },
+    user: { label: 'Користувач', emoji: '👤', color: '#46C9B8' }
+};
+
+function getRoleInfo(role) {
+    return ROLE_INFO[role] || ROLE_INFO.user;
+}
+
+function isStaffRole(role) {
+    return role === 'owner' || role === 'admin' || role === 'moderator';
+}
+
+function getRoleBadgeHtml(role) {
+    var info = getRoleInfo(role);
+    return '<span class="badge" style="background:' + info.color + '20;color:' + info.color + ';">' + info.emoji + ' ' + info.label + '</span>';
+}
+
 function showToast(message, type, duration) {
     if (type === undefined) type = 'info';
     if (duration === undefined) duration = 3500;
@@ -362,3 +384,6 @@ window.showToast = showToast;
 window.showAlert = showAlert;
 window.showConfirm = showConfirm;
 window.showPrompt = showPrompt;
+window.getRoleInfo = getRoleInfo;
+window.isStaffRole = isStaffRole;
+window.getRoleBadgeHtml = getRoleBadgeHtml;

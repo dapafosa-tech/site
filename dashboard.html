@@ -202,6 +202,41 @@
         .btn-ghost{border-color:var(--ink-line);color:var(--text);}
         .btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
         .btn:disabled{opacity:0.55;cursor:not-allowed;transform:none !important;}
+        .btn-sm{padding:0.35rem 0.7rem;font-size:0.78rem;border-radius:6px;}
+        .btn-icon{padding:0.5rem 0.7rem;}
+
+        /* ===== BADGES (підтримка) ===== */
+        .badge{
+            display:inline-block;
+            padding:0.2rem 0.7rem;
+            border-radius:999px;
+            font-size:0.7rem;
+            font-weight:600;
+        }
+        .badge-primary{background:var(--gold);color:var(--ink);}
+        .badge-danger{background:#E2503E20;color:#E2503E;}
+        .badge-success{background:#46C9B820;color:#46C9B8;}
+        .badge-warning{background:#F59E0B20;color:#F59E0B;}
+        .badge-secondary{background:var(--ink-line);color:var(--muted);}
+
+        /* ===== ТІКЕТИ ПІДТРИМКИ ===== */
+        .ticket-card{
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius-sm);
+            padding:0.9rem 1rem;
+            margin-bottom:0.7rem;
+            cursor:pointer;
+            transition:border-color .15s ease,transform .15s ease;
+        }
+        .ticket-card:hover{border-color:var(--teal);transform:translateY(-1px);}
+        .ticket-card .ticket-card-top{display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.4rem;}
+        .ticket-card .ticket-card-subject{font-weight:600;font-size:0.95rem;}
+        .ticket-card .ticket-card-meta{font-size:0.78rem;color:var(--muted);display:flex;gap:0.6rem;flex-wrap:wrap;}
+        .support-msg{padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink);border-left:3px solid var(--teal);}
+        .support-msg.staff{background:var(--ink-raised);border-left-color:var(--gold);}
+        .support-msg .support-msg-top{font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
+        .support-msg .support-msg-body{margin-top:0.4rem;font-size:0.9rem;line-height:1.4;}
 
         /* ===== ORG GRID ===== */
         .org-grid{
@@ -616,6 +651,40 @@
         </div>
     </div>
 
+    <!-- Модалка: історія тікетів підтримки -->
+    <div class="modal" id="supportListModal">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-tag">TYPEBIZ // SUPPORT</div>
+            <div class="modal-header">
+                <h2>📩 Підтримка</h2>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <button class="btn btn-gold btn-sm" onclick="openSupportCreate()" title="Створити тікет"><i class="fas fa-plus"></i> Створити</button>
+                    <button class="modal-close" onclick="closeModal('supportListModal')">&times;</button>
+                </div>
+            </div>
+            <div id="supportTicketsListBody">
+                <p class="text-muted">Завантаження...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка: перегляд одного тікету -->
+    <div class="modal" id="supportTicketModal">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-tag">TYPEBIZ // SUPPORT</div>
+            <div class="modal-header">
+                <h2 id="supportTicketModalTitle">Тікет</h2>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <button class="btn btn-ghost btn-sm" onclick="backToSupportList()" title="Назад до списку"><i class="fas fa-arrow-left"></i></button>
+                    <button class="modal-close" onclick="closeModal('supportTicketModal')">&times;</button>
+                </div>
+            </div>
+            <div id="supportTicketModalBody">
+                <p class="text-muted">Завантаження...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Модалка підтримки -->
     <div class="modal" id="supportModal">
         <div class="modal-content">
@@ -716,12 +785,153 @@
             document.getElementById('joinOrgModal').classList.add('active');
         }
 
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // ============================================
+        // ПІДТРИМКА - ІСТОРІЯ ТІКЕТІВ
+        // ============================================
+
+        var myTicketStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
+        var myTicketStatusLabels = { open: 'Відкрито', in_progress: 'В роботі', closed: 'Закрито' };
+        var myTicketStatusClasses = { open: 'badge-success', in_progress: 'badge-warning', closed: 'badge-secondary' };
+        var myTicketPriorityClasses = { high: 'badge-danger', medium: 'badge-warning', low: 'badge-primary' };
+        var myTicketTypeLabels = { bug: '🐛 Помилка/Баг', question: '❓ Питання', suggestion: '💡 Пропозиція', complaint: '⚠️ Скарга', other: '📌 Інше' };
+
         function openSupport() {
+            document.getElementById('supportListModal').classList.add('active');
+            loadMySupportTickets();
+        }
+
+        function openSupportCreate() {
+            closeModal('supportListModal');
             document.getElementById('supportModal').classList.add('active');
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
+        function backToSupportList() {
+            closeModal('supportTicketModal');
+            openSupport();
+        }
+
+        async function loadMySupportTickets() {
+            var container = document.getElementById('supportTicketsListBody');
+            container.innerHTML = '<p class="text-muted">Завантаження...</p>';
+
+            try {
+                var user = auth.getCurrentUser();
+                var tickets = await db.getSupportTickets({ userId: user.id });
+
+                var sorted = (tickets || []).slice().sort(function(a, b) {
+                    var wa = myTicketStatusWeight[a.status] !== undefined ? myTicketStatusWeight[a.status] : 1;
+                    var wb = myTicketStatusWeight[b.status] !== undefined ? myTicketStatusWeight[b.status] : 1;
+                    if (wa !== wb) return wa - wb;
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+
+                if (sorted.length === 0) {
+                    container.innerHTML = '<p class="text-muted" style="text-align:center;padding:1.5rem 0;">У вас ще немає звернень.<br>Натисніть «Створити», щоб написати нам.</p>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < sorted.length; i++) {
+                    var t = sorted[i];
+                    var statusClass = myTicketStatusClasses[t.status] || 'badge-secondary';
+                    var statusLabel = myTicketStatusLabels[t.status] || t.status;
+                    var priorityClass = myTicketPriorityClasses[t.priority] || 'badge-primary';
+
+                    html += '<div class="ticket-card" onclick="viewMySupportTicket(\'' + t.id + '\')">';
+                    html += '<div class="ticket-card-top"><span class="ticket-card-subject">' + (t.subject || '—') + '</span><span class="badge ' + statusClass + '">' + statusLabel + '</span></div>';
+                    html += '<div class="ticket-card-meta">';
+                    html += '<span><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></span>';
+                    html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
+                    html += '<span>' + new Date(t.created_at).toLocaleDateString('uk-UA') + '</span>';
+                    html += '</div></div>';
+                }
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
+            }
+        }
+
+        async function viewMySupportTicket(ticketId) {
+            closeModal('supportListModal');
+            document.getElementById('supportTicketModal').classList.add('active');
+            var body = document.getElementById('supportTicketModalBody');
+            body.innerHTML = '<p class="text-muted">Завантаження...</p>';
+
+            try {
+                var t = await db.getSupportTicket(ticketId);
+                if (!t) {
+                    body.innerHTML = '<p class="text-danger">Тікет не знайдено</p>';
+                    return;
+                }
+
+                var messages = await db.getSupportMessages(ticketId);
+                var statusLabel = myTicketStatusLabels[t.status] || t.status;
+
+                document.getElementById('supportTicketModalTitle').textContent = t.subject || 'Тікет';
+
+                var html = '<div class="ticket-card-meta" style="margin-bottom:0.8rem;">';
+                html += '<span class="badge ' + (myTicketStatusClasses[t.status] || 'badge-secondary') + '">' + statusLabel + '</span> ';
+                html += '<span class="badge ' + (myTicketPriorityClasses[t.priority] || 'badge-primary') + '">' + (t.priority || '—') + '</span> ';
+                html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
+                html += '</div>';
+
+                html += '<div class="support-msg"><div class="support-msg-top"><span>👤 Ви</span><span>' + new Date(t.created_at).toLocaleString('uk-UA') + '</span></div><div class="support-msg-body">' + (t.message || '') + '</div></div>';
+
+                if (messages && messages.length > 0) {
+                    for (var i = 0; i < messages.length; i++) {
+                        var msg = messages[i];
+                        var isStaff = isStaffRole(msg.sender_type);
+                        var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
+                        html += '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
+                        html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + new Date(msg.created_at).toLocaleString('uk-UA') + '</span></div>';
+                        html += '<div class="support-msg-body">' + msg.message + '</div></div>';
+                    }
+                }
+
+                if (t.status !== 'closed') {
+                    html += '<div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">';
+                    html += '<textarea class="form-control" id="myTicketReply" rows="3" placeholder="Написати повідомлення..."></textarea>';
+                    html += '<button class="btn btn-gold" onclick="sendMySupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Надіслати</button>';
+                    html += '</div>';
+                } else {
+                    html += '<p class="text-muted" style="margin-top:1rem;">✅ Тікет закрито</p>';
+                }
+
+                body.innerHTML = html;
+            } catch (error) {
+                body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
+            }
+        }
+
+        async function sendMySupportReply(ticketId) {
+            var textarea = document.getElementById('myTicketReply');
+            if (!textarea) return;
+
+            var message = textarea.value.trim();
+            if (!message) {
+                showAlert('Введіть повідомлення', 'warning');
+                return;
+            }
+
+            var user = auth.getCurrentUser();
+
+            try {
+                await db.sendSupportMessage({
+                    ticket_id: ticketId,
+                    sender_id: user.id,
+                    sender_type: 'user',
+                    message: message
+                });
+                await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
+                await viewMySupportTicket(ticketId);
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
         }
 
         var typeLabels = {
@@ -1013,23 +1223,21 @@
             try {
                 var user = auth.getCurrentUser();
 
-                await db.supabaseQuery('support_tickets', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        user_id: user.id,
-                        subject: subject,
-                        message: message,
-                        type: type,
-                        priority: priority,
-                        status: 'open',
-                        created_at: new Date().toISOString()
-                    })
+                await db.createSupportTicket({
+                    user_id: user.id,
+                    subject: subject,
+                    message: message,
+                    type: type,
+                    priority: priority,
+                    status: 'open',
+                    created_at: new Date().toISOString()
                 });
 
                 await db.addLog('Створено заявку в підтримку', 'support', null, { subject: subject, type: type });
                 showToast('✅ Ваше звернення відправлено! Ми зв\'яжемося з вами найближчим часом.', 'success');
                 closeModal('supportModal');
                 document.getElementById('supportForm').reset();
+                openSupport();
 
             } catch (error) {
                 showAlert('Помилка: ' + error.message, 'error');

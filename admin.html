@@ -419,6 +419,7 @@
             <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чати</a></li>
             <li><a onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
             <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
+            <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
             <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
@@ -489,6 +490,19 @@
         </div>
     </div>
 
+    <!-- Загальна модалка (використовується, зокрема, для підтримки) -->
+    <div class="modal" id="genericModal">
+        <div class="modal-content" style="max-width:640px;">
+            <div class="modal-header">
+                <h2 id="genericModalTitle">—</h2>
+                <button class="modal-close" onclick="closeModal('genericModal')">&times;</button>
+            </div>
+            <div id="genericModalBody">
+                <p class="text-muted">Завантаження...</p>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
@@ -515,7 +529,7 @@
         }
 
         function canBanUser(user) {
-            return user && (user.role === 'owner' || user.role === 'admin');
+            return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
         }
 
         function canDeleteUser(user) {
@@ -625,6 +639,7 @@
                 'chat': 'Чати',
                 'vacations': 'Відпустки',
                 'requests': 'Заявки',
+                'support': 'Техпідтримка',
                 'logs': 'Логи'
             };
             
@@ -648,6 +663,9 @@
                     break;
                 case 'requests':
                     loadRequests();
+                    break;
+                case 'support':
+                    loadSupportManagement();
                     break;
                 case 'logs':
                     loadLogs();
@@ -674,6 +692,12 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+        }
+
+        function openModal(title, html) {
+            document.getElementById('genericModalTitle').textContent = title;
+            document.getElementById('genericModalBody').innerHTML = html;
+            document.getElementById('genericModal').classList.add('active');
         }
 
         async function handleLogout() {
@@ -763,8 +787,9 @@
                         
                         var actionsHtml = '<div class="actions-cell">';
                         
-                        // Бан/Розбан (Owner + Admin)
-                        if (canBanUser(user) && !isCurrentUser) {
+                        // Бан/Розбан (Owner + Admin повністю, Модератор — тільки звичайних користувачів)
+                        var moderatorCanBanTarget = user.role !== 'moderator' || (!isUserOwner && !isUserAdmin && !isUserModerator);
+                        if (canBanUser(user) && !isCurrentUser && moderatorCanBanTarget) {
                             if (isUserBanned) {
                                 actionsHtml += '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>';
                             } else {
@@ -1434,6 +1459,223 @@
             });
         }
 
+        // ============= ТЕХПІДТРИМКА =============
+
+        var supportTicketsCache = [];
+        var supportUserMapCache = {};
+
+        async function loadSupportManagement() {
+            var user = auth.getCurrentUser();
+            var container = document.getElementById('adminContent');
+
+            if (!canViewData(user)) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="card"><p class="text-muted">Завантаження заявок...</p></div>';
+
+            try {
+                var tickets = await db.getSupportTickets();
+                var users = await db.getUsersWithRoles();
+
+                var userMap = {};
+                if (users) {
+                    for (var i = 0; i < users.length; i++) {
+                        userMap[users[i].id] = users[i];
+                    }
+                }
+                supportTicketsCache = tickets || [];
+                supportUserMapCache = userMap;
+
+                renderSupportTicketsTable();
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>';
+            }
+        }
+
+        var statusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
+
+        function renderSupportTicketsTable() {
+            var container = document.getElementById('adminContent');
+            var userMap = supportUserMapCache;
+
+            var sorted = supportTicketsCache.slice().sort(function(a, b) {
+                var wa = statusWeight[a.status] !== undefined ? statusWeight[a.status] : 1;
+                var wb = statusWeight[b.status] !== undefined ? statusWeight[b.status] : 1;
+                if (wa !== wb) return wa - wb;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+
+            var html = '<div class="card">';
+            html += '<div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
+            html += '<div class="search-filters">';
+            html += '<div class="search-wrapper"><i class="fas fa-search search-icon"></i>';
+            html += '<input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()">';
+            html += '<button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button>';
+            html += '</div>';
+            html += '<select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()">';
+            html += '<option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option>';
+            html += '</select>';
+            html += '</div>';
+
+            html += '<div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
+
+            if (sorted.length > 0) {
+                for (var i = 0; i < sorted.length; i++) {
+                    var t = sorted[i];
+                    var u = userMap[t.user_id];
+                    var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+                    var userEmail = u ? (u.email || '') : '';
+                    var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
+                    var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+                    var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
+
+                    html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '">' +
+                        '<td><strong>' + userName + '</strong></td>' +
+                        '<td>' + (t.subject || '—') + '</td>' +
+                        '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+                        '<td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td>' +
+                        '<td>' + new Date(t.created_at).toLocaleDateString('uk-UA') + '</td>' +
+                        '<td><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i> Відкрити</button></td>' +
+                    '</tr>';
+                }
+            } else {
+                html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
+            }
+
+            html += '</tbody></table></div></div>';
+            container.innerHTML = html;
+        }
+
+        function filterSupportTickets() {
+            var search = (document.getElementById('supportSearchInput').value || '').toLowerCase().trim();
+            var status = document.getElementById('supportStatusFilter').value;
+            var rows = document.querySelectorAll('#supportTicketsBody tr');
+            rows.forEach(function(row) {
+                var matchUser = !search || (row.getAttribute('data-user') || '').indexOf(search) !== -1;
+                var matchStatus = !status || row.getAttribute('data-status') === status;
+                row.style.display = (matchUser && matchStatus) ? '' : 'none';
+            });
+        }
+
+        async function viewSupportTicket(ticketId) {
+            try {
+                var t = await db.getSupportTicket(ticketId);
+                if (!t) {
+                    await showAlert('Заявку не знайдено', 'error');
+                    return;
+                }
+
+                var messages = await db.getSupportMessages(ticketId);
+                var u = supportUserMapCache[t.user_id];
+                var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+
+                var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+
+                var html = '<div>';
+                html += '<p><strong>Тема:</strong> ' + t.subject + '</p>';
+                html += '<p><strong>Від:</strong> ' + userName + '</p>';
+                html += '<p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p>';
+                html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div>';
+                html += '<hr style="border-color:var(--ink-line);">';
+
+                if (messages && messages.length > 0) {
+                    for (var i = 0; i < messages.length; i++) {
+                        var msg = messages[i];
+                        var isStaff = isStaffRole(msg.sender_type);
+                        var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
+                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : 'var(--teal)') + ';">';
+                        html += '<div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<span>' + senderLabel + '</span>';
+                        html += '<span>' + new Date(msg.created_at).toLocaleString('uk-UA') + '</span>';
+                        html += '</div>';
+                        html += '<div style="margin-top:0.4rem;">' + msg.message + '</div>';
+                        html += '</div>';
+                    }
+                }
+
+                if (t.status !== 'closed') {
+                    html += '<hr style="border-color:var(--ink-line);">';
+                    html += '<div style="display:flex;gap:0.5rem;flex-direction:column;">';
+                    html += '<textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea>';
+                    html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">';
+                    html += '<button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button>';
+                    if (t.status !== 'in_progress') {
+                        html += '<button class="btn btn-warning" onclick="changeSupportStatus(\'' + ticketId + '\', \'in_progress\')"><i class="fas fa-play"></i> Взяти в роботу</button>';
+                    }
+                    html += '<button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button>';
+                    html += '</div></div>';
+                } else {
+                    html += '<p class="text-muted">✅ Заявку закрито</p>';
+                }
+
+                html += '</div>';
+
+                openModal('Заявка #' + ticketId.substring(0, 8), html);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function sendSupportReply(ticketId) {
+            var textarea = document.getElementById('supportReply');
+            if (!textarea) return;
+
+            var message = textarea.value.trim();
+            if (!message) {
+                await showAlert('Введіть повідомлення', 'warning');
+                return;
+            }
+
+            var user = auth.getCurrentUser();
+
+            try {
+                await db.sendSupportMessage({
+                    ticket_id: ticketId,
+                    sender_id: user.id,
+                    sender_type: user.role,
+                    message: message
+                });
+
+                await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
+
+                await db.addLog('Відповідь в підтримку', 'support', ticketId, {});
+                await showToast('Відповідь відправлено!', 'success');
+                await loadSupportManagement();
+                await viewSupportTicket(ticketId);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function changeSupportStatus(ticketId, status) {
+            try {
+                await db.updateSupportTicket(ticketId, { status: status });
+                await db.addLog('Змінено статус заявки', 'support', ticketId, { status: status });
+                await showToast('Статус змінено!', 'success');
+                await loadSupportManagement();
+                await viewSupportTicket(ticketId);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function closeSupportTicket(ticketId) {
+            var confirmed = await showConfirm('Закрити заявку?', 'Підтвердження');
+            if (!confirmed) return;
+
+            try {
+                await db.updateSupportTicket(ticketId, { status: 'closed' });
+                await db.addLog('Закрито заявку в підтримку', 'support', ticketId, {});
+                await showToast('Заявку закрито!', 'success');
+                await loadSupportManagement();
+                await viewSupportTicket(ticketId);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
         // ============= ЛОГИ =============
 
         async function loadLogs() {
@@ -1568,8 +1810,17 @@
         async function banUser(userId) {
             var user = auth.getCurrentUser();
             if (!canBanUser(user)) {
-                await showAlert('Тільки засновник або адмін може блокувати', 'error');
+                await showAlert('Тільки засновник, адмін або модератор може блокувати', 'error');
                 return;
+            }
+
+            if (user.role === 'moderator') {
+                var targetData = await db.supabaseQuery('users?id=eq.' + userId + '&select=role');
+                var targetRole = targetData && targetData.length > 0 ? targetData[0].role : 'user';
+                if (targetRole !== 'user') {
+                    await showAlert('Модератор може блокувати лише звичайних користувачів', 'error');
+                    return;
+                }
             }
             
             var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
@@ -1612,7 +1863,7 @@
         async function unbanUser(userId) {
             var user = auth.getCurrentUser();
             if (!canBanUser(user)) {
-                await showAlert('Тільки засновник або адмін може розблоковувати', 'error');
+                await showAlert('Тільки засновник, адмін або модератор може розблоковувати', 'error');
                 return;
             }
             

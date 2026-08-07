@@ -2379,54 +2379,95 @@
             container.innerHTML = html;
         }
 
+        var ownerSupportTicketsCache = [];
+        var ownerSupportUserMapCache = {};
+        var ownerSupportStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
+
         async function loadSupportTickets() {
             try {
                 var tickets = await db.supabaseQuery('support_tickets?order=created_at.desc');
-                
+
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
                 if (users) {
                     for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо';
+                        userMap[users[i].id] = users[i];
                     }
                 }
-                
-                var html = '<div style="overflow-x:auto;">';
-                html += '<table class="table"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody>';
-                
-                if (tickets && tickets.length > 0) {
-                    for (var i = 0; i < tickets.length; i++) {
-                        var t = tickets[i];
-                        var userName = userMap[t.user_id] || 'Невідомо';
-                        var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
-                        var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
-                        var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
-                        
-                        html += '<tr>' +
-                            '<td><strong>' + userName + '</strong></td>' +
-                            '<td>' + (t.subject || '—') + '</td>' +
-                            '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
-                            '<td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td>' +
-                            '<td>' + new Date(t.created_at).toLocaleDateString('uk-UA') + '</td>' +
-                            '<td style="white-space:nowrap;">' +
-                                '<button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' +
-                                (t.status !== 'closed' ? 
-                                    '<button class="btn btn-sm btn-success" onclick="closeSupportTicket(\'' + t.id + '\')"><i class="fas fa-check"></i></button>' : ''
-                                ) +
-                            '</td>' +
-                        '</tr>';
-                    }
-                } else {
-                    html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
-                }
-                
-                html += '</tbody></table></div>';
-                
-                openModal('Заявки в підтримку', html);
-                
+
+                ownerSupportTicketsCache = tickets || [];
+                ownerSupportUserMapCache = userMap;
+
+                renderOwnerSupportTicketsTable();
             } catch (error) {
                 await showAlert('Помилка: ' + error.message, 'error');
             }
+        }
+
+        function renderOwnerSupportTicketsTable() {
+            var userMap = ownerSupportUserMapCache;
+
+            var sorted = ownerSupportTicketsCache.slice().sort(function(a, b) {
+                var wa = ownerSupportStatusWeight[a.status] !== undefined ? ownerSupportStatusWeight[a.status] : 1;
+                var wb = ownerSupportStatusWeight[b.status] !== undefined ? ownerSupportStatusWeight[b.status] : 1;
+                if (wa !== wb) return wa - wb;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+
+            var html = '<div class="search-filters">';
+            html += '<div class="search-wrapper"><i class="fas fa-search search-icon"></i>';
+            html += '<input type="text" class="search-input" id="ownerSupportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterOwnerSupportTickets()">';
+            html += '<button class="search-clear" onclick="document.getElementById(\'ownerSupportSearchInput\').value=\'\';filterOwnerSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button>';
+            html += '</div>';
+            html += '<select class="filter-select" id="ownerSupportStatusFilter" onchange="filterOwnerSupportTickets()">';
+            html += '<option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option>';
+            html += '</select></div>';
+
+            html += '<div style="overflow-x:auto;">';
+            html += '<table class="table" id="ownerSupportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="ownerSupportTicketsBody">';
+
+            if (sorted.length > 0) {
+                for (var i = 0; i < sorted.length; i++) {
+                    var t = sorted[i];
+                    var u = userMap[t.user_id];
+                    var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+                    var userEmail = u ? (u.email || '') : '';
+                    var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
+                    var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+                    var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
+
+                    html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '">' +
+                        '<td><strong>' + userName + '</strong></td>' +
+                        '<td>' + (t.subject || '—') + '</td>' +
+                        '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+                        '<td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td>' +
+                        '<td>' + new Date(t.created_at).toLocaleDateString('uk-UA') + '</td>' +
+                        '<td style="white-space:nowrap;">' +
+                            '<button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' +
+                            (t.status !== 'closed' ?
+                                '<button class="btn btn-sm btn-success" onclick="closeSupportTicket(\'' + t.id + '\')"><i class="fas fa-check"></i></button>' : ''
+                            ) +
+                        '</td>' +
+                    '</tr>';
+                }
+            } else {
+                html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
+            }
+
+            html += '</tbody></table></div>';
+
+            openModal('Заявки в підтримку', html);
+        }
+
+        function filterOwnerSupportTickets() {
+            var search = (document.getElementById('ownerSupportSearchInput').value || '').toLowerCase();
+            var status = document.getElementById('ownerSupportStatusFilter').value;
+            var rows = document.querySelectorAll('#ownerSupportTicketsBody tr');
+            rows.forEach(function(row) {
+                var matchUser = !search || (row.getAttribute('data-user') || '').indexOf(search) !== -1;
+                var matchStatus = !status || row.getAttribute('data-status') === status;
+                row.style.display = (matchUser && matchStatus) ? '' : 'none';
+            });
         }
 
         async function viewSupportTicket(ticketId) {
@@ -2458,10 +2499,11 @@
                 if (messages && messages.length > 0) {
                     for (var i = 0; i < messages.length; i++) {
                         var msg = messages[i];
-                        var isAdmin = msg.sender_type === 'admin';
-                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isAdmin ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isAdmin ? 'var(--gold)' : 'var(--teal)') + ';">';
-                        html += '<div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;">';
-                        html += '<span>' + (isAdmin ? '👑 Адмін' : (userMap[msg.sender_id] || 'Користувач')) + '</span>';
+                        var isStaff = isStaffRole(msg.sender_type);
+                        var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : (userMap[msg.sender_id] || 'Користувач');
+                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : 'var(--teal)') + ';">';
+                        html += '<div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<span>' + senderLabel + '</span>';
                         html += '<span>' + new Date(msg.created_at).toLocaleString('uk-UA') + '</span>';
                         html += '</div>';
                         html += '<div style="margin-top:0.4rem;">' + msg.message + '</div>';
@@ -2509,7 +2551,7 @@
                     body: JSON.stringify({
                         ticket_id: ticketId,
                         sender_id: user.id,
-                        sender_type: 'admin',
+                        sender_type: user.role,
                         message: message
                     })
                 });
