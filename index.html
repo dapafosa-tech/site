@@ -291,8 +291,8 @@
       <li><a href="#for-whom" class="nav-link">Для кого</a></li>
       <li><a href="#pricing" class="nav-link">Тарифи</a></li>
       <li class="nav-cta" id="navAuthButtons">
-        <a href="/login" class="btn btn-ghost">Увійти</a>
-        <a href="/register" class="btn btn-gold">Почати</a>
+        <a href="#" class="btn btn-ghost" id="loginBtnNav">Увійти</a>
+        <a href="#" class="btn btn-gold" id="startBtnNav">Почати</a>
       </li>
     </ul>
     <button class="hamburger" onclick="toggleMenu()" aria-label="Меню"><span></span><span></span><span></span></button>
@@ -305,7 +305,7 @@
     <h1 class="display">Кожна анкета і заявка — <em>на своєму місці</em>.</h1>
     <p class="lead">Typebiz збирає людей, анкети та запити вашої організації в одну базу замість розкиданих гугл-форм, таблиць і чатів. Заповнили — одразу видно в системі.</p>
     <div class="hero-actions">
-      <a href="/register" class="btn btn-gold btn-lg" id="mainCta"><i class="fas fa-rocket"></i> Почати безкоштовно</a>
+      <a href="#" class="btn btn-gold btn-lg" id="startBtnHero"><i class="fas fa-rocket"></i> Почати безкоштовно</a>
       <a href="#pricing" class="btn btn-ghost btn-lg">Тарифи</a>
     </div>
     <div class="hero-note"><span class="dot"></span> Безкоштовний тариф без обмеження за часом</div>
@@ -431,7 +431,7 @@
           <li><i class="fas fa-check"></i> Базові анкети й запити</li>
           <li><i class="fas fa-check"></i> 100 МБ сховища</li>
         </ul>
-        <a href="/register" class="btn btn-ghost">Почати безкоштовно</a>
+        <a href="#" class="btn btn-ghost" id="startBtnPricing1">Почати безкоштовно</a>
       </div>
       <div class="ticket popular">
         <div class="ticket-badge">Популярний</div>
@@ -446,7 +446,7 @@
           <li><i class="fas fa-check"></i> 5 ГБ сховища</li>
           <li><i class="fas fa-check"></i> Пріоритетна підтримка</li>
         </ul>
-        <a href="/register" class="btn btn-gold">Обрати тариф</a>
+        <a href="#" class="btn btn-gold" id="startBtnPricing2">Обрати тариф</a>
       </div>
       <div class="ticket">
         <h3>Бізнес</h3>
@@ -460,7 +460,7 @@
           <li><i class="fas fa-check"></i> 20 ГБ сховища</li>
           <li><i class="fas fa-check"></i> Персональний менеджер</li>
         </ul>
-        <a href="/register" class="btn btn-ghost">Звʼязатися</a>
+        <a href="#" class="btn btn-ghost" id="startBtnPricing3">Звʼязатися</a>
       </div>
     </div>
   </div>
@@ -471,7 +471,7 @@
     <div class="cta-band">
       <h2 class="display">Наведіть лад у своїй організації вже сьогодні</h2>
       <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-        <a href="/register" class="btn btn-gold btn-lg">Почати безкоштовно</a>
+        <a href="#" class="btn btn-gold btn-lg" id="startBtnCta">Почати безкоштовно</a>
       </div>
     </div>
   </div>
@@ -495,6 +495,40 @@
   }
   document.querySelectorAll('.nav-links a').forEach(link => {
     link.addEventListener('click', () => document.getElementById('navLinks').classList.remove('active'));
+  });
+
+  // ===== ФУНКЦІЯ ДЛЯ ОБРОБКИ КНОПОК "ПОЧАТИ" =====
+  function handleStartButton() {
+    var user = auth.getCurrentUser();
+    if (user && user.id) {
+      window.location.href = '/dashboard';
+    } else {
+      window.location.href = '/register';
+    }
+  }
+
+  // ===== ФУНКЦІЯ ДЛЯ ОБРОБКИ КНОПКИ "УВІЙТИ" =====
+  function handleLoginButton() {
+    var user = auth.getCurrentUser();
+    if (user && user.id) {
+      window.location.href = '/dashboard';
+    } else {
+      window.location.href = '/login';
+    }
+  }
+
+  // ===== ПРИВ'ЯЗУЄМО ВСІ КНОПКИ =====
+  document.addEventListener('DOMContentLoaded', function() {
+    // Всі кнопки "Почати"
+    document.getElementById('startBtnNav')?.addEventListener('click', handleStartButton);
+    document.getElementById('startBtnHero')?.addEventListener('click', handleStartButton);
+    document.getElementById('startBtnPricing1')?.addEventListener('click', handleStartButton);
+    document.getElementById('startBtnPricing2')?.addEventListener('click', handleStartButton);
+    document.getElementById('startBtnPricing3')?.addEventListener('click', handleStartButton);
+    document.getElementById('startBtnCta')?.addEventListener('click', handleStartButton);
+
+    // Всі кнопки "Увійти"
+    document.getElementById('loginBtnNav')?.addEventListener('click', handleLoginButton);
   });
 
   // ===== org types rolodex =====
@@ -544,7 +578,7 @@
     const navContainer = document.getElementById('navAuthButtons');
     const user = (typeof auth !== 'undefined') ? auth.getCurrentUser() : null;
 
-    if(user){
+    if(user && user.id){
       const initial = (user.full_name || 'U')[0].toUpperCase();
       const avatarHtml = user.avatar_url
         ? `<img src="${user.avatar_url}" alt="Аватар">`
@@ -558,21 +592,17 @@
       `;
     } else {
       navContainer.innerHTML = `
-        <a href="/login" class="btn btn-ghost">Увійти</a>
-        <a href="/register" class="btn btn-gold">Почати</a>
+        <a href="#" class="btn btn-ghost" id="loginBtnNav">Увійти</a>
+        <a href="#" class="btn btn-gold" id="startBtnNav">Почати</a>
       `;
+      // Переприв'язуємо кнопки після оновлення
+      setTimeout(function() {
+        document.getElementById('loginBtnNav')?.addEventListener('click', handleLoginButton);
+        document.getElementById('startBtnNav')?.addEventListener('click', handleStartButton);
+      }, 50);
     }
   }
 
-  // ===== АВТОМАТИЧНИЙ РЕДІРЕКТ ТІЛЬКИ ДЛЯ ОСОБИСТОГО КАБІНЕТУ =====
-  // Ця функція викликається ТІЛЬКИ при спробі зайти в /dashboard
-  // Головна сторінка (/) НЕ робить редірект
-  async function redirectToDashboardIfAuth() {
-    // Ця функція викликається з dashboard.html, а не з index.html
-    // Тут вона не використовується
-  }
-
-  // Оновлюємо навігацію при завантаженні та зміні даних
   document.addEventListener('DOMContentLoaded', () => {
     updateNavbar();
     window.addEventListener('storage', (e) => {
