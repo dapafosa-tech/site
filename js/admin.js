@@ -1,3 +1,7 @@
+// ============================================
+// TYPEBIZ - АДМІН-ПАНЕЛЬ (ПОВНА ВЕРСІЯ З ПОШУКОМ)
+// ============================================
+
 async function loadStats() {
     try {
         var users = await db.supabaseQuery('users?select=*');
@@ -60,8 +64,22 @@ async function loadUsers() {
                     '<h3 class="card-title">Всі користувачі</h3>' +
                     '<span class="badge badge-primary">' + (users ? users.length : 0) + '</span>' +
                 '</div>' +
+                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    '<input type="text" class="form-control" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." style="flex:1;min-width:200px;" oninput="filterUsersTable()">' +
+                    '<select class="form-control" id="userRoleFilter" style="width:auto;min-width:120px;" onchange="filterUsersTable()">' +
+                        '<option value="">Всі ролі</option>' +
+                        '<option value="admin">Адмін</option>' +
+                        '<option value="moderator">Модератор</option>' +
+                        '<option value="user">Користувач</option>' +
+                    '</select>' +
+                    '<select class="form-control" id="userStatusFilter" style="width:auto;min-width:120px;" onchange="filterUsersTable()">' +
+                        '<option value="">Всі статуси</option>' +
+                        '<option value="active">Активний</option>' +
+                        '<option value="banned">Заблокований</option>' +
+                    '</select>' +
+                '</div>' +
                 '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
+                    '<table class="table" id="usersTable">' +
                         '<thead>' +
                             '<tr>' +
                                 '<th>Ім\'я</th>' +
@@ -71,7 +89,7 @@ async function loadUsers() {
                                 '<th>Дії</th>' +
                             '</tr>' +
                         '</thead>' +
-                        '<tbody>';
+                        '<tbody id="usersTableBody">';
 
         if (users && users.length > 0) {
             for (var i = 0; i < users.length; i++) {
@@ -87,12 +105,16 @@ async function loadUsers() {
                     'user': '<span class="badge badge-primary">Користувач</span>'
                 };
                 
+                var rowClass = isUserBanned ? 'banned-row' : '';
+                var statusText = isUserBanned ? 'Заблоковано' : 'Активний';
+                var statusClass = isUserBanned ? 'badge-danger' : 'badge-success';
+                
                 html += 
-                    '<tr>' +
+                    '<tr class="' + rowClass + '" data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '">' +
                         '<td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td>' +
                         '<td>' + (u.email || '—') + '</td>' +
                         '<td>' + (roleLabels[u.role] || roleLabels.user) + '</td>' +
-                        '<td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
+                        '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
                             (isAdmin && !isCurrentUser ? 
                                 (isUserBanned ? 
@@ -146,6 +168,141 @@ async function loadUsers() {
     }
 }
 
+function filterUsersTable() {
+    var searchInput = document.getElementById('userSearchInput');
+    var roleFilter = document.getElementById('userRoleFilter');
+    var statusFilter = document.getElementById('userStatusFilter');
+    
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var role = roleFilter ? roleFilter.value : '';
+    var status = statusFilter ? statusFilter.value : '';
+    
+    var rows = document.querySelectorAll('#usersTableBody tr');
+    rows.forEach(function(row) {
+        var name = row.getAttribute('data-name') || '';
+        var email = row.getAttribute('data-email') || '';
+        var rowRole = row.getAttribute('data-role') || '';
+        var rowStatus = row.getAttribute('data-status') || '';
+        
+        var matchSearch = name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
+        var matchRole = !role || rowRole === role;
+        var matchStatus = !status || rowStatus === status;
+        
+        if (matchSearch && matchRole && matchStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterOrgsTable() {
+    var searchInput = document.getElementById('orgSearchInput');
+    var statusFilter = document.getElementById('orgStatusFilter');
+    
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var status = statusFilter ? statusFilter.value : '';
+    
+    var rows = document.querySelectorAll('#orgsTableBody tr');
+    rows.forEach(function(row) {
+        var name = row.getAttribute('data-name') || '';
+        var type = row.getAttribute('data-type') || '';
+        var rowStatus = row.getAttribute('data-status') || '';
+        
+        var matchSearch = name.indexOf(query) !== -1 || type.indexOf(query) !== -1;
+        var matchStatus = !status || rowStatus === status;
+        
+        if (matchSearch && matchStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterChatsTable() {
+    var searchInput = document.getElementById('chatSearchInput');
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var rows = document.querySelectorAll('#chatsTableBody tr');
+    rows.forEach(function(row) {
+        var name = row.getAttribute('data-name') || '';
+        if (name.indexOf(query) !== -1) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterVacationsTable() {
+    var searchInput = document.getElementById('vacationSearchInput');
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var rows = document.querySelectorAll('#vacationsTableBody tr');
+    rows.forEach(function(row) {
+        var name = row.getAttribute('data-name') || '';
+        if (name.indexOf(query) !== -1) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterRequestsTable() {
+    var searchInput = document.getElementById('requestSearchInput');
+    var statusFilter = document.getElementById('requestStatusFilter');
+    
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var status = statusFilter ? statusFilter.value : '';
+    
+    var rows = document.querySelectorAll('#requestsTableBody tr');
+    rows.forEach(function(row) {
+        var userName = row.getAttribute('data-user') || '';
+        var orgName = row.getAttribute('data-org') || '';
+        var rowStatus = row.getAttribute('data-status') || '';
+        
+        var matchSearch = userName.indexOf(query) !== -1 || orgName.indexOf(query) !== -1;
+        var matchStatus = !status || rowStatus === status;
+        
+        if (matchSearch && matchStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterLogsTable() {
+    var searchInput = document.getElementById('logSearchInput');
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var rows = document.querySelectorAll('#logsTableBody tr');
+    rows.forEach(function(row) {
+        var userName = row.getAttribute('data-user') || '';
+        var action = row.getAttribute('data-action') || '';
+        var entity = row.getAttribute('data-entity') || '';
+        
+        var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
+        
+        if (matchSearch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
 async function changeUserRole(userId, newRole) {
     var roleLabels = {
         'admin': 'адміністратора',
@@ -194,7 +351,9 @@ async function banUser(userId) {
             })
         });
         
-        await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim() });
+        var userData = await db.supabaseQuery('users?id=eq.' + userId);
+        var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
+        await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: userName });
         await showToast('Користувача заблоковано!', 'success');
         loadUsers();
     } catch (error) {
@@ -215,7 +374,9 @@ async function unbanUser(userId) {
             })
         });
         
-        await db.addLog('Розблоковано користувача', 'user', userId, {});
+        var userData = await db.supabaseQuery('users?id=eq.' + userId);
+        var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
+        await db.addLog('Розблоковано користувача', 'user', userId, { user_name: userName });
         await showToast('Користувача розблоковано!', 'success');
         loadUsers();
     } catch (error) {
@@ -254,8 +415,16 @@ async function loadOrgs() {
                     '<h3 class="card-title">Всі організації</h3>' +
                     '<span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span>' +
                 '</div>' +
+                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    '<input type="text" class="form-control" id="orgSearchInput" placeholder="Пошук за назвою або типом..." style="flex:1;min-width:200px;" oninput="filterOrgsTable()">' +
+                    '<select class="form-control" id="orgStatusFilter" style="width:auto;min-width:120px;" onchange="filterOrgsTable()">' +
+                        '<option value="">Всі статуси</option>' +
+                        '<option value="active">Активна</option>' +
+                        '<option value="frozen">Заморожена</option>' +
+                    '</select>' +
+                '</div>' +
                 '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
+                    '<table class="table" id="orgsTable">' +
                         '<thead>' +
                             '<tr>' +
                                 '<th>Назва</th>' +
@@ -266,7 +435,7 @@ async function loadOrgs() {
                                 '<th>Дії</th>' +
                             '</tr>' +
                         '</thead>' +
-                        '<tbody>';
+                        '<tbody id="orgsTableBody">';
 
         if (orgs && orgs.length > 0) {
             for (var i = 0; i < orgs.length; i++) {
@@ -274,14 +443,17 @@ async function loadOrgs() {
                 var creatorName = userMap[org.created_by] || 'Невідомо';
                 var isActive = org.is_active !== false;
                 var freezeReason = org.freeze_reason || '';
+                var statusText = isActive ? 'Активна' : 'Заморожена';
+                var statusClass = isActive ? 'badge-success' : 'badge-danger';
+                var statusValue = isActive ? 'active' : 'frozen';
                 
                 html += 
-                    '<tr>' +
+                    '<tr data-name="' + (org.name || '').toLowerCase() + '" data-type="' + (typeLabels[org.type] || org.type || '').toLowerCase() + '" data-status="' + statusValue + '">' +
                         '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
                         '<td>' + (typeLabels[org.type] || org.type || '—') + '</td>' +
                         '<td style="font-family:monospace;font-size:0.8rem;text-transform:lowercase;">' + (org.join_code || '—') + '</td>' +
                         '<td>' + creatorName + '</td>' +
-                        '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td>' +
+                        '<td><span class="badge ' + statusClass + '">' + statusText + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
                             (isAdmin || isModerator ? 
                                 (isActive ? 
@@ -377,8 +549,11 @@ async function loadChat() {
                 '<div class="card-header">' +
                     '<h3 class="card-title">Чати організацій</h3>' +
                 '</div>' +
+                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    '<input type="text" class="form-control" id="chatSearchInput" placeholder="Пошук за назвою організації..." style="flex:1;min-width:200px;" oninput="filterChatsTable()">' +
+                '</div>' +
                 '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
+                    '<table class="table" id="chatsTable">' +
                         '<thead>' +
                             '<tr>' +
                                 '<th>Організація</th>' +
@@ -387,7 +562,7 @@ async function loadChat() {
                                 '<th>Дії</th>' +
                             '</tr>' +
                         '</thead>' +
-                        '<tbody>';
+                        '<tbody id="chatsTableBody">';
 
         if (orgs && orgs.length > 0) {
             for (var i = 0; i < orgs.length; i++) {
@@ -397,7 +572,7 @@ async function loadChat() {
                 var isActive = org.is_active !== false;
                 
                 html += 
-                    '<tr>' +
+                    '<tr data-name="' + (org.name || '').toLowerCase() + '">' +
                         '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
                         '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
                         '<td>' + count + '</td>' +
@@ -478,8 +653,11 @@ async function loadVacations() {
                 '<div class="card-header">' +
                     '<h3 class="card-title">Відпустки в організаціях</h3>' +
                 '</div>' +
+                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    '<input type="text" class="form-control" id="vacationSearchInput" placeholder="Пошук за назвою організації..." style="flex:1;min-width:200px;" oninput="filterVacationsTable()">' +
+                '</div>' +
                 '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
+                    '<table class="table" id="vacationsTable">' +
                         '<thead>' +
                             '<tr>' +
                                 '<th>Організація</th>' +
@@ -489,7 +667,7 @@ async function loadVacations() {
                                 '<th>Дії</th>' +
                             '</tr>' +
                         '</thead>' +
-                        '<tbody>';
+                        '<tbody id="vacationsTableBody">';
 
         if (orgs && orgs.length > 0) {
             for (var i = 0; i < orgs.length; i++) {
@@ -500,7 +678,7 @@ async function loadVacations() {
                 var isActive = org.is_active !== false;
                 
                 html += 
-                    '<tr>' +
+                    '<tr data-name="' + (org.name || '').toLowerCase() + '">' +
                         '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
                         '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
                         '<td>' + count + '</td>' +
@@ -618,8 +796,17 @@ async function loadRequests() {
                     '<h3 class="card-title">Всі заявки на вступ</h3>' +
                     '<span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span>' +
                 '</div>' +
+                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    '<input type="text" class="form-control" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." style="flex:1;min-width:200px;" oninput="filterRequestsTable()">' +
+                    '<select class="form-control" id="requestStatusFilter" style="width:auto;min-width:120px;" onchange="filterRequestsTable()">' +
+                        '<option value="">Всі статуси</option>' +
+                        '<option value="pending">Очікує</option>' +
+                        '<option value="approved">Схвалено</option>' +
+                        '<option value="rejected">Відхилено</option>' +
+                    '</select>' +
+                '</div>' +
                 '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
+                    '<table class="table" id="requestsTable">' +
                         '<thead>' +
                             '<tr>' +
                                 '<th>Користувач</th>' +
@@ -629,7 +816,7 @@ async function loadRequests() {
                                 '<th>Дата</th>' +
                             '</tr>' +
                         '</thead>' +
-                        '<tbody>';
+                        '<tbody id="requestsTableBody">';
 
         if (requests && requests.length > 0) {
             var statusLabels = {
@@ -644,9 +831,10 @@ async function loadRequests() {
                 var orgName = orgMap[req.organization_id] || '—';
                 var statusClass = req.status === 'pending' ? 'badge-warning' : 
                                  req.status === 'approved' ? 'badge-success' : 'badge-danger';
+                var statusValue = req.status || 'pending';
                 
                 html += 
-                    '<tr>' +
+                    '<tr data-user="' + userName.toLowerCase() + '" data-org="' + orgName.toLowerCase() + '" data-status="' + statusValue + '">' +
                         '<td><strong>' + userName + '</strong></td>' +
                         '<td>' + orgName + '</td>' +
                         '<td>' + (req.message || 'Без повідомлення') + '</td>' +
@@ -675,7 +863,7 @@ async function loadLogs() {
     var container = document.getElementById('adminContent');
     
     try {
-        var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=100');
+        var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=200');
         
         var html = 
             '<div class="card">' +
@@ -683,8 +871,11 @@ async function loadLogs() {
                     '<h3 class="card-title">Всі логи системи</h3>' +
                     '<span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span>' +
                 '</div>' +
+                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                    '<input type="text" class="form-control" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." style="flex:1;min-width:200px;" oninput="filterLogsTable()">' +
+                '</div>' +
                 '<div style="overflow-x:auto;">' +
-                    '<table class="table">' +
+                    '<table class="table" id="logsTable">' +
                         '<thead>' +
                             '<tr>' +
                                 '<th>Час</th>' +
@@ -693,7 +884,7 @@ async function loadLogs() {
                                 '<th>Тип</th>' +
                             '</tr>' +
                         '</thead>' +
-                        '<tbody>';
+                        '<tbody id="logsTableBody">';
 
         if (logs && logs.length > 0) {
             var users = await db.supabaseQuery('users?select=id,full_name,email');
@@ -707,12 +898,15 @@ async function loadLogs() {
             for (var i = 0; i < logs.length; i++) {
                 var log = logs[i];
                 var userName = log.user_name || userMap[log.user_id] || 'Система';
+                var action = log.action || '—';
+                var entity = log.entity_type || '—';
+                
                 html += 
-                    '<tr>' +
+                    '<tr data-user="' + userName.toLowerCase() + '" data-action="' + action.toLowerCase() + '" data-entity="' + entity.toLowerCase() + '">' +
                         '<td>' + new Date(log.created_at).toLocaleString('uk-UA') + '</td>' +
                         '<td><strong>' + userName + '</strong></td>' +
-                        '<td><span class="badge badge-primary">' + (log.action || '—') + '</span></td>' +
-                        '<td>' + (log.entity_type || '—') + '</td>' +
+                        '<td><span class="badge badge-primary">' + action + '</span></td>' +
+                        '<td>' + entity + '</td>' +
                     '</tr>';
             }
         } else {
