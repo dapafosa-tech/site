@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - АВТОРИЗАЦІЯ
+// TYPEBIZ - АВТОРИЗАЦІЯ (З РОЛЯМИ ТА БАНАМИ)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -39,7 +39,17 @@ async function checkAuth() {
         var data = await response.json();
         if (!data || data.length === 0) return false;
         
-        currentUser = data[0];
+        var userData = data[0];
+        
+        // Перевірка на бан
+        if (userData.is_banned === true) {
+            localStorage.removeItem('userData');
+            localStorage.removeItem('isGuest');
+            window.location.href = '/banned';
+            return false;
+        }
+        
+        currentUser = userData;
         localStorage.setItem('userData', JSON.stringify(currentUser));
         return true;
     } catch {
@@ -66,6 +76,22 @@ async function requireAdmin() {
     var user = getCurrentUser();
     if (user && user.role !== 'admin') {
         await showAlert('Доступ заборонено. Потрібні права адміністратора.', 'error');
+        window.location.href = '/dashboard';
+        return false;
+    }
+    return true;
+}
+
+async function requireModerator() {
+    var isAuth = await checkAuth();
+    if (!isAuth) {
+        window.location.href = '/login';
+        return false;
+    }
+    
+    var user = getCurrentUser();
+    if (user && user.role !== 'admin' && user.role !== 'moderator') {
+        await showAlert('Доступ заборонено. Потрібні права модератора або адміністратора.', 'error');
         window.location.href = '/dashboard';
         return false;
     }
@@ -99,6 +125,13 @@ async function loginUser(email, password) {
         }
 
         var user = users[0];
+        
+        // Перевірка на бан
+        if (user.is_banned === true) {
+            localStorage.setItem('banReason', user.ban_reason || 'Порушення правил');
+            window.location.href = '/banned';
+            return { success: false, error: 'Акаунт заблоковано' };
+        }
 
         if (user.password && user.password !== password) {
             throw new Error('Невірний пароль');
@@ -136,10 +169,11 @@ async function registerUser(email, password, fullName) {
             id: userId,
             auth_id: userId,
             email: email,
-            full_name: fullName,
+            full_name: fullName || email.split('@')[0],
             password: password,
             role: 'user',
             is_active: true,
+            is_banned: false,
             created_at: new Date().toISOString()
         };
 
@@ -156,7 +190,7 @@ async function registerUser(email, password, fullName) {
 
         if (!response.ok) {
             var errorText = await response.text();
-            throw new Error('Помилка при створенні акаунта');
+            throw new Error('Помилка при створенні акаунта: ' + errorText);
         }
 
         var result = await response.json();
@@ -185,33 +219,14 @@ function isAdmin() {
     return user && user.role === 'admin';
 }
 
-async function checkBanned() {
+function isModerator() {
     var user = getCurrentUser();
-    if (!user) return false;
-    
-    try {
-        var response = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-        
-        if (!response.ok) return false;
-        var data = await response.json();
-        if (!data || data.length === 0) return false;
-        
-        var userData = data[0];
-        if (userData.is_banned === true) {
-            localStorage.removeItem('userData');
-            window.location.href = '/banned';
-            return true;
-        }
-        
-        return false;
-    } catch {
-        return false;
-    }
+    return user && (user.role === 'admin' || user.role === 'moderator');
+}
+
+function getUserRole() {
+    var user = getCurrentUser();
+    return user ? user.role : 'user';
 }
 
 window.auth = {
@@ -219,8 +234,11 @@ window.auth = {
     checkAuth: checkAuth,
     requireAuth: requireAuth,
     requireAdmin: requireAdmin,
+    requireModerator: requireModerator,
     logoutUser: logoutUser,
     loginUser: loginUser,
     registerUser: registerUser,
-    isAdmin: isAdmin
+    isAdmin: isAdmin,
+    isModerator: isModerator,
+    getUserRole: getUserRole
 };
