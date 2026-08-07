@@ -291,9 +291,18 @@
         </div>
     </div>
 
+    <script src="/js/db.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/ui.js"></script>
     <script>
-        // Отримуємо дані користувача з localStorage
+        // Перевіряємо, чи є дані про бан
         var userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        
+        // Якщо немає даних про бан - редірект на логін
+        if (!userData.is_banned) {
+            window.location.href = '/login';
+        }
+        
         var banReason = userData.ban_reason || 'Порушення правил використання платформи';
         
         // Показуємо причину бана
