@@ -41,7 +41,6 @@ async function checkAuth() {
         
         var userData = data[0];
         
-        // Перевірка на бан
         if (userData.is_banned === true) {
             localStorage.removeItem('userData');
             localStorage.removeItem('isGuest');
@@ -126,7 +125,6 @@ async function loginUser(email, password) {
 
         var user = users[0];
         
-        // Перевірка на бан
         if (user.is_banned === true) {
             localStorage.setItem('banReason', user.ban_reason || 'Порушення правил');
             window.location.href = '/banned';
@@ -141,6 +139,8 @@ async function loginUser(email, password) {
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
+        // ПЕРЕХІД НА ДАШБОРД ТІЛЬКИ ПІСЛЯ УСПІШНОГО ВХОДУ
+        window.location.href = '/dashboard';
         return { success: true, user: user };
     } catch (error) {
         return { success: false, error: error.message };
@@ -200,6 +200,8 @@ async function registerUser(email, password, fullName) {
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
+        // ПЕРЕХІД НА ДАШБОРД ТІЛЬКИ ПІСЛЯ УСПІШНОЇ РЕЄСТРАЦІЇ
+        window.location.href = '/dashboard';
         return { success: true, user: user };
     } catch (error) {
         return { success: false, error: error.message };
