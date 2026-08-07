@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Доступ заборонено — Typebiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --ink: #0F1115;
+            --ink-soft: #171A21;
+            --ink-line: #2A2E38;
+            --gold: #F2A93B;
+            --teal: #46C9B8;
+            --text-onink: #E7E4DA;
+            --muted: #8B93A6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--ink);
+            color: var(--text-onink);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .banned-box {
+            background: var(--ink-soft);
+            border: 1px solid var(--ink-line);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .banned-box .icon {
+            font-size: 4rem;
+            color: #E2503E;
+            margin-bottom: 1rem;
+        }
+        .banned-box h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .banned-box p {
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        .banned-box .reason {
+            background: var(--ink);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            border-left: 3px solid #E2503E;
+            text-align: left;
+        }
+        .banned-box .btn {
+            display: inline-block;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            text-decoration: none;
+            margin-top: 1rem;
+            background: var(--gold);
+            color: var(--ink);
+        }
+        .banned-box .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(242, 169, 59, 0.28);
+        }
+    </style>
+</head>
+<body>
+    <div class="banned-box">
+        <div class="icon"><i class="fas fa-ban"></i></div>
+        <h1>Доступ заборонено</h1>
+        <p>Ваш обліковий запис було заблоковано адміністрацією.</p>
+        <div class="reason">
+            <strong>Причина:</strong><br>
+            <span id="banReason">Порушення правил платформи</span>
+        </div>
+        <p style="font-size:0.85rem;">Якщо ви вважаєте, що це помилка, зверніться до підтримки.</p>
+        <a href="/login" class="btn">На сторінку входу</a>
+    </div>
+
+    <script>
+        var userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (userData.ban_reason) {
+            document.getElementById('banReason').textContent = userData.ban_reason;
+        }
+        
+        // Видаляємо сесію
+        localStorage.removeItem('userData');
+        localStorage.removeItem('isGuest');
+    </script>
+</body>
+</html>
