@@ -328,7 +328,7 @@
             
             <!-- Панель засновника для власника (owner) -->
             <li id="ownerLink" style="display:none;" class="owner-link">
-                <a href="/admin"><i class="fas fa-crown" style="color:var(--gold);"></i> <span style="color:var(--gold);">Панель засновника</span></a>
+                <a href="/owner-panel"><i class="fas fa-crown" style="color:var(--gold);"></i> <span style="color:var(--gold);">Панель засновника</span></a>
             </li>
             
             <li><a href="/settings"><i class="fas fa-cog"></i> Налаштування</a></li>
@@ -601,11 +601,11 @@
             var ownerLink = document.getElementById('ownerLink');
 
             if (user.role === 'owner') {
-                // Для засновника - показуємо "Панель засновника"
+                // Для засновника - показуємо "Панель засновника" (веде на /owner-panel)
                 ownerLink.style.display = 'block';
                 adminLink.style.display = 'none';
             } else if (user.role === 'admin' || user.role === 'moderator') {
-                // Для адміна та модератора - показуємо "Адмін-панель"
+                // Для адміна та модератора - показуємо "Адмін-панель" (веде на /admin)
                 adminLink.style.display = 'block';
                 ownerLink.style.display = 'none';
             } else {
