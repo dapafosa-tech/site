@@ -106,7 +106,7 @@ async function loginUser(email, password) {
             }));
             // Редірект на сторінку бана
             window.location.href = '/banned';
-            // ВИХОДИМО з функції, не продовжуємо виконання
+            // ВАЖЛИВО: ВИХОДИМО З ФУНКЦІЇ, ЩОБ НЕ ПРОДОВЖУВАТИ
             return { success: false, error: 'Акаунт заблоковано', banned: true };
         }
 
@@ -115,7 +115,7 @@ async function loginUser(email, password) {
             throw new Error('Невірний пароль');
         }
 
-        // Зберігаємо сесію
+        // Зберігаємо сесію ТІЛЬКИ ЯКЩО НЕ ЗАБАНЕНИЙ
         localStorage.setItem('userData', JSON.stringify(user));
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
@@ -418,3 +418,5 @@ window.auth = {
     getUserRole: getUserRole,
     checkUserBanned: checkUserBanned
 };
+
+console.log('✅ Auth module loaded successfully');
