@@ -107,6 +107,207 @@ async function loadRecentLogs() {
     }
 }
 
+// ============= НАВІГАЦІЯ =============
+
+function loadSection(section) {
+    var links = document.querySelectorAll('.nav-menu a');
+    for (var i = 0; i < links.length; i++) {
+        links[i].classList.remove('active');
+    }
+    for (var j = 0; j < links.length; j++) {
+        var onclick = links[j].getAttribute('onclick') || '';
+        if (onclick.indexOf(section) !== -1) {
+            links[j].classList.add('active');
+        }
+    }
+    
+    var titles = {
+        'overview': 'Огляд',
+        'owner': 'Панель засновника',
+        'users': 'Користувачі',
+        'orgs': 'Організації',
+        'chat': 'Чати',
+        'vacations': 'Відпустки',
+        'requests': 'Заявки',
+        'logs': 'Логи'
+    };
+    
+    document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
+    
+    switch(section) {
+        case 'overview':
+            loadOverview();
+            break;
+        case 'owner':
+            loadOwnerPanel();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'orgs':
+            loadOrgs();
+            break;
+        case 'chat':
+            loadChat();
+            break;
+        case 'vacations':
+            loadVacations();
+            break;
+        case 'requests':
+            loadRequests();
+            break;
+        case 'logs':
+            loadLogs();
+            break;
+        default:
+            loadOverview();
+    }
+}
+
+async function loadOverview() {
+    var container = document.getElementById('adminContent');
+    container.innerHTML = 
+        '<div class="card">' +
+            '<div class="card-header">' +
+                '<h3 class="card-title">Останні дії</h3>' +
+            '</div>' +
+            '<div id="recentLogs">' +
+                '<p class="text-muted">Завантаження...</p>' +
+            '</div>' +
+        '</div>';
+    await loadRecentLogs();
+    await loadStats();
+}
+
+// ============= ПАНЕЛЬ ЗАСНОВНИКА =============
+
+async function loadOwnerPanel() {
+    var container = document.getElementById('adminContent');
+    var user = auth.getCurrentUser();
+    
+    if (!user || user.role !== 'owner') {
+        container.innerHTML = '<div class="card"><p class="text-danger">Доступ заборонено. Тільки для засновника.</p></div>';
+        return;
+    }
+    
+    document.getElementById('pageTitle').textContent = 'Панель засновника';
+    document.getElementById('pageSubtitle').textContent = 'Повне управління системою';
+    
+    try {
+        var stats = {
+            totalUsers: (await db.supabaseQuery('users?select=id')).length,
+            totalOrgs: (await db.supabaseQuery('organizations?select=id')).length,
+            totalAdmins: (await db.supabaseQuery('users?role=eq.admin&select=id')).length,
+            totalModerators: (await db.supabaseQuery('users?role=eq.moderator&select=id')).length,
+            totalBanned: (await db.supabaseQuery('users?is_banned=eq.true&select=id')).length,
+            totalMessages: (await db.supabaseQuery('org_chat_messages?select=id')).length
+        };
+        
+        var html = '';
+        
+        html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
+        html += '<div class="stat-card"><div class="stat-value">' + stats.totalUsers + '</div><div class="stat-label">Користувачів</div></div>';
+        html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value">' + stats.totalOrgs + '</div><div class="stat-label">Організацій</div></div>';
+        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value">' + stats.totalAdmins + '</div><div class="stat-label">Адміністраторів</div></div>';
+        html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value">' + stats.totalModerators + '</div><div class="stat-label">Модераторів</div></div>';
+        html += '</div>';
+        
+        html += '<div class="grid-2" style="margin-bottom:1.5rem;">';
+        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + stats.totalBanned + '</div><div class="stat-label">Заблокованих користувачів</div></div>';
+        html += '<div class="stat-card" style="border-color:#3B82F6;"><div class="stat-value">' + stats.totalMessages + '</div><div class="stat-label">Повідомлень у чатах</div></div>';
+        html += '</div>';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Адміністратори та модератори</h3></div>';
+        html += '<div style="overflow-x:auto;">';
+        html += '<table class="table"><thead><tr><th>Користувач</th><th>Email</th><th>Роль</th></tr></thead><tbody>';
+        
+        var admins = await db.supabaseQuery('users?role=eq.admin&select=id,full_name,email');
+        var moderators = await db.supabaseQuery('users?role=eq.moderator&select=id,full_name,email');
+        
+        if (admins && admins.length > 0) {
+            for (var i = 0; i < admins.length; i++) {
+                var a = admins[i];
+                html += '<tr><td><strong>' + (a.full_name || 'Без імені') + '</strong></td><td>' + a.email + '</td><td><span class="badge badge-danger">Адмін</span></td></tr>';
+            }
+        }
+        
+        if (moderators && moderators.length > 0) {
+            for (var i = 0; i < moderators.length; i++) {
+                var m = moderators[i];
+                html += '<tr><td><strong>' + (m.full_name || 'Без імені') + '</strong></td><td>' + m.email + '</td><td><span class="badge badge-warning">Модератор</span></td></tr>';
+            }
+        }
+        
+        if ((!admins || admins.length === 0) && (!moderators || moderators.length === 0)) {
+            html += '<tr><td colspan="3" class="text-center text-muted">Немає адміністраторів або модераторів</td></tr>';
+        }
+        
+        html += '</tbody></table></div></div>';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Швидкі дії</h3></div>';
+        html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">';
+        html += '<button class="btn btn-teal" onclick="loadSection(\'users\')"><i class="fas fa-users"></i> Керувати користувачами</button>';
+        html += '<button class="btn btn-gold" onclick="loadSection(\'orgs\')"><i class="fas fa-building"></i> Керувати організаціями</button>';
+        html += '<button class="btn btn-danger" onclick="loadSection(\'logs\')"><i class="fas fa-history"></i> Переглянути логи</button>';
+        html += '</div></div>';
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження панелі засновника: ' + error.message + '</p></div>';
+    }
+}
+
+function showOwnerPanel() {
+    var user = auth.getCurrentUser();
+    var link = document.getElementById('ownerPanelLink');
+    if (link) {
+        link.style.display = (user && user.role === 'owner') ? 'block' : 'none';
+    }
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+async function handleLogout() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете вийти?', 'Вихід');
+    if (confirmed) {
+        auth.logoutUser();
+    }
+}
+
+document.querySelectorAll('.modal').forEach(function(modal) {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+});
+
+async function init() {
+    var user = auth.getCurrentUser();
+    
+    // Показуємо панель засновника для owner
+    showOwnerPanel();
+    
+    // Перевіряємо доступ (owner, admin, moderator)
+    var hasAccess = user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
+    
+    if (!hasAccess) {
+        document.getElementById('adminContent').innerHTML = 
+            '<div class="card"><p class="text-danger">Доступ заборонено. Потрібні права: owner, admin або moderator.</p></div>';
+        return;
+    }
+
+    await loadStats();
+    await loadOverview();
+}
+
+init();
+
 // ============= КОРИСТУВАЧІ =============
 
 async function loadUsers() {
@@ -1225,204 +1426,3 @@ function filterLogsTable() {
         }
     });
 }
-
-// ============= НАВІГАЦІЯ =============
-
-function loadSection(section) {
-    var links = document.querySelectorAll('.nav-menu a');
-    for (var i = 0; i < links.length; i++) {
-        links[i].classList.remove('active');
-    }
-    for (var j = 0; j < links.length; j++) {
-        var onclick = links[j].getAttribute('onclick') || '';
-        if (onclick.indexOf(section) !== -1) {
-            links[j].classList.add('active');
-        }
-    }
-    
-    var titles = {
-        'overview': 'Огляд',
-        'owner': 'Панель засновника',
-        'users': 'Користувачі',
-        'orgs': 'Організації',
-        'chat': 'Чати',
-        'vacations': 'Відпустки',
-        'requests': 'Заявки',
-        'logs': 'Логи'
-    };
-    
-    document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
-    
-    switch(section) {
-        case 'overview':
-            loadOverview();
-            break;
-        case 'owner':
-            loadOwnerPanel();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'orgs':
-            loadOrgs();
-            break;
-        case 'chat':
-            loadChat();
-            break;
-        case 'vacations':
-            loadVacations();
-            break;
-        case 'requests':
-            loadRequests();
-            break;
-        case 'logs':
-            loadLogs();
-            break;
-        default:
-            loadOverview();
-    }
-}
-
-async function loadOverview() {
-    var container = document.getElementById('adminContent');
-    container.innerHTML = 
-        '<div class="card">' +
-            '<div class="card-header">' +
-                '<h3 class="card-title">Останні дії</h3>' +
-            '</div>' +
-            '<div id="recentLogs">' +
-                '<p class="text-muted">Завантаження...</p>' +
-            '</div>' +
-        '</div>';
-    await loadRecentLogs();
-    await loadStats();
-}
-
-// ============= ПАНЕЛЬ ЗАСНОВНИКА =============
-
-async function loadOwnerPanel() {
-    var container = document.getElementById('adminContent');
-    var user = auth.getCurrentUser();
-    
-    if (!user || user.role !== 'owner') {
-        container.innerHTML = '<div class="card"><p class="text-danger">Доступ заборонено. Тільки для засновника.</p></div>';
-        return;
-    }
-    
-    document.getElementById('pageTitle').textContent = 'Панель засновника';
-    document.getElementById('pageSubtitle').textContent = 'Повне управління системою';
-    
-    try {
-        var stats = {
-            totalUsers: (await db.supabaseQuery('users?select=id')).length,
-            totalOrgs: (await db.supabaseQuery('organizations?select=id')).length,
-            totalAdmins: (await db.supabaseQuery('users?role=eq.admin&select=id')).length,
-            totalModerators: (await db.supabaseQuery('users?role=eq.moderator&select=id')).length,
-            totalBanned: (await db.supabaseQuery('users?is_banned=eq.true&select=id')).length,
-            totalMessages: (await db.supabaseQuery('org_chat_messages?select=id')).length
-        };
-        
-        var html = '';
-        
-        html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
-        html += '<div class="stat-card"><div class="stat-value">' + stats.totalUsers + '</div><div class="stat-label">Користувачів</div></div>';
-        html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value">' + stats.totalOrgs + '</div><div class="stat-label">Організацій</div></div>';
-        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value">' + stats.totalAdmins + '</div><div class="stat-label">Адміністраторів</div></div>';
-        html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value">' + stats.totalModerators + '</div><div class="stat-label">Модераторів</div></div>';
-        html += '</div>';
-        
-        html += '<div class="grid-2" style="margin-bottom:1.5rem;">';
-        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + stats.totalBanned + '</div><div class="stat-label">Заблокованих користувачів</div></div>';
-        html += '<div class="stat-card" style="border-color:#3B82F6;"><div class="stat-value">' + stats.totalMessages + '</div><div class="stat-label">Повідомлень у чатах</div></div>';
-        html += '</div>';
-        
-        html += '<div class="card">';
-        html += '<div class="card-header"><h3 class="card-title">Адміністратори та модератори</h3></div>';
-        html += '<div style="overflow-x:auto;">';
-        html += '<table class="table"><thead><tr><th>Користувач</th><th>Email</th><th>Роль</th></tr></thead><tbody>';
-        
-        var admins = await db.supabaseQuery('users?role=eq.admin&select=id,full_name,email');
-        var moderators = await db.supabaseQuery('users?role=eq.moderator&select=id,full_name,email');
-        
-        if (admins && admins.length > 0) {
-            for (var i = 0; i < admins.length; i++) {
-                var a = admins[i];
-                html += '<tr><td><strong>' + (a.full_name || 'Без імені') + '</strong></td><td>' + a.email + '</td><td><span class="badge badge-danger">Адмін</span></td></tr>';
-            }
-        }
-        
-        if (moderators && moderators.length > 0) {
-            for (var i = 0; i < moderators.length; i++) {
-                var m = moderators[i];
-                html += '<tr><td><strong>' + (m.full_name || 'Без імені') + '</strong></td><td>' + m.email + '</td><td><span class="badge badge-warning">Модератор</span></td></tr>';
-            }
-        }
-        
-        if ((!admins || admins.length === 0) && (!moderators || moderators.length === 0)) {
-            html += '<tr><td colspan="3" class="text-center text-muted">Немає адміністраторів або модераторів</td></tr>';
-        }
-        
-        html += '</tbody></table></div></div>';
-        
-        html += '<div class="card">';
-        html += '<div class="card-header"><h3 class="card-title">Швидкі дії</h3></div>';
-        html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">';
-        html += '<button class="btn btn-teal" onclick="loadSection(\'users\')"><i class="fas fa-users"></i> Керувати користувачами</button>';
-        html += '<button class="btn btn-gold" onclick="loadSection(\'orgs\')"><i class="fas fa-building"></i> Керувати організаціями</button>';
-        html += '<button class="btn btn-danger" onclick="loadSection(\'logs\')"><i class="fas fa-history"></i> Переглянути логи</button>';
-        html += '</div></div>';
-        
-        container.innerHTML = html;
-        
-    } catch (error) {
-        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження панелі засновника: ' + error.message + '</p></div>';
-    }
-}
-
-function showOwnerPanel() {
-    var user = auth.getCurrentUser();
-    var link = document.getElementById('ownerPanelLink');
-    if (link) {
-        link.style.display = (user && user.role === 'owner') ? 'block' : 'none';
-    }
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
-
-async function handleLogout() {
-    var confirmed = await showConfirm('Ви впевнені, що хочете вийти?', 'Вихід');
-    if (confirmed) {
-        auth.logoutUser();
-    }
-}
-
-document.querySelectorAll('.modal').forEach(function(modal) {
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.classList.remove('active');
-        }
-    });
-});
-
-async function init() {
-    var user = auth.getCurrentUser();
-    
-    // Показуємо панель засновника для owner
-    showOwnerPanel();
-    
-    // Перевіряємо доступ (owner, admin, moderator)
-    var hasAccess = user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
-    
-    if (!hasAccess) {
-        document.getElementById('adminContent').innerHTML = 
-            '<div class="card"><p class="text-danger">Доступ заборонено. Потрібні права: owner, admin або moderator.</p></div>';
-        return;
-    }
-
-    await loadStats();
-    await loadOverview();
-}
-
-init();
