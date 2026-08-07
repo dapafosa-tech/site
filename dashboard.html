@@ -321,7 +321,12 @@
         </div>
 
         <div id="orgsContainer">
-            <div class="empty-state" id="emptyState">
+            <div class="org-grid" id="orgLoading">
+                <div class="org-card-skeleton"></div>
+                <div class="org-card-skeleton"></div>
+                <div class="org-card-skeleton"></div>
+            </div>
+            <div class="empty-state" id="emptyState" style="display:none;">
                 <i class="fas fa-building"></i>
                 <h3>У вас поки немає організацій</h3>
                 <p>Створіть свою першу організацію або приєднайтеся за кодом</p>
@@ -334,7 +339,7 @@
                     </button>
                 </div>
             </div>
-            <div class="org-grid" id="orgGrid"></div>
+            <div class="org-grid" id="orgGrid" style="display:none;"></div>
         </div>
     </main>
 
