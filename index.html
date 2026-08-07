@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typebiz — цифрова картотека для вашої організації</title>
+<meta name="description" content="Typebiz збирає анкети, заявки та облік людей вашої організації в одну систему замість розкиданих таблиць і чатів.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root{
+    --ink:#0F1115;
+    --ink-soft:#171A21;
+    --ink-line:#2A2E38;
+    --paper:#ECE7DA;
+    --paper-dim:#D9D3C1;
+    --gold:#F2A93B;
+    --gold-dim:#C98A2A;
+    --teal:#46C9B8;
+    --stamp-red:#E2503E;
+    --text-onink:#E7E4DA;
+    --muted:#8B93A6;
+    --text-onpaper:#181A1F;
+    --radius:10px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--ink);
+    color:var(--text-onink);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  .display{font-family:'Space Grotesk', sans-serif;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:inherit;text-decoration:none;}
+  ul{list-style:none;}
+  img,svg{display:block;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 2rem;}
+  ::selection{background:var(--gold);color:var(--ink);}
+
+  a:focus-visible, button:focus-visible{outline:2px solid var(--teal);outline-offset:3px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important;}
+  }
+
+  /* ===== NAV ===== */
+  .navbar{
+    position:sticky; top:0; z-index:1000;
+    background:rgba(15,17,21,0.9);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--ink-line);
+  }
+  .navbar .wrap{display:flex;align-items:center;justify-content:space-between;height:68px;}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.25rem;}
+  .logo .tab{
+    width:26px;height:26px;border-radius:4px;
+    background:var(--gold);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono';font-size:0.7rem;font-weight:600;
+    transform:rotate(-6deg);
+  }
+  .nav-links{display:flex;align-items:center;gap:2rem;}
+  .nav-links a.nav-link{
+    font-family:'IBM Plex Mono';font-size:0.8rem;letter-spacing:0.03em;
+    color:var(--muted); text-transform:uppercase;
+    padding-bottom:4px; border-bottom:1px solid transparent;
+    transition:color .2s, border-color .2s;
+  }
+  .nav-links a.nav-link:hover{color:var(--text-onink);border-color:var(--gold);}
+  .nav-cta{display:flex;align-items:center;gap:0.75rem;}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:0.65rem 1.3rem; border-radius:6px;
+    font-weight:600; font-size:0.9rem; cursor:pointer;
+    border:1px solid transparent; transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn-gold{background:var(--gold); color:var(--ink);}
+  .btn-gold:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(242,169,59,0.28);}
+  .btn-ghost{border-color:var(--ink-line); color:var(--text-onink);}
+  .btn-ghost:hover{border-color:var(--teal); color:var(--teal);}
+  .user-chip{display:flex;align-items:center;gap:10px;padding:0.3rem 0.9rem 0.3rem 0.3rem;border-radius:999px;background:var(--ink-soft);border:1px solid var(--ink-line);}
+  .user-chip .avatar{width:30px;height:30px;border-radius:50%;background:var(--teal);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;overflow:hidden;}
+  .user-chip img{width:100%;height:100%;object-fit:cover;}
+  .user-chip .uname{font-size:0.85rem;font-weight:500;}
+  .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:5px;}
+  .hamburger span{width:22px;height:2px;background:var(--text-onink);border-radius:10px;}
+
+  /* ===== HERO ===== */
+  .hero{
+    position:relative;
+    padding:5.5rem 0 6rem;
+    display:grid; grid-template-columns:1.1fr 0.9fr; gap:3rem; align-items:center;
+  }
+  .hero::before{
+    content:"";position:absolute; inset:-10% -10% auto -10%; height:600px;
+    background:radial-gradient(60% 60% at 30% 20%, rgba(242,169,59,0.10), transparent 70%),
+               radial-gradient(50% 50% at 85% 10%, rgba(70,201,184,0.10), transparent 70%);
+    pointer-events:none; z-index:0;
+  }
+  .hero-content{position:relative;z-index:1;}
+  .eyebrow{
+    font-family:'IBM Plex Mono'; font-size:0.75rem; letter-spacing:0.12em;
+    color:var(--teal); text-transform:uppercase; margin-bottom:1.2rem;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--teal);display:inline-block;}
+  .hero h1{
+    font-size:3.4rem; line-height:1.08; font-weight:700; letter-spacing:-0.01em;
+    margin-bottom:1.4rem;
+  }
+  .hero h1 em{font-style:normal; color:var(--gold);}
+  .hero p.lead{font-size:1.1rem; color:var(--muted); max-width:520px; margin-bottom:2.2rem;}
+  .hero-actions{display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1.8rem;}
+  .btn-lg{padding:0.9rem 1.7rem; font-size:1rem; border-radius:8px;}
+  .hero-note{font-family:'IBM Plex Mono'; font-size:0.78rem; color:var(--muted); display:flex; align-items:center; gap:8px;}
+  .hero-note .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px rgba(70,201,184,0.18);}
+
+  .card-stage{position:relative; z-index:1; display:flex; justify-content:center; perspective:1200px;}
+  .record-card{
+    width:340px; background:var(--paper); color:var(--text-onpaper);
+    border-radius:8px; padding:1.6rem 1.5rem 1.8rem;
+    box-shadow:0 30px 60px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.3);
+    transform:rotate(3deg);
+    transition:transform .3s ease;
+    position:relative;
+  }
+  .record-card:hover{transform:rotate(0deg) translateY(-4px);}
+  .record-card::before{
+    content:""; position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    width:60%; height:10px; border-radius:6px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 8px, transparent 8px 16px);
+    opacity:0.12;
+  }
+  .record-id{font-family:'IBM Plex Mono'; font-size:0.72rem; color:#6b6353; margin-bottom:1rem; display:flex; justify-content:space-between;}
+  .record-field{margin-bottom:0.85rem;}
+  .record-field .label{font-family:'IBM Plex Mono'; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.06em; color:#8a8168; margin-bottom:2px;}
+  .record-field .value{font-weight:600; font-size:0.98rem;}
+  .record-divider{height:1px; background:var(--paper-dim); margin:1rem 0;}
+  .stamp{
+    position:absolute; right:-14px; bottom:18px;
+    font-family:'IBM Plex Mono'; font-weight:700; font-size:0.85rem;
+    color:var(--stamp-red); border:2px solid var(--stamp-red);
+    padding:4px 10px; border-radius:4px; transform:rotate(-10deg);
+    letter-spacing:0.05em; background:rgba(226,80,62,0.05);
+  }
+  .card-stage::after{
+    content:""; position:absolute; width:340px; height:100%; top:14px; left:50%;
+    transform:translateX(-50%) rotate(-2deg);
+    background:var(--paper-dim); border-radius:8px; z-index:-1; opacity:0.5;
+  }
+
+  /* ===== SECTIONS ===== */
+  section{padding:5.5rem 0;}
+  .section-head{max-width:640px; margin-bottom:3rem;}
+  .section-head .eyebrow{color:var(--gold);}
+  .section-head .eyebrow::before{background:var(--gold);}
+  .section-head h2{font-size:2.2rem; font-weight:700; margin-bottom:0.8rem; letter-spacing:-0.01em;}
+  .section-head p{color:var(--muted); font-size:1.02rem;}
+  .section-alt{background:var(--ink-soft); border-top:1px solid var(--ink-line); border-bottom:1px solid var(--ink-line);}
+
+  /* ===== ROLODEX ===== */
+  .rolodex-track{
+    display:flex; gap:1rem; overflow-x:auto; padding:0.5rem 0 1.5rem;
+    cursor:grab; scrollbar-width:thin; scrollbar-color:var(--ink-line) transparent;
+  }
+  .rolodex-track:active{cursor:grabbing;}
+  .rolodex-track::-webkit-scrollbar{height:6px;}
+  .rolodex-track::-webkit-scrollbar-thumb{background:var(--ink-line); border-radius:6px;}
+  .tab-card{
+    flex:0 0 auto; min-width:150px;
+    background:var(--ink); border:1px solid var(--ink-line); border-top:3px solid var(--teal);
+    border-radius:0 0 8px 8px; padding:1.1rem 1rem 0.9rem;
+    display:flex; flex-direction:column; gap:0.6rem;
+    user-select:none;
+  }
+  .tab-card i{color:var(--teal); font-size:1.1rem;}
+  .tab-card .t-name{font-weight:600; font-size:0.92rem;}
+  .tab-card .t-code{font-family:'IBM Plex Mono'; font-size:0.65rem; color:var(--muted);}
+  .rolodex-hint{font-family:'IBM Plex Mono'; font-size:0.75rem; color:var(--muted); display:flex; align-items:center; gap:8px;}
+
+  /* ===== TRIPTYCH ===== */
+  .triptych{display:grid; grid-template-columns:repeat(3,1fr); gap:1.75rem;}
+  .copy-card{
+    background:var(--paper); color:var(--text-onpaper);
+    border-radius:8px; padding:2rem 1.75rem; position:relative;
+    box-shadow:0 18px 40px rgba(0,0,0,0.35);
+  }
+  .copy-card::after{
+    content:""; position:absolute; inset:8px -8px -8px 8px; z-index:-1;
+    background:var(--paper-dim); border-radius:8px; opacity:0.55;
+  }
+  .copy-card .num{
+    font-family:'IBM Plex Mono'; font-size:0.75rem; color:#8a8168;
+    border-bottom:1px dashed var(--paper-dim); padding-bottom:0.6rem; margin-bottom:1.1rem;
+    display:flex; justify-content:space-between;
+  }
+  .copy-card i{font-size:1.6rem; color:var(--gold-dim); margin-bottom:0.9rem;}
+  .copy-card h3{font-size:1.25rem; margin-bottom:0.6rem; font-weight:700;}
+  .copy-card p{color:#4a463c; font-size:0.94rem;}
+
+  /* ===== HOW IT WORKS ===== */
+  .flow{display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem;}
+  .flow-step{border-left:2px solid var(--ink-line); padding-left:1.2rem; position:relative;}
+  .flow-step .fnum{font-family:'IBM Plex Mono'; color:var(--gold); font-size:0.8rem; margin-bottom:0.5rem;}
+  .flow-step h4{font-size:1.05rem; margin-bottom:0.5rem; font-weight:600;}
+  .flow-step p{color:var(--muted); font-size:0.9rem;}
+
+  /* ===== PRICING ===== */
+  .pricing-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.75rem;}
+  .ticket{
+    background:var(--ink-soft); border:1px solid var(--ink-line); border-radius:10px;
+    padding:2rem 1.75rem; position:relative; display:flex; flex-direction:column;
+  }
+  .ticket.popular{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold), 0 20px 50px rgba(242,169,59,0.12);}
+  .ticket-badge{
+    position:absolute; top:-13px; left:1.75rem; background:var(--gold); color:var(--ink);
+    font-family:'IBM Plex Mono'; font-size:0.68rem; font-weight:700; letter-spacing:0.05em;
+    padding:4px 10px; border-radius:4px; text-transform:uppercase;
+  }
+  .ticket h3{font-size:1.15rem; font-weight:700; margin-bottom:0.4rem;}
+  .ticket .tier-desc{color:var(--muted); font-size:0.85rem; margin-bottom:1.4rem;}
+  .ticket .price{font-family:'Space Grotesk'; font-size:2.2rem; font-weight:700; margin-bottom:0.3rem;}
+  .ticket .price span{font-family:'IBM Plex Mono'; font-size:0.85rem; color:var(--muted); font-weight:400;}
+  .ticket-perf{border-top:1px dashed var(--ink-line); margin:1.4rem 0; position:relative;}
+  .ticket-perf::before, .ticket-perf::after{
+    content:""; position:absolute; top:-8px; width:16px; height:16px; border-radius:50%; background:var(--ink);
+  }
+  .ticket-perf::before{left:-1.75rem;}
+  .ticket-perf::after{right:-1.75rem;}
+  .ticket ul{margin-bottom:1.8rem; flex:1;}
+  .ticket li{display:flex; align-items:flex-start; gap:8px; font-size:0.88rem; color:var(--text-onink); margin-bottom:0.65rem;}
+  .ticket li i{color:var(--teal); margin-top:3px; font-size:0.8rem;}
+  .ticket .btn{width:100%; justify-content:center;}
+
+  /* ===== CTA BAND ===== */
+  .cta-band{
+    background:linear-gradient(135deg, var(--gold-dim), var(--gold));
+    color:var(--ink); border-radius:16px; padding:3.5rem 3rem;
+    display:flex; align-items:center; justify-content:space-between; gap:2rem; flex-wrap:wrap;
+  }
+  .cta-band h2{font-size:1.9rem; font-weight:700; max-width:480px;}
+  .cta-band .btn-gold{background:var(--ink); color:var(--paper);}
+
+  /* ===== FOOTER ===== */
+  .footer{border-top:1px solid var(--ink-line); padding:2.5rem 0; }
+  .footer .wrap{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;}
+  .footer .mono{font-size:0.78rem; color:var(--muted);}
+  .footer .flinks{display:flex; gap:1.5rem;}
+  .footer .flinks a{font-size:0.82rem; color:var(--muted);}
+  .footer .flinks a:hover{color:var(--teal);}
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width:980px){
+    .triptych{grid-template-columns:1fr;}
+    .pricing-grid{grid-template-columns:1fr;}
+    .flow{grid-template-columns:repeat(2,1fr);}
+    .hero{grid-template-columns:1fr; padding-top:3rem;}
+    .card-stage{order:-1; margin-bottom:1rem;}
+  }
+  @media (max-width:768px){
+    .nav-links{
+      position:fixed; top:68px; left:0; right:0; background:var(--ink);
+      flex-direction:column; align-items:flex-start; gap:0; padding:1rem 2rem 1.5rem;
+      border-bottom:1px solid var(--ink-line);
+      transform:translateY(-150%); transition:transform .25s ease; z-index:999;
+    }
+    .nav-links.active{transform:translateY(0);}
+    .nav-links a.nav-link{padding:0.8rem 0; width:100%; border-bottom:1px solid var(--ink-line);}
+    .nav-cta{display:none;}
+    .nav-links.active .nav-cta{display:flex; width:100%; padding-top:1rem; gap:0.75rem;}
+    .hamburger{display:flex;}
+    .hero h1{font-size:2.3rem;}
+    .flow{grid-template-columns:1fr;}
+    .cta-band{flex-direction:column; text-align:center; padding:2.5rem 1.75rem;}
+    .cta-band h2{max-width:none;}
+    .record-card{width:100%; max-width:320px;}
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="wrap">
+    <a href="/" class="logo"><span class="tab">Tb</span> Typebiz</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#features" class="nav-link">Можливості</a></li>
+      <li><a href="#for-whom" class="nav-link">Для кого</a></li>
+      <li><a href="#pricing" class="nav-link">Тарифи</a></li>
+      <li class="nav-cta" id="navAuthButtons">
+        <a href="/login" class="btn btn-ghost">Увійти</a>
+        <a href="/register" class="btn btn-gold">Почати</a>
+      </li>
+    </ul>
+    <button class="hamburger" onclick="toggleMenu()" aria-label="Меню"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<section class="hero wrap">
+  <div class="hero-content">
+    <div class="eyebrow">Система обліку для організацій</div>
+    <h1 class="display">Кожна анкета і заявка — <em>на своєму місці</em>.</h1>
+    <p class="lead">Typebiz збирає людей, анкети та запити вашої організації в одну базу замість розкиданих гугл-форм, таблиць і чатів. Заповнили — одразу видно в системі.</p>
+    <div class="hero-actions">
+      <a href="/register" class="btn btn-gold btn-lg"><i class="fas fa-rocket"></i> Почати безкоштовно</a>
+      <a href="#pricing" class="btn btn-ghost btn-lg">Тарифи</a>
+    </div>
+    <div class="hero-note"><span class="dot"></span> Безкоштовний тариф без обмеження за часом</div>
+  </div>
+  <div class="card-stage">
+    <div class="record-card">
+      <div class="record-id"><span>ORG // 004821</span><span>2026</span></div>
+      <div class="record-field">
+        <div class="label">Назва організації</div>
+        <div class="value">Кав'ярня «На розі»</div>
+      </div>
+      <div class="record-field">
+        <div class="label">Тип</div>
+        <div class="value">Заклад харчування</div>
+      </div>
+      <div class="record-divider"></div>
+      <div class="record-field">
+        <div class="label">Учасників</div>
+        <div class="value">18</div>
+      </div>
+      <div class="record-field">
+        <div class="label">Активна анкета</div>
+        <div class="value">Зворотний зв'язок від гостей</div>
+      </div>
+      <div class="record-field">
+        <div class="label">Нових запитів</div>
+        <div class="value">7 · очікують розгляду</div>
+      </div>
+      <div class="stamp">АКТИВНА</div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Три речі, на яких усе тримається</div>
+      <h2 class="display">База, анкети, запити — разом</h2>
+      <p>Ви створюєте структуру один раз, а далі система сама розкладає все по місцях.</p>
+    </div>
+    <div class="triptych">
+      <div class="copy-card">
+        <div class="num"><span>01</span><span>DB</span></div>
+        <i class="fas fa-database"></i>
+        <h3>База даних</h3>
+        <p>Люди, організації та записи зберігаються в одній структурі. Шукайте й фільтруйте за будь-яким полем, вивантажуйте дані, коли потрібно.</p>
+      </div>
+      <div class="copy-card">
+        <div class="num"><span>02</span><span>FORM</span></div>
+        <i class="fas fa-file-signature"></i>
+        <h3>Анкети</h3>
+        <p>Збирайте анкети під конкретну задачу — прийом на роботу, зворотний зв'язок, реєстрацію. Відповіді одразу потрапляють у базу, без ручного перенесення.</p>
+      </div>
+      <div class="copy-card">
+        <div class="num"><span>03</span><span>REQ</span></div>
+        <i class="fas fa-inbox"></i>
+        <h3>Запити</h3>
+        <p>Кожна заявка проходить чіткий шлях від подачі до рішення — з відповідальним, статусом і історією, яку завжди можна підняти.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="for-whom">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Понад 60 напрямів</div>
+      <h2 class="display">Для будь-якої організації</h2>
+      <p>Від кав'ярні на розі до IT-компанії з сотнею людей — структура підлаштовується під вашу сферу, а не навпаки.</p>
+    </div>
+    <div class="rolodex-track" id="rolodexTrack"></div>
+    <div class="rolodex-hint"><i class="fas fa-arrows-left-right"></i> Перетягніть, щоб переглянути всі напрями</div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Як це працює</div>
+      <h2 class="display">Від реєстрації до порядку — чотири кроки</h2>
+    </div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="fnum mono">01</div>
+        <h4>Створюєте організацію</h4>
+        <p>Вказуєте назву й сферу — система одразу пропонує підходящу структуру полів.</p>
+      </div>
+      <div class="flow-step">
+        <div class="fnum mono">02</div>
+        <h4>Запрошуєте людей</h4>
+        <p>Співробітники чи учасники приєднуються за кодом — без зайвої бюрократії.</p>
+      </div>
+      <div class="flow-step">
+        <div class="fnum mono">03</div>
+        <h4>Збираєте анкети</h4>
+        <p>Публікуєте форму — відповіді одразу лягають у базу, готові до фільтрації.</p>
+      </div>
+      <div class="flow-step">
+        <div class="fnum mono">04</div>
+        <h4>Обробляєте запити</h4>
+        <p>Бачите всі заявки в одному місці, з відповідальними і статусами.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Тарифи</div>
+      <h2 class="display">Почніть безкоштовно, ростіть, коли готові</h2>
+      <p>Оплата щомісяця, без прихованих умов. Можна змінити тариф у будь-який момент.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="ticket">
+        <h3>Безкоштовний</h3>
+        <p class="tier-desc">Щоб спробувати платформу в справі</p>
+        <div class="price">0 <span>₴/міс</span></div>
+        <div class="ticket-perf"></div>
+        <ul>
+          <li><i class="fas fa-check"></i> 1 організація</li>
+          <li><i class="fas fa-check"></i> До 5 учасників</li>
+          <li><i class="fas fa-check"></i> Базові анкети й запити</li>
+          <li><i class="fas fa-check"></i> 100 МБ сховища</li>
+        </ul>
+        <a href="/register" class="btn btn-ghost">Почати безкоштовно</a>
+      </div>
+      <div class="ticket popular">
+        <div class="ticket-badge">Популярний</div>
+        <h3>Професійний</h3>
+        <p class="tier-desc">Для команди, що вже росте</p>
+        <div class="price">390 <span>₴/міс</span></div>
+        <div class="ticket-perf"></div>
+        <ul>
+          <li><i class="fas fa-check"></i> До 10 організацій</li>
+          <li><i class="fas fa-check"></i> До 100 учасників</li>
+          <li><i class="fas fa-check"></i> Усі модулі й шаблони анкет</li>
+          <li><i class="fas fa-check"></i> 5 ГБ сховища</li>
+          <li><i class="fas fa-check"></i> Пріоритетна підтримка</li>
+        </ul>
+        <a href="/register" class="btn btn-gold">Обрати тариф</a>
+      </div>
+      <div class="ticket">
+        <h3>Бізнес</h3>
+        <p class="tier-desc">Для великих організацій</p>
+        <div class="price">990 <span>₴/міс</span></div>
+        <div class="ticket-perf"></div>
+        <ul>
+          <li><i class="fas fa-check"></i> Необмежено організацій</li>
+          <li><i class="fas fa-check"></i> Необмежено учасників</li>
+          <li><i class="fas fa-check"></i> Усі модулі + API</li>
+          <li><i class="fas fa-check"></i> 20 ГБ сховища</li>
+          <li><i class="fas fa-check"></i> Персональний менеджер</li>
+        </ul>
+        <a href="/register" class="btn btn-ghost">Звʼязатися</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="cta-band">
+      <h2 class="display">Наведіть лад у своїй організації вже сьогодні</h2>
+      <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        <a href="/register" class="btn btn-gold btn-lg">Почати безкоштовно</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <p class="mono"><i class="fas fa-th-large"></i> Typebiz — цифрова картотека для організацій · © 2026</p>
+    <div class="flinks">
+      <a href="/privacy">Конфіденційність</a>
+      <a href="/terms">Умови користування</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/db.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+  function toggleMenu(){
+    document.getElementById('navLinks').classList.toggle('active');
+  }
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', () => document.getElementById('navLinks').classList.remove('active'));
+  });
+
+  // ===== org types rolodex =====
+  const orgTypes = [
+    ['fa-utensils','Ресторан','F-01'],['fa-store','Магазин','R-02'],['fa-hotel','Готель','H-03'],
+    ['fa-dumbbell','Спортзал','S-04'],['fa-spa','Салон краси','B-05'],['fa-car','Автосервіс','A-06'],
+    ['fa-home','Нерухомість','P-07'],['fa-code','IT-компанія','T-08'],['fa-chart-line','Маркетинг','M-09'],
+    ['fa-gavel','Юридична','L-10'],['fa-coins','Фінанси','F-11'],['fa-graduation-cap','Освіта','E-12'],
+    ['fa-heartbeat','Медицина','M-13'],['fa-running','Спорт','S-14'],['fa-palette','Мистецтво','A-15'],
+    ['fa-music','Музика','M-16'],['fa-camera','Фото','P-17'],['fa-video','Відео','V-18'],
+    ['fa-hard-hat','Будівництво','C-19'],['fa-tools','Ремонт','R-20'],['fa-broom','Клінінг','C-21'],
+    ['fa-truck','Доставка','D-22'],['fa-shipping-fast','Логістика','L-23'],['fa-tractor','Агро','A-24'],
+    ['fa-plane','Туризм','T-25'],['fa-calendar-check','Івент','E-26'],['fa-hand-holding-heart','Благодійність','B-27'],
+    ['fa-landmark','Державна','G-28'],['fa-gamepad','GameDev','G-29'],['fa-rocket','Стартап','S-30'],
+    ['fa-newspaper','Видавництво','P-31'],['fa-film','Анімація','A-32'],['fa-vr-cardboard','VR/AR','V-33'],
+    ['fa-trophy','Кіберспорт','E-34'],['fa-microphone','Подкаст','P-35'],['fa-blog','Блогінг','B-36'],
+    ['fa-share-alt','Соцмережі','S-37'],['fa-handshake','Консалтинг','C-38'],['fa-user-tie','Фриланс','F-39'],
+    ['fa-building','Коворкінг','C-40'],['fa-seedling','Інкубатор','I-41'],['fa-chart-pie','Венчур','V-42'],
+    ['fa-users','Спільнота','C-43'],['fa-flask','Дослідження','R-44'],['fa-atom','Наука','S-45'],
+    ['fa-robot','Робототехніка','R-46'],['fa-brain','ШІ','A-47'],['fa-link','Блокчейн','B-48'],
+    ['fa-globe','Web3','W-49'],['fa-cubes','Інше','O-50']
+  ];
+  const track = document.getElementById('rolodexTrack');
+  track.innerHTML = orgTypes.map(([icon,name,code]) => `
+    <div class="tab-card">
+      <i class="fas ${icon}"></i>
+      <div class="t-name">${name}</div>
+      <div class="t-code mono">${code}</div>
+    </div>
+  `).join('');
+
+  let isDown = false, startX, scrollLeft;
+  track.addEventListener('mousedown', (e) => {
+    isDown = true; startX = e.pageX - track.offsetLeft; scrollLeft = track.scrollLeft;
+  });
+  window.addEventListener('mouseup', () => isDown = false);
+  track.addEventListener('mouseleave', () => isDown = false);
+  track.addEventListener('mousemove', (e) => {
+    if(!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - track.offsetLeft;
+    track.scrollLeft = scrollLeft - (x - startX) * 1.4;
+  });
+
+  // ===== dynamic navbar (auth state) =====
+  function updateNavbar(){
+    const navContainer = document.getElementById('navAuthButtons');
+    const user = (typeof auth !== 'undefined') ? auth.getCurrentUser() : null;
+
+    if(user){
+      const initial = (user.full_name || 'U')[0].toUpperCase();
+      const avatarHtml = user.avatar_url
+        ? `<img src="${user.avatar_url}" alt="Аватар">`
+        : initial;
+      navContainer.innerHTML = `
+        <a href="/dashboard" class="user-chip">
+          <span class="avatar">${avatarHtml}</span>
+          <span class="uname">${user.full_name || 'Профіль'}</span>
+        </a>
+        <a href="/dashboard" class="btn btn-gold"><i class="fas fa-th-large"></i> Кабінет</a>
+      `;
+    } else {
+      navContainer.innerHTML = `
+        <a href="/login" class="btn btn-ghost">Увійти</a>
+        <a href="/register" class="btn btn-gold">Почати</a>
+      `;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updateNavbar();
+    window.addEventListener('storage', (e) => {
+      if(e.key === 'userData') updateNavbar();
+    });
+  });
+  setTimeout(updateNavbar, 100);
+
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e){
+      const href = this.getAttribute('href');
+      if(href === '#') return;
+      const target = document.querySelector(href);
+      if(target){ e.preventDefault(); target.scrollIntoView({behavior:'smooth'}); }
+    });
+  });
+</script>
+</body>
+</html>
