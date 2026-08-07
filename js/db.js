@@ -96,17 +96,32 @@ async function supabaseQuery(endpoint, options) {
     }
 }
 
-// ===== ЛОГИ =====
+// ===== ЛОГИ З ІМЕНАМИ КОРИСТУВАЧІВ =====
+async function getUserName(userId) {
+    try {
+        var result = await supabaseQuery('users?id=eq.' + userId + '&select=full_name,email');
+        if (result && result.length > 0) {
+            return result[0].full_name || result[0].email || 'Невідомо';
+        }
+        return 'Система';
+    } catch {
+        return 'Система';
+    }
+}
+
 async function addLog(action, entityType, entityId, details) {
     try {
         var user = getCurrentUser();
         if (!user) return null;
+        
+        var userName = user.full_name || user.email || 'Користувач';
         
         return await supabaseQuery('activity_logs', {
             method: 'POST',
             body: JSON.stringify({
                 id: generateUUID(),
                 user_id: user.id,
+                user_name: userName,
                 action: action,
                 entity_type: entityType,
                 entity_id: entityId || null,
@@ -139,6 +154,11 @@ async function deleteUser(id) {
 }
 
 async function setUserRole(userId, role) {
+    var validRoles = ['user', 'moderator', 'admin'];
+    if (validRoles.indexOf(role) === -1) {
+        throw new Error('Невірна роль. Доступні: user, moderator, admin');
+    }
+    
     var result = await supabaseQuery('users?id=eq.' + userId, {
         method: 'PATCH',
         body: JSON.stringify({ role: role })
@@ -147,16 +167,49 @@ async function setUserRole(userId, role) {
     return result;
 }
 
+async function getUserRole(userId) {
+    try {
+        var result = await supabaseQuery('users?id=eq.' + userId + '&select=role');
+        if (result && result.length > 0) {
+            return result[0].role || 'user';
+        }
+        return 'user';
+    } catch {
+        return 'user';
+    }
+}
+
+async function isUserBanned(userId) {
+    try {
+        var result = await supabaseQuery('users?id=eq.' + userId + '&select=is_banned');
+        if (result && result.length > 0) {
+            return result[0].is_banned === true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+async function getUsersWithRoles() {
+    return supabaseQuery('users?select=id,full_name,email,role,is_banned,ban_reason');
+}
+
 // ===== ОРГАНІЗАЦІЇ =====
 async function createOrganization(data) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
     
+    // Перевіряємо чи не забанений
+    if (await isUserBanned(user.id)) {
+        throw new Error('Ваш акаунт заблоковано');
+    }
+    
+    // Ліміт для звичайних користувачів та модераторів - максимум 1 організація
     if (user.role !== 'admin') {
-        var orgs = await getUserOrganizations();
-        var leaderOrgs = orgs.filter(function(o) { return o.leader_id === user.id; });
-        if (leaderOrgs.length >= 2) {
-            throw new Error('Ви можете бути лідером максимум у 2 організаціях. Адміністратори можуть створювати безлімітно.');
+        var orgs = await getUserAllOrganizations();
+        if (orgs && orgs.length >= 1) {
+            throw new Error('Ви можете створити лише 1 організацію. Адміністратори можуть створювати безлімітно.');
         }
     }
     
@@ -186,7 +239,6 @@ async function createOrganization(data) {
     if (result && result.length > 0) {
         var orgId = result[0].id;
         
-        // Створюємо посаду "Директор"
         var rankResult = await supabaseQuery('org_ranks', {
             method: 'POST',
             body: JSON.stringify({
@@ -216,10 +268,10 @@ async function createOrganization(data) {
             await addMemberToOrganization(orgId, user.id, null);
         }
         
-        // Лог створення організації
         await addLog('Створено організацію', 'organization', orgId, {
             name: data.name,
-            type: data.type
+            type: data.type,
+            user_name: user.full_name || user.email
         });
     }
 
@@ -349,6 +401,11 @@ async function deleteRank(id) {
 // ===== УЧАСНИКИ =====
 async function addMemberToOrganization(orgId, userId, rankId) {
     if (rankId === undefined) rankId = null;
+    
+    if (await isUserBanned(userId)) {
+        throw new Error('Користувача заблоковано');
+    }
+    
     var result = await supabaseQuery('org_members', {
         method: 'POST',
         body: JSON.stringify({
@@ -388,6 +445,11 @@ async function removeMemberFromOrganization(memberId) {
 // ===== ЗАЯВКИ =====
 async function createJoinRequest(orgId, userId, message) {
     if (message === undefined) message = '';
+    
+    if (await isUserBanned(userId)) {
+        throw new Error('Ваш акаунт заблоковано');
+    }
+    
     var result = await supabaseQuery('join_requests', {
         method: 'POST',
         body: JSON.stringify({
@@ -1248,6 +1310,10 @@ async function createItBug(data) {
 window.db = {
     supabaseQuery: supabaseQuery,
     addLog: addLog,
+    getUserName: getUserName,
+    getUserRole: getUserRole,
+    isUserBanned: isUserBanned,
+    getUsersWithRoles: getUsersWithRoles,
     createOrganization: createOrganization,
     getUserOrganizations: getUserOrganizations,
     getUserAllOrganizations: getUserAllOrganizations,
