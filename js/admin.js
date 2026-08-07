@@ -1,7 +1,3 @@
-// ============================================
-// TYPEBIZ - АДМІН-ПАНЕЛЬ (З РОЛЯМИ: USER, MODERATOR, ADMIN)
-// ============================================
-
 async function loadStats() {
     try {
         var users = await db.supabaseQuery('users?select=*');
@@ -98,7 +94,6 @@ async function loadUsers() {
                         '<td>' + (roleLabels[u.role] || roleLabels.user) + '</td>' +
                         '<td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
                         '<td style="white-space:nowrap;">' +
-                            // Кнопки для адмінів
                             (isAdmin && !isCurrentUser ? 
                                 (isUserBanned ? 
                                     '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати" style="padding:0.2rem 0.6rem;font-size:0.65rem;">' +
