@@ -205,7 +205,7 @@
         .btn-sm{padding:0.35rem 0.7rem;font-size:0.78rem;border-radius:6px;}
         .btn-icon{padding:0.5rem 0.7rem;}
 
-        /* ===== BADGES (підтримка) ===== */
+        /* ===== BADGES ===== */
         .badge{
             display:inline-block;
             padding:0.2rem 0.7rem;
@@ -731,9 +731,10 @@
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
+    <script src="/js/check-auth.js"></script>
     <script>
         // ============================================
-        // TYPEBIZ - ДАШБОРД
+        // TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ З ФІКСАМИ)
         // ============================================
 
         function logoutUser() {
@@ -750,8 +751,6 @@
             document.getElementById('createOrgModal').classList.add('active');
         }
 
-        // Довантажує типи організацій, додані засновником у панелі "Управління системою",
-        // і додає їх у список типів, якщо їх там ще немає
         async function loadCustomOrgTypes() {
             try {
                 var customTypes = await db.supabaseQuery('org_types?order=name.asc');
@@ -820,6 +819,11 @@
 
             try {
                 var user = auth.getCurrentUser();
+                if (!user) {
+                    container.innerHTML = '<p class="text-danger">Користувач не авторизований</p>';
+                    return;
+                }
+
                 var tickets = await db.getSupportTickets({ userId: user.id });
 
                 var sorted = (tickets || []).slice().sort(function(a, b) {
@@ -991,6 +995,12 @@
             var user = auth.getCurrentUser();
             if (!user) {
                 window.location.href = '/login';
+                return;
+            }
+
+            // Додаткова перевірка бана (для безпеки)
+            if (user.is_banned === true) {
+                window.location.href = '/banned';
                 return;
             }
 
@@ -1255,12 +1265,38 @@
             });
         });
 
+        // ============================================
+        // ІНІЦІАЛІЗАЦІЯ
+        // ============================================
+
         (async function init() {
-            var isAuth = await auth.requireAuth();
-            if (!isAuth) return;
-            await loadDashboard();
-            loadCustomOrgTypes();
-            if (window.renderGlobalAnnouncements) renderGlobalAnnouncements();
+            try {
+                // Перевіряємо авторизацію через auth.requireAuth()
+                var isAuth = await auth.requireAuth();
+                if (!isAuth) {
+                    // requireAuth() зробить редірект на /login або /banned
+                    return;
+                }
+
+                // Додаткова перевірка бана
+                var user = auth.getCurrentUser();
+                if (user && user.is_banned === true) {
+                    window.location.href = '/banned';
+                    return;
+                }
+
+                // Завантажуємо дашборд
+                await loadDashboard();
+                loadCustomOrgTypes();
+                
+                if (window.renderGlobalAnnouncements) {
+                    renderGlobalAnnouncements();
+                }
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                // Якщо помилка - перенаправляємо на логін
+                window.location.href = '/login';
+            }
         })();
     </script>
 </body>
