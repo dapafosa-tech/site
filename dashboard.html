@@ -36,7 +36,6 @@
             display:flex;
             position:relative;
         }
-        /* subtle grain texture — kills the flat "AI slide" look */
         body::before{
             content:"";
             position:fixed; inset:0; z-index:0; pointer-events:none;
@@ -442,6 +441,9 @@
                 <a href="/owner-panel"><i class="fas fa-crown"></i> <span>Панель засновника</span></a>
             </li>
 
+            <!-- Підтримка -->
+            <li><a href="#" onclick="openSupport()"><i class="fas fa-headset"></i> Підтримка</a></li>
+
             <li><a href="/settings"><i class="fas fa-cog"></i> Налаштування</a></li>
         </ul>
 
@@ -613,6 +615,49 @@
         </div>
     </div>
 
+    <!-- Модалка підтримки -->
+    <div class="modal" id="supportModal">
+        <div class="modal-content">
+            <div class="modal-tag">TYPEBIZ // SUPPORT</div>
+            <div class="modal-header">
+                <h2>📩 Звернення в підтримку</h2>
+                <button class="modal-close" onclick="closeModal('supportModal')">&times;</button>
+            </div>
+            <form id="supportForm">
+                <div class="form-group">
+                    <label class="form-label">Тема <span style="color:var(--gold);">*</span></label>
+                    <input type="text" class="form-control" id="supportSubject" placeholder="Коротко опишіть проблему" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип звернення <span style="color:var(--gold);">*</span></label>
+                    <select class="form-control" id="supportType" required>
+                        <option value="">Оберіть тип...</option>
+                        <option value="bug">🐛 Помилка/Баг</option>
+                        <option value="question">❓ Питання</option>
+                        <option value="suggestion">💡 Пропозиція</option>
+                        <option value="complaint">⚠️ Скарга</option>
+                        <option value="other">📌 Інше</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Опис <span style="color:var(--gold);">*</span></label>
+                    <textarea class="form-control" id="supportMessage" rows="5" placeholder="Детально опишіть вашу проблему..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пріоритет</label>
+                    <select class="form-control" id="supportPriority">
+                        <option value="low">Низький</option>
+                        <option value="medium" selected>Середній</option>
+                        <option value="high">Високий</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-gold btn-block">
+                    <i class="fas fa-paper-plane"></i> Відправити звернення
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
@@ -637,6 +682,10 @@
 
         function openJoinOrg() {
             document.getElementById('joinOrgModal').classList.add('active');
+        }
+
+        function openSupport() {
+            document.getElementById('supportModal').classList.add('active');
         }
 
         function closeModal(id) {
@@ -718,11 +767,9 @@
             var ownerLink = document.getElementById('ownerLink');
 
             if (user.role === 'owner') {
-                // Для засновника - показуємо "Панель засновника" (веде на /owner-panel)
                 ownerLink.style.display = 'block';
                 adminLink.style.display = 'none';
             } else if (user.role === 'admin' || user.role === 'moderator') {
-                // Для адміна та модератора - показуємо "Адмін-панель" (веде на /admin)
                 adminLink.style.display = 'block';
                 ownerLink.style.display = 'none';
             } else {
@@ -900,6 +947,64 @@
 
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
+        });
+
+        // ============================================
+        // ПІДТРИМКА - ВІДПРАВКА ЗВЕРНЕННЯ
+        // ============================================
+
+        document.getElementById('supportForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var subject = document.getElementById('supportSubject').value.trim();
+            var type = document.getElementById('supportType').value;
+            var message = document.getElementById('supportMessage').value.trim();
+            var priority = document.getElementById('supportPriority').value;
+
+            if (!subject) {
+                showAlert('Введіть тему звернення', 'warning');
+                return;
+            }
+            if (!type) {
+                showAlert('Виберіть тип звернення', 'warning');
+                return;
+            }
+            if (!message) {
+                showAlert('Введіть опис проблеми', 'warning');
+                return;
+            }
+
+            var submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
+
+            try {
+                var user = auth.getCurrentUser();
+
+                await db.supabaseQuery('support_tickets', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        subject: subject,
+                        message: message,
+                        type: type,
+                        priority: priority,
+                        status: 'open',
+                        created_at: new Date().toISOString()
+                    })
+                });
+
+                await db.addLog('Створено заявку в підтримку', 'support', null, { subject: subject, type: type });
+                showToast('✅ Ваше звернення відправлено! Ми зв\'яжемося з вами найближчим часом.', 'success');
+                closeModal('supportModal');
+                document.getElementById('supportForm').reset();
+
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити звернення';
         });
 
         document.querySelectorAll('.modal').forEach(function(modal) {
