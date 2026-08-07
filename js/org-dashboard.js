@@ -1,7 +1,3 @@
-// ============================================
-// TYPEBIZ - ДАШБОРД ОРГАНІЗАЦІЇ (ПОВНА ВЕРСІЯ)
-// ============================================
-
 var currentOrgId = null;
 var currentOrg = null;
 var allPatients = [];
@@ -20,7 +16,19 @@ var allProjects = [];
 var allOrders = [];
 var selectedOrderItems = [];
 
-// ===== ТИПИ =====
+function checkOrgActive() {
+    if (currentOrg && currentOrg.is_active === false) {
+        var reason = currentOrg.freeze_reason || 'Причина не вказана';
+        showAlert(
+            'Організація заморожена адміністрацією.\n\nПричина: ' + reason + '\n\nДоступ до всіх функцій обмежено.',
+            'warning',
+            'Організація неактивна'
+        );
+        return false;
+    }
+    return true;
+}
+
 var typeLabels = {
     'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
     'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
@@ -47,7 +55,6 @@ var typeLabels = {
     'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
 };
 
-// ===== СТАТУСИ =====
 var statusLabels = {
     'pending': 'Очікує',
     'approved': 'Схвалено',
@@ -91,7 +98,6 @@ var orderStatusLabels = {
     'cancelled': 'Скасовано'
 };
 
-// ===== НАЛАШТУВАННЯ НАВІГАЦІЇ =====
 function setupNavigationByType(orgType) {
     var navMap = {
         'clinic': ['overview', 'members', 'requests', 'ranks', 'departments', 'chat', 'vacations', 'events', 'tasks', 'polls', 'files', 'settings', 'clinic'],
@@ -152,7 +158,6 @@ function setupNavigationByType(orgType) {
     });
 }
 
-// ===== ІНІЦІАЛІЗАЦІЯ =====
 async function init() {
     var isAuth = await auth.requireAuth();
     if (!isAuth) return;
@@ -164,7 +169,6 @@ function getOrgIdFromUrl() {
     return params.get('id');
 }
 
-// ===== ЗАВАНТАЖЕННЯ ОРГАНІЗАЦІЇ =====
 async function loadOrganization() {
     var orgId = getOrgIdFromUrl();
     if (!orgId) {
@@ -191,6 +195,15 @@ async function loadOrganization() {
     document.getElementById('orgName').textContent = currentOrg.name;
     document.getElementById('orgType').textContent = typeLabels[currentOrg.type] || currentOrg.type;
     document.getElementById('joinCode').textContent = currentOrg.join_code || '---';
+
+    if (currentOrg.is_active === false) {
+        var reason = currentOrg.freeze_reason || 'Причина не вказана';
+        await showAlert(
+            'Організація "' + currentOrg.name + '" заморожена адміністрацією.\n\nПричина: ' + reason + '\n\nДоступ до всіх функцій обмежено.',
+            'warning',
+            'Організація неактивна'
+        );
+    }
 
     setupNavigationByType(currentOrg.type);
 
@@ -223,7 +236,6 @@ async function loadOrganization() {
     loadSection('overview');
 }
 
-// ===== ЗАВАНТАЖЕННЯ РОЗДІЛІВ =====
 function loadSection(section) {
     var links = document.querySelectorAll('.nav-menu a');
     for (var i = 0; i < links.length; i++) {
@@ -234,6 +246,14 @@ function loadSection(section) {
         if (onclick.indexOf(section) !== -1) {
             links[j].classList.add('active');
         }
+    }
+
+    if (!checkOrgActive() && section !== 'overview' && section !== 'settings') {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена. Доступні лише Огляд та Налаштування.</div>';
+        document.getElementById('pageTitle').textContent = 'Доступ заборонено';
+        document.getElementById('pageSubtitle').textContent = 'Організація заморожена';
+        return;
     }
 
     switch (section) {
@@ -266,7 +286,6 @@ function loadSection(section) {
     }
 }
 
-// ========== ОГЛЯД ==========
 async function loadOverview() {
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Огляд';
@@ -286,11 +305,12 @@ async function loadOverview() {
         }
 
         var tasksCount = tasks ? tasks.length : 0;
+        var isActive = currentOrg && currentOrg.is_active !== false;
 
         container.innerHTML = 
             '<div class="grid-4">' +
-                '<div class="stat-card">' +
-                    '<div class="stat-value">' + (members ? members.length : 0) + '</div>' +
+                '<div class="stat-card" style="' + (!isActive ? 'border-color:#E2503E;' : '') + '">' +
+                    '<div class="stat-value" style="' + (!isActive ? 'color:#E2503E;' : '') + '">' + (members ? members.length : 0) + '</div>' +
                     '<div class="stat-label">Учасників</div>' +
                 '</div>' +
                 '<div class="stat-card" style="border-color: var(--teal);">' +
@@ -309,12 +329,14 @@ async function loadOverview() {
             '<div class="card">' +
                 '<div class="card-header">' +
                     '<h3 class="card-title">Інформація про організацію</h3>' +
+                    (!isActive ? '<span style="color:#E2503E;font-weight:600;font-size:0.85rem;"><i class="fas fa-lock"></i> ЗАМОРОЖЕНО</span>' : '') +
                 '</div>' +
                 '<div class="grid-2">' +
                     '<div>' +
                         '<p><strong>Назва:</strong> ' + (currentOrg ? currentOrg.name : '') + '</p>' +
                         '<p><strong>Тип:</strong> ' + (currentOrg ? (typeLabels[currentOrg.type] || currentOrg.type) : '') + '</p>' +
                         '<p><strong>Опис:</strong> ' + (currentOrg ? (currentOrg.description || 'Немає опису') : '') + '</p>' +
+                        (!isActive ? '<p><strong>Причина заморозки:</strong> <span style="color:#E2503E;">' + (currentOrg.freeze_reason || 'Причина не вказана') + '</span></p>' : '') +
                     '</div>' +
                     '<div>' +
                         '<p><strong>Код вступу:</strong> <span style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;background:var(--ink);padding:0.2rem 0.8rem;border-radius:var(--radius-sm);color:var(--gold);text-transform:lowercase;">' + (currentOrg ? currentOrg.join_code || '---' : '---') + '</span></p>' +
@@ -327,8 +349,13 @@ async function loadOverview() {
     }
 }
 
-// ========== УЧАСНИКИ ==========
 async function loadMembers() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Учасники';
     document.getElementById('pageSubtitle').textContent = 'Управління учасниками організації';
@@ -492,8 +519,13 @@ async function removeMember(memberId, userName) {
     }
 }
 
-// ========== ЗАЯВКИ ==========
 async function loadRequests() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Заявки на вступ';
     document.getElementById('pageSubtitle').textContent = 'Управління заявками';
@@ -586,8 +618,13 @@ async function handleRequest(requestId, status) {
     }
 }
 
-// ========== ПОСАДИ ==========
 async function loadRanks() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Посади';
     document.getElementById('pageSubtitle').textContent = 'Управління посадами в організації';
@@ -808,7 +845,6 @@ document.getElementById('rankForm')?.addEventListener('submit', async function(e
     }
 });
 
-// ===== ВКЛАДКИ "ПЕРЕГЛЯД / ДІЇ" У МОДАЛЦІ ПОСАДИ =====
 document.querySelectorAll('.rank-tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var tab = this.getAttribute('data-tab');
@@ -897,8 +933,13 @@ document.getElementById('assignRankForm')?.addEventListener('submit', async func
     }
 });
 
-// ========== ВІДДІЛИ ==========
 async function loadDepartments() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Відділи';
     document.getElementById('pageSubtitle').textContent = 'Управління відділами організації';
@@ -1117,8 +1158,13 @@ document.getElementById('assignEmployeeForm')?.addEventListener('submit', async 
     }
 });
 
-// ========== ЧАТ ==========
 async function loadChat() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Чат';
     document.getElementById('pageSubtitle').textContent = 'Спілкування в організації';
@@ -1234,8 +1280,13 @@ async function deleteChatMessage(messageId) {
     }
 }
 
-// ========== ВІДПУСТКИ ==========
 async function loadVacations() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Відпустки';
     document.getElementById('pageSubtitle').textContent = 'Управління відпустками співробітників';
@@ -1398,8 +1449,13 @@ async function cancelVacation(vacationId) {
     }
 }
 
-// ========== ПОДІЇ ==========
 async function loadEvents() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Календар подій';
     document.getElementById('pageSubtitle').textContent = 'Планування зустрічей та подій';
@@ -1516,8 +1572,13 @@ async function deleteEvent(eventId) {
     }
 }
 
-// ========== ЗАВДАННЯ ==========
 async function loadTasks() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Завдання';
     document.getElementById('pageSubtitle').textContent = 'Управління задачами';
@@ -1707,8 +1768,13 @@ async function deleteTask(taskId) {
     }
 }
 
-// ========== ОПИТУВАННЯ ==========
 async function loadPolls() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Опитування';
     document.getElementById('pageSubtitle').textContent = 'Збір думок та голосування';
@@ -1910,8 +1976,13 @@ async function deletePoll(pollId) {
     }
 }
 
-// ========== ФАЙЛИ ==========
 async function loadFiles() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Файли';
     document.getElementById('pageSubtitle').textContent = 'Сховище файлів організації';
@@ -2089,10 +2160,152 @@ async function deleteFile(fileId) {
     }
 }
 
-// ============================================
-// МОДУЛЬ: КЛІНІКА
-// ============================================
+async function loadSettings() {
+    var container = document.getElementById('sectionContent');
+    document.getElementById('pageTitle').textContent = 'Налаштування';
+    document.getElementById('pageSubtitle').textContent = 'Управління налаштуваннями організації';
+
+    var user = auth.getCurrentUser();
+    var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+
+    container.innerHTML = 
+        '<div class="card">' +
+            '<h3 class="card-title mb-2">Налаштування організації</h3>' +
+            '<form id="settingsForm">' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Назва організації</label>' +
+                    '<input type="text" class="form-control" id="settingsName" value="' + (currentOrg ? currentOrg.name || '' : '') + '" required>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Опис</label>' +
+                    '<textarea class="form-control" id="settingsDesc" rows="3" placeholder="Короткий опис організації">' + (currentOrg ? currentOrg.description || '' : '') + '</textarea>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label class="form-label">Код вступу</label>' +
+                    '<div style="display:flex;gap:0.5rem;align-items:center;">' +
+                        '<input type="text" class="form-control" id="settingsCode" value="' + (currentOrg ? currentOrg.join_code || '' : '') + '" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;text-transform:lowercase;" readonly>' +
+                        (isLeader ? 
+                            '<button type="button" class="btn btn-teal" onclick="regenerateCode()" title="Згенерувати новий код">' +
+                                '<i class="fas fa-sync"></i>' +
+                            '</button>' : '') +
+                    '</div>' +
+                    '<small style="color:var(--muted);">Код формату: abcd-abcd-abcd-abcd (латиниця, малі літери)</small>' +
+                '</div>' +
+                '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">' +
+                    '<button type="submit" class="btn btn-gold">' +
+                        '<i class="fas fa-save"></i> Зберегти налаштування' +
+                    '</button>' +
+                    (isLeader ? 
+                        '<button type="button" class="btn btn-danger" onclick="deleteOrganization()">' +
+                            '<i class="fas fa-trash"></i> Видалити організацію' +
+                        '</button>' : '') +
+                '</div>' +
+            '</form>' +
+        '</div>';
+
+    document.getElementById('settingsForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var name = document.getElementById('settingsName').value.trim();
+        var description = document.getElementById('settingsDesc').value.trim();
+
+        if (!name) {
+            await showAlert('Назва обов\'язкова', 'warning');
+            return;
+        }
+
+        try {
+            await db.updateOrganization(currentOrgId, { name: name, description: description });
+            await showToast('Налаштування збережено!', 'success');
+            currentOrg = await db.getOrganization(currentOrgId);
+            document.getElementById('orgName').textContent = currentOrg.name;
+        } catch (error) {
+            await showAlert('Помилка: ' + error.message, 'error');
+        }
+    });
+}
+
+async function regenerateCode() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете змінити код вступу?', 'Підтвердження');
+    if (!confirmed) return;
+
+    try {
+        var newCode = generateJoinCode();
+        await db.updateOrganization(currentOrgId, { join_code: newCode });
+        await showToast('Код оновлено!', 'success');
+        currentOrg = await db.getOrganization(currentOrgId);
+        document.getElementById('settingsCode').value = currentOrg.join_code;
+        document.getElementById('joinCode').textContent = currentOrg.join_code;
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+async function deleteOrganization() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити організацію? Це незворотна дія!', 'Увага');
+    if (!confirmed) return;
+
+    try {
+        await db.deleteOrganization(currentOrgId);
+        await showToast('Організацію видалено', 'success');
+        window.location.href = '/dashboard';
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+function closeModal(id) {
+    var modal = document.getElementById(id);
+    if (modal) modal.classList.remove('active');
+}
+
+function selectColor(el) {
+    var options = document.querySelectorAll('.color-option');
+    for (var i = 0; i < options.length; i++) {
+        options[i].classList.remove('selected');
+    }
+    el.classList.add('selected');
+    var colorEl = document.getElementById('rankColor');
+    if (colorEl) colorEl.value = el.style.backgroundColor;
+}
+
+var modals = document.querySelectorAll('.modal');
+for (var m = 0; m < modals.length; m++) {
+    modals[m].addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+}
+
+async function deleteUserAccount() {
+    var confirmed = await showConfirm('Ви впевнені, що хочете видалити свій акаунт? Це незворотна дія!', 'Увага');
+    if (!confirmed) return;
+    var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
+    if (!confirmed2) return;
+
+    try {
+        var user = auth.getCurrentUser();
+        await db.deleteUser(user.id);
+        localStorage.removeItem('userData');
+        await showToast('Акаунт видалено', 'success');
+        setTimeout(function() {
+            window.location.href = '/login';
+        }, 1500);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+init();
+
+// ===== МОДУЛЬ: КЛІНІКА =====
 async function loadClinic() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Клініка';
     document.getElementById('pageSubtitle').textContent = 'Управління пацієнтами та записами';
@@ -2413,10 +2626,14 @@ async function setAppointmentStatus(appointmentId, newStatus) {
     }
 }
 
-// ============================================
-// МОДУЛЬ: МАГАЗИН
-// ============================================
+// ===== МОДУЛЬ: МАГАЗИН =====
 async function loadShop() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Магазин';
     document.getElementById('pageSubtitle').textContent = 'Управління товарами та продажами';
@@ -2704,10 +2921,14 @@ async function deleteShopProduct(productId) {
     }
 }
 
-// ============================================
-// МОДУЛЬ: БІБЛІОТЕКА
-// ============================================
+// ===== МОДУЛЬ: БІБЛІОТЕКА =====
 async function loadLibrary() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Бібліотека';
     document.getElementById('pageSubtitle').textContent = 'Управління книгами та читачами';
@@ -3034,10 +3255,14 @@ document.getElementById('libraryLoanForm')?.addEventListener('submit', async fun
     }
 });
 
-// ============================================
-// МОДУЛЬ: ШКОЛА
-// ============================================
+// ===== МОДУЛЬ: ШКОЛА =====
 async function loadSchool() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Школа';
     document.getElementById('pageSubtitle').textContent = 'Управління учнями та класами';
@@ -3284,10 +3509,14 @@ document.getElementById('schoolClassForm')?.addEventListener('submit', async fun
     }
 });
 
-// ============================================
-// МОДУЛЬ: РЕСТОРАН / КАФЕ (ПОВНА ВЕРСІЯ)
-// ============================================
+// ===== МОДУЛЬ: РЕСТОРАН =====
 async function loadRestaurant() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Ресторан / Кафе';
     document.getElementById('pageSubtitle').textContent = 'Управління меню, замовленнями та бронюваннями';
@@ -3553,7 +3782,6 @@ async function deleteRestaurantMenuItem(id) {
     }
 }
 
-// ===== СТВОРЕННЯ ЗАМОВЛЕННЯ =====
 function openRestaurantOrder() {
     document.getElementById('restaurantOrderModal').classList.add('active');
     document.getElementById('restaurantOrderId').value = '';
@@ -3748,7 +3976,6 @@ document.getElementById('restaurantOrderForm')?.addEventListener('submit', async
     }
 });
 
-// ===== ПЕРЕГЛЯД ЗАМОВЛЕННЯ =====
 async function viewRestaurantOrder(orderId) {
     try {
         var orders = await db.getRestaurantOrders(currentOrgId);
@@ -3832,7 +4059,6 @@ async function updateRestaurantOrderStatus(orderId, newStatus) {
     }
 }
 
-// ===== БРОНЮВАННЯ СТОЛИКІВ =====
 function openRestaurantBooking() {
     document.getElementById('restaurantBookingModal').classList.add('active');
     document.getElementById('restaurantBookingId').value = '';
@@ -3879,10 +4105,14 @@ document.getElementById('restaurantBookingForm')?.addEventListener('submit', asy
     }
 });
 
-// ============================================
-// МОДУЛЬ: ГОТЕЛЬ
-// ============================================
+// ===== МОДУЛЬ: ГОТЕЛЬ =====
 async function loadHotel() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Готель';
     document.getElementById('pageSubtitle').textContent = 'Управління номерами та бронюваннями';
@@ -4145,10 +4375,14 @@ document.getElementById('hotelBookingForm')?.addEventListener('submit', async fu
     }
 });
 
-// ============================================
-// МОДУЛЬ: СПОРТЗАЛ
-// ============================================
+// ===== МОДУЛЬ: СПОРТЗАЛ =====
 async function loadGym() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Спортзал';
     document.getElementById('pageSubtitle').textContent = 'Управління абонементами та тренуваннями';
@@ -4353,10 +4587,14 @@ document.getElementById('gymTrainingForm')?.addEventListener('submit', async fun
     }
 });
 
-// ============================================
-// МОДУЛЬ: САЛОН КРАСИ
-// ============================================
+// ===== МОДУЛЬ: САЛОН КРАСИ =====
 async function loadBeauty() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Салон краси';
     document.getElementById('pageSubtitle').textContent = 'Управління послугами та записами';
@@ -4602,10 +4840,14 @@ document.getElementById('beautyAppointmentForm')?.addEventListener('submit', asy
     }
 });
 
-// ============================================
-// МОДУЛЬ: АВТОСЕРВІС
-// ============================================
+// ===== МОДУЛЬ: АВТОСЕРВІС =====
 async function loadAuto() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Автосервіс';
     document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та запчастинами';
@@ -4847,10 +5089,14 @@ document.getElementById('autoPartForm')?.addEventListener('submit', async functi
     }
 });
 
-// ============================================
-// МОДУЛЬ: НЕРУХОМІСТЬ
-// ============================================
+// ===== МОДУЛЬ: НЕРУХОМІСТЬ =====
 async function loadRealty() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Нерухомість';
     document.getElementById('pageSubtitle').textContent = 'Управління об\'єктами та угодами';
@@ -5123,10 +5369,14 @@ document.getElementById('realtyDealForm')?.addEventListener('submit', async func
     }
 });
 
-// ============================================
-// МОДУЛЬ: ЛОГІСТИКА
-// ============================================
+// ===== МОДУЛЬ: ЛОГІСТИКА =====
 async function loadLogistics() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Логістика';
     document.getElementById('pageSubtitle').textContent = 'Управління вантажами та маршрутами';
@@ -5228,10 +5478,14 @@ async function deleteLogisticsOrder(orderId) {
     }
 }
 
-// ============================================
-// МОДУЛЬ: ДОСТАВКА
-// ============================================
+// ===== МОДУЛЬ: ДОСТАВКА =====
 async function loadDelivery() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Доставка';
     document.getElementById('pageSubtitle').textContent = 'Управління замовленнями та кур\'єрами';
@@ -5333,10 +5587,14 @@ async function deleteDeliveryOrder(orderId) {
     }
 }
 
-// ============================================
-// МОДУЛЬ: IT / GAMEDEV
-// ============================================
+// ===== МОДУЛЬ: IT / GAMEDEV =====
 async function loadIT() {
+    if (!checkOrgActive()) {
+        var container = document.getElementById('sectionContent');
+        container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
+        return;
+    }
+    
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'IT / GameDev';
     document.getElementById('pageSubtitle').textContent = 'Управління проектами та задачами';
@@ -5628,144 +5886,3 @@ document.getElementById('itBugForm')?.addEventListener('submit', async function(
         await showAlert('Помилка: ' + error.message, 'error');
     }
 });
-
-// ========== НАЛАШТУВАННЯ ==========
-async function loadSettings() {
-    var container = document.getElementById('sectionContent');
-    document.getElementById('pageTitle').textContent = 'Налаштування';
-    document.getElementById('pageSubtitle').textContent = 'Управління налаштуваннями організації';
-
-    var user = auth.getCurrentUser();
-    var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
-
-    container.innerHTML = 
-        '<div class="card">' +
-            '<h3 class="card-title mb-2">Налаштування організації</h3>' +
-            '<form id="settingsForm">' +
-                '<div class="form-group">' +
-                    '<label class="form-label">Назва організації</label>' +
-                    '<input type="text" class="form-control" id="settingsName" value="' + (currentOrg ? currentOrg.name || '' : '') + '" required>' +
-                '</div>' +
-                '<div class="form-group">' +
-                    '<label class="form-label">Опис</label>' +
-                    '<textarea class="form-control" id="settingsDesc" rows="3" placeholder="Короткий опис організації">' + (currentOrg ? currentOrg.description || '' : '') + '</textarea>' +
-                '</div>' +
-                '<div class="form-group">' +
-                    '<label class="form-label">Код вступу</label>' +
-                    '<div style="display:flex;gap:0.5rem;align-items:center;">' +
-                        '<input type="text" class="form-control" id="settingsCode" value="' + (currentOrg ? currentOrg.join_code || '' : '') + '" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;text-transform:lowercase;" readonly>' +
-                        (isLeader ? 
-                            '<button type="button" class="btn btn-teal" onclick="regenerateCode()" title="Згенерувати новий код">' +
-                                '<i class="fas fa-sync"></i>' +
-                            '</button>' : '') +
-                    '</div>' +
-                    '<small style="color:var(--muted);">Код формату: abcd-abcd-abcd-abcd (латиниця, малі літери)</small>' +
-                '</div>' +
-                '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">' +
-                    '<button type="submit" class="btn btn-gold">' +
-                        '<i class="fas fa-save"></i> Зберегти налаштування' +
-                    '</button>' +
-                    (isLeader ? 
-                        '<button type="button" class="btn btn-danger" onclick="deleteOrganization()">' +
-                            '<i class="fas fa-trash"></i> Видалити організацію' +
-                        '</button>' : '') +
-                '</div>' +
-            '</form>' +
-        '</div>';
-
-    document.getElementById('settingsForm')?.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        var name = document.getElementById('settingsName').value.trim();
-        var description = document.getElementById('settingsDesc').value.trim();
-
-        if (!name) {
-            await showAlert('Назва обов\'язкова', 'warning');
-            return;
-        }
-
-        try {
-            await db.updateOrganization(currentOrgId, { name: name, description: description });
-            await showToast('Налаштування збережено!', 'success');
-            currentOrg = await db.getOrganization(currentOrgId);
-            document.getElementById('orgName').textContent = currentOrg.name;
-        } catch (error) {
-            await showAlert('Помилка: ' + error.message, 'error');
-        }
-    });
-}
-
-async function regenerateCode() {
-    var confirmed = await showConfirm('Ви впевнені, що хочете змінити код вступу?', 'Підтвердження');
-    if (!confirmed) return;
-
-    try {
-        var newCode = generateJoinCode();
-        await db.updateOrganization(currentOrgId, { join_code: newCode });
-        await showToast('Код оновлено!', 'success');
-        currentOrg = await db.getOrganization(currentOrgId);
-        document.getElementById('settingsCode').value = currentOrg.join_code;
-        document.getElementById('joinCode').textContent = currentOrg.join_code;
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function deleteOrganization() {
-    var confirmed = await showConfirm('Ви впевнені, що хочете видалити організацію? Це незворотна дія!', 'Увага');
-    if (!confirmed) return;
-
-    try {
-        await db.deleteOrganization(currentOrgId);
-        await showToast('Організацію видалено', 'success');
-        window.location.href = '/dashboard';
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-function closeModal(id) {
-    var modal = document.getElementById(id);
-    if (modal) modal.classList.remove('active');
-}
-
-function selectColor(el) {
-    var options = document.querySelectorAll('.color-option');
-    for (var i = 0; i < options.length; i++) {
-        options[i].classList.remove('selected');
-    }
-    el.classList.add('selected');
-    var colorEl = document.getElementById('rankColor');
-    if (colorEl) colorEl.value = el.style.backgroundColor;
-}
-
-var modals = document.querySelectorAll('.modal');
-for (var m = 0; m < modals.length; m++) {
-    modals[m].addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.classList.remove('active');
-        }
-    });
-}
-
-// ===== ВИДАЛЕННЯ АККАУНТА =====
-async function deleteUserAccount() {
-    var confirmed = await showConfirm('Ви впевнені, що хочете видалити свій акаунт? Це незворотна дія!', 'Увага');
-    if (!confirmed) return;
-    var confirmed2 = await showConfirm('Всі ваші дані будуть втрачені. Продовжити?', 'Останнє попередження');
-    if (!confirmed2) return;
-
-    try {
-        var user = auth.getCurrentUser();
-        await db.deleteUser(user.id);
-        localStorage.removeItem('userData');
-        await showToast('Акаунт видалено', 'success');
-        setTimeout(function() {
-            window.location.href = '/login';
-        }, 1500);
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-// ===== ЗАПУСК =====
-init();
