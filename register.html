@@ -268,7 +268,6 @@
     </div>
 
     <script src="/js/db.js"></script>
-    <script src="/js/storage.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
@@ -365,22 +364,11 @@
                     throw new Error(result.error);
                 }
 
-                if (selectedAvatarFile) {
-                    try {
-                        await storage.uploadAvatar(selectedAvatarFile);
-                    } catch (avatarError) {
-                        // Продовжуємо без аватарки
-                    }
-                }
-
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Створити акаунт';
-
-                await showToast('Акаунт створено! Ласкаво просимо до Typebiz! 🎉', 'success');
-                
+                // НЕ робимо редірект тут — це робить auth.registerUser()
+                // Але залишаємо для безпеки
                 setTimeout(function() {
                     window.location.href = '/dashboard';
-                }, 1500);
+                }, 500);
 
             } catch (error) {
                 submitBtn.disabled = false;
@@ -389,27 +377,33 @@
             }
         });
 
+        // НЕМАЄ АВТОМАТИЧНОГО РЕДІРЕКТУ НА ГОЛОВНІЙ
+        // ТІЛЬКИ ЯКЩО КОРИСТУВАЧ ВЖЕ АВТОРИЗОВАНИЙ І НАМАГАЄТЬСЯ ЗАЙТИ НА /REGISTER
         (async function() {
             try {
                 var userData = localStorage.getItem('userData');
                 if (userData) {
                     var user = JSON.parse(userData);
-                    var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(user.email), {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        var data = await response.json();
-                        if (data && data.length > 0) {
-                            window.location.href = '/dashboard';
+                    if (user && user.id) {
+                        // Перевіряємо чи дійсний токен
+                        var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(user.email), {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            var data = await response.json();
+                            if (data && data.length > 0) {
+                                // Якщо вже авторизований і намагається зайти на реєстрацію — редірект на дашборд
+                                window.location.href = '/dashboard';
+                            }
                         }
                     }
                 }
             } catch (e) {
-                // Не авторизовано
+                // Не авторизовано — залишаємось на сторінці
             }
         })();
     </script>
