@@ -61,19 +61,22 @@ async function loadUsers() {
                     '<h3 class="card-title">Всі користувачі</h3>' +
                     '<span class="badge badge-primary">' + (users ? users.length : 0) + '</span>' +
                 '</div>' +
-                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<div style="position:relative;flex:1;min-width:200px;">' +
-                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;"></i>' +
-                        '<input type="text" class="form-control" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." style="padding-left:36px;" oninput="filterUsersTable()">' +
+                '<div class="search-filters">' +
+                    '<div class="search-wrapper">' +
+                        '<i class="fas fa-search search-icon"></i>' +
+                        '<input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()">' +
+                        '<button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');">' +
+                            '<i class="fas fa-times"></i>' +
+                        '</button>' +
                     '</div>' +
-                    '<select class="form-control" id="userRoleFilter" style="width:auto;min-width:120px;" onchange="filterUsersTable()">' +
+                    '<select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()">' +
                         '<option value="">Всі ролі</option>' +
                         '<option value="owner">Засновник</option>' +
                         '<option value="admin">Адмін</option>' +
                         '<option value="moderator">Модератор</option>' +
                         '<option value="user">Користувач</option>' +
                     '</select>' +
-                    '<select class="form-control" id="userStatusFilter" style="width:auto;min-width:120px;" onchange="filterUsersTable()">' +
+                    '<select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()">' +
                         '<option value="">Всі статуси</option>' +
                         '<option value="active">Активний</option>' +
                         '<option value="banned">Заблокований</option>' +
@@ -414,12 +417,15 @@ async function loadOrgs() {
                     '<h3 class="card-title">Всі організації</h3>' +
                     '<span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span>' +
                 '</div>' +
-                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<div style="position:relative;flex:1;min-width:200px;">' +
-                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;"></i>' +
-                        '<input type="text" class="form-control" id="orgSearchInput" placeholder="Пошук за назвою або типом..." style="padding-left:36px;" oninput="filterOrgsTable()">' +
+                '<div class="search-filters">' +
+                    '<div class="search-wrapper">' +
+                        '<i class="fas fa-search search-icon"></i>' +
+                        '<input type="text" class="search-input" id="orgSearchInput" placeholder="Пошук за назвою або типом..." oninput="filterOrgsTable()">' +
+                        '<button class="search-clear" onclick="document.getElementById(\'orgSearchInput\').value=\'\';filterOrgsTable();this.classList.remove(\'visible\');">' +
+                            '<i class="fas fa-times"></i>' +
+                        '</button>' +
                     '</div>' +
-                    '<select class="form-control" id="orgStatusFilter" style="width:auto;min-width:120px;" onchange="filterOrgsTable()">' +
+                    '<select class="filter-select" id="orgStatusFilter" onchange="filterOrgsTable()">' +
                         '<option value="">Всі статуси</option>' +
                         '<option value="active">Активна</option>' +
                         '<option value="frozen">Заморожена</option>' +
@@ -640,10 +646,13 @@ async function loadChat() {
                 '<div class="card-header">' +
                     '<h3 class="card-title">Чати організацій</h3>' +
                 '</div>' +
-                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<div style="position:relative;flex:1;min-width:200px;">' +
-                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;"></i>' +
-                        '<input type="text" class="form-control" id="chatSearchInput" placeholder="Пошук за назвою організації..." style="padding-left:36px;" oninput="filterChatsTable()">' +
+                '<div class="search-filters">' +
+                    '<div class="search-wrapper">' +
+                        '<i class="fas fa-search search-icon"></i>' +
+                        '<input type="text" class="search-input" id="chatSearchInput" placeholder="Пошук за назвою організації..." oninput="filterChatsTable()">' +
+                        '<button class="search-clear" onclick="document.getElementById(\'chatSearchInput\').value=\'\';filterChatsTable();this.classList.remove(\'visible\');">' +
+                            '<i class="fas fa-times"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>' +
                 '<div style="overflow-x:auto;">' +
@@ -745,10 +754,13 @@ async function loadVacations() {
                 '<div class="card-header">' +
                     '<h3 class="card-title">Відпустки в організаціях</h3>' +
                 '</div>' +
-                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<div style="position:relative;flex:1;min-width:200px;">' +
-                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;"></i>' +
-                        '<input type="text" class="form-control" id="vacationSearchInput" placeholder="Пошук за назвою організації..." style="padding-left:36px;" oninput="filterVacationsTable()">' +
+                '<div class="search-filters">' +
+                    '<div class="search-wrapper">' +
+                        '<i class="fas fa-search search-icon"></i>' +
+                        '<input type="text" class="search-input" id="vacationSearchInput" placeholder="Пошук за назвою організації..." oninput="filterVacationsTable()">' +
+                        '<button class="search-clear" onclick="document.getElementById(\'vacationSearchInput\').value=\'\';filterVacationsTable();this.classList.remove(\'visible\');">' +
+                            '<i class="fas fa-times"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>' +
                 '<div style="overflow-x:auto;">' +
@@ -889,12 +901,15 @@ async function loadRequests() {
                     '<h3 class="card-title">Всі заявки на вступ</h3>' +
                     '<span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span>' +
                 '</div>' +
-                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<div style="position:relative;flex:1;min-width:200px;">' +
-                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;"></i>' +
-                        '<input type="text" class="form-control" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." style="padding-left:36px;" oninput="filterRequestsTable()">' +
+                '<div class="search-filters">' +
+                    '<div class="search-wrapper">' +
+                        '<i class="fas fa-search search-icon"></i>' +
+                        '<input type="text" class="search-input" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." oninput="filterRequestsTable()">' +
+                        '<button class="search-clear" onclick="document.getElementById(\'requestSearchInput\').value=\'\';filterRequestsTable();this.classList.remove(\'visible\');">' +
+                            '<i class="fas fa-times"></i>' +
+                        '</button>' +
                     '</div>' +
-                    '<select class="form-control" id="requestStatusFilter" style="width:auto;min-width:120px;" onchange="filterRequestsTable()">' +
+                    '<select class="filter-select" id="requestStatusFilter" onchange="filterRequestsTable()">' +
                         '<option value="">Всі статуси</option>' +
                         '<option value="pending">Очікує</option>' +
                         '<option value="approved">Схвалено</option>' +
@@ -967,10 +982,13 @@ async function loadLogs() {
                     '<h3 class="card-title">Всі логи системи</h3>' +
                     '<span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span>' +
                 '</div>' +
-                '<div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-                    '<div style="position:relative;flex:1;min-width:200px;">' +
-                        '<i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;"></i>' +
-                        '<input type="text" class="form-control" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." style="padding-left:36px;" oninput="filterLogsTable()">' +
+                '<div class="search-filters">' +
+                    '<div class="search-wrapper">' +
+                        '<i class="fas fa-search search-icon"></i>' +
+                        '<input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()">' +
+                        '<button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');">' +
+                            '<i class="fas fa-times"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>' +
                 '<div style="overflow-x:auto;">' +
@@ -1041,6 +1059,9 @@ function loadSection(section) {
         case 'overview':
             loadOverview();
             break;
+        case 'owner':
+            loadOwnerPanel();
+            break;
         case 'users':
             loadUsers();
             break;
@@ -1077,6 +1098,93 @@ async function loadOverview() {
         '</div>';
     await loadRecentLogs();
     await loadStats();
+}
+
+async function loadOwnerPanel() {
+    var container = document.getElementById('adminContent');
+    var user = auth.getCurrentUser();
+    
+    if (!user || user.role !== 'owner') {
+        container.innerHTML = '<div class="card"><p class="text-danger">Доступ заборонено. Тільки для засновника.</p></div>';
+        return;
+    }
+    
+    document.getElementById('pageTitle').textContent = 'Панель засновника';
+    document.getElementById('pageSubtitle').textContent = 'Повне управління системою';
+    
+    try {
+        var stats = {
+            totalUsers: (await db.supabaseQuery('users?select=id')).length,
+            totalOrgs: (await db.supabaseQuery('organizations?select=id')).length,
+            totalAdmins: (await db.supabaseQuery('users?role=eq.admin&select=id')).length,
+            totalModerators: (await db.supabaseQuery('users?role=eq.moderator&select=id')).length,
+            totalBanned: (await db.supabaseQuery('users?is_banned=eq.true&select=id')).length,
+            totalMessages: (await db.supabaseQuery('org_chat_messages?select=id')).length
+        };
+        
+        var html = '';
+        
+        html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
+        html += '<div class="stat-card"><div class="stat-value">' + stats.totalUsers + '</div><div class="stat-label">Користувачів</div></div>';
+        html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value">' + stats.totalOrgs + '</div><div class="stat-label">Організацій</div></div>';
+        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value">' + stats.totalAdmins + '</div><div class="stat-label">Адміністраторів</div></div>';
+        html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value">' + stats.totalModerators + '</div><div class="stat-label">Модераторів</div></div>';
+        html += '</div>';
+        
+        html += '<div class="grid-2" style="margin-bottom:1.5rem;">';
+        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + stats.totalBanned + '</div><div class="stat-label">Заблокованих користувачів</div></div>';
+        html += '<div class="stat-card" style="border-color:#3B82F6;"><div class="stat-value">' + stats.totalMessages + '</div><div class="stat-label">Повідомлень у чатах</div></div>';
+        html += '</div>';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Адміністратори та модератори</h3></div>';
+        html += '<div style="overflow-x:auto;">';
+        html += '<table class="table"><thead><tr><th>Користувач</th><th>Email</th><th>Роль</th></tr></thead><tbody>';
+        
+        var admins = await db.supabaseQuery('users?role=eq.admin&select=id,full_name,email');
+        var moderators = await db.supabaseQuery('users?role=eq.moderator&select=id,full_name,email');
+        
+        if (admins && admins.length > 0) {
+            for (var i = 0; i < admins.length; i++) {
+                var a = admins[i];
+                html += '<tr><td><strong>' + (a.full_name || 'Без імені') + '</strong></td><td>' + a.email + '</td><td><span class="badge badge-danger">Адмін</span></td></tr>';
+            }
+        }
+        
+        if (moderators && moderators.length > 0) {
+            for (var i = 0; i < moderators.length; i++) {
+                var m = moderators[i];
+                html += '<tr><td><strong>' + (m.full_name || 'Без імені') + '</strong></td><td>' + m.email + '</td><td><span class="badge badge-warning">Модератор</span></td></tr>';
+            }
+        }
+        
+        if ((!admins || admins.length === 0) && (!moderators || moderators.length === 0)) {
+            html += '<tr><td colspan="3" class="text-center text-muted">Немає адміністраторів або модераторів</td></tr>';
+        }
+        
+        html += '</tbody></table></div></div>';
+        
+        html += '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">Швидкі дії</h3></div>';
+        html += '<div style="display:flex;gap:0.75rem;flex-wrap:wrap;">';
+        html += '<button class="btn btn-teal" onclick="loadSection(\'users\')"><i class="fas fa-users"></i> Керувати користувачами</button>';
+        html += '<button class="btn btn-gold" onclick="loadSection(\'orgs\')"><i class="fas fa-building"></i> Керувати організаціями</button>';
+        html += '<button class="btn btn-danger" onclick="loadSection(\'logs\')"><i class="fas fa-history"></i> Переглянути логи</button>';
+        html += '</div></div>';
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження панелі засновника: ' + error.message + '</p></div>';
+    }
+}
+
+function showOwnerPanel() {
+    var user = auth.getCurrentUser();
+    var link = document.getElementById('ownerPanelLink');
+    if (link) {
+        link.style.display = (user && user.role === 'owner') ? 'block' : 'none';
+    }
 }
 
 function closeModal(id) {
@@ -1127,6 +1235,8 @@ document.querySelectorAll('.modal').forEach(function(modal) {
 async function init() {
     var user = auth.getCurrentUser();
     var isModerator = user && (user.role === 'admin' || user.role === 'moderator' || user.role === 'owner');
+    
+    showOwnerPanel();
     
     if (!isModerator) {
         var hasAccess = await auth.requireModerator();
