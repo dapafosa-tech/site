@@ -12,7 +12,6 @@
             --ink-soft: #171A21;
             --ink-line: #2A2E38;
             --gold: #F2A93B;
-            --teal: #46C9B8;
             --red: #E2503E;
             --text-onink: #E7E4DA;
             --muted: #8B93A6;
@@ -27,8 +26,7 @@
             align-items: center;
             justify-content: center;
             padding: 2rem;
-            background-image: radial-gradient(circle at 20% 50%, rgba(226, 80, 62, 0.05) 0%, transparent 50%),
-                              radial-gradient(circle at 80% 50%, rgba(226, 80, 62, 0.03) 0%, transparent 50%);
+            background-image: radial-gradient(circle at 20% 50%, rgba(226, 80, 62, 0.05) 0%, transparent 50%);
         }
         .banned-box {
             background: var(--ink-soft);
@@ -38,8 +36,6 @@
             max-width: 520px;
             width: 100%;
             text-align: center;
-            position: relative;
-            overflow: hidden;
             animation: fadeIn 0.6s ease;
         }
         .banned-box::before {
@@ -61,6 +57,7 @@
             from { opacity: 0; transform: translateY(-20px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
+        .banned-box { position: relative; overflow: hidden; }
         .banned-box .icon-wrap {
             display: inline-flex;
             align-items: center;
@@ -95,7 +92,6 @@
             font-family: 'Space Grotesk', sans-serif;
             font-size: 2rem;
             margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
         }
         .banned-box .subtitle {
             color: var(--muted);
@@ -116,10 +112,6 @@
             padding: 1rem 1.25rem;
             margin: 1rem 0 1.5rem;
             text-align: left;
-            transition: border-color 0.3s;
-        }
-        .banned-box .reason:hover {
-            border-color: rgba(226, 80, 62, 0.4);
         }
         .banned-box .reason .label {
             font-size: 0.75rem;
@@ -130,9 +122,6 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-        }
-        .banned-box .reason .label i {
-            font-size: 0.7rem;
         }
         .banned-box .reason .text {
             font-weight: 500;
@@ -145,10 +134,6 @@
             font-size: 0.85rem;
             line-height: 1.6;
             margin-bottom: 1.5rem;
-        }
-        .banned-box .info-text i {
-            margin-right: 0.3rem;
-            color: var(--gold);
         }
         .banned-box .btn-group {
             display: flex;
@@ -167,7 +152,7 @@
             cursor: pointer;
             border: 1px solid transparent;
             text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .banned-box .btn-primary {
             background: var(--gold);
@@ -184,39 +169,6 @@
         .banned-box .btn-danger:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(226, 80, 62, 0.3);
-        }
-        .banned-box .btn-outline {
-            background: transparent;
-            border-color: var(--ink-line);
-            color: var(--text-onink);
-        }
-        .banned-box .btn-outline:hover {
-            background: var(--ink);
-            border-color: var(--muted);
-            transform: translateY(-2px);
-        }
-        .banned-box .btn-outline i {
-            color: var(--muted);
-        }
-        .banned-box .footer {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--ink-line);
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-        }
-        .banned-box .footer a {
-            color: var(--muted);
-            font-size: 0.8rem;
-            text-decoration: none;
-            transition: color 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .banned-box .footer a:hover {
-            color: var(--text-onink);
         }
         .banned-box .badge {
             display: inline-block;
@@ -235,9 +187,6 @@
             .banned-box .btn-group { flex-direction: column; }
             .banned-box .btn { justify-content: center; }
             .banned-box h1 { font-size: 1.6rem; }
-            .banned-box .icon-wrap { width: 80px; height: 80px; }
-            .banned-box .icon-wrap .icon { font-size: 2.5rem; }
-            .banned-box .footer { flex-direction: column; gap: 0.5rem; align-items: center; }
         }
     </style>
 </head>
@@ -245,21 +194,17 @@
     <div class="banned-box">
         <div class="icon-wrap">
             <i class="fas fa-ban icon"></i>
-            <div class="shield">
-                <i class="fas fa-shield-alt"></i>
-            </div>
+            <div class="shield"><i class="fas fa-shield-alt"></i></div>
         </div>
 
         <span class="badge"><i class="fas fa-lock"></i> Обмежений доступ</span>
         <h1>Доступ заборонено</h1>
-        <p class="subtitle">Ваш обліковий запис було заблоковано</p>
+        <p class="subtitle">Ваш обліковий запис заблоковано</p>
 
         <div class="divider"></div>
 
         <div class="reason">
-            <div class="label">
-                <i class="fas fa-info-circle"></i> Причина блокування
-            </div>
+            <div class="label"><i class="fas fa-info-circle"></i> Причина блокування</div>
             <div class="text" id="banReason">
                 <i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i>
                 Порушення правил використання платформи
@@ -268,78 +213,35 @@
 
         <p class="info-text">
             <i class="fas fa-envelope"></i>
-            Якщо ви вважаєте, що це помилка, будь ласка, зверніться до служби підтримки
+            Якщо ви вважаєте, що це помилка, зверніться до підтримки
         </p>
 
         <div class="btn-group">
             <button class="btn btn-danger" id="logoutBtn">
-                <i class="fas fa-sign-out-alt"></i> Вийти з акаунта
+                <i class="fas fa-sign-out-alt"></i> Вийти
             </button>
             <button class="btn btn-primary" id="supportBtn">
-                <i class="fas fa-headset"></i> Звернутися в підтримку
+                <i class="fas fa-headset"></i> Підтримка
             </button>
-        </div>
-
-        <div class="footer">
-            <a href="/privacy"><i class="fas fa-shield-alt"></i> Політика конфіденційності</a>
-            <a href="/terms"><i class="fas fa-file-contract"></i> Умови використання</a>
         </div>
     </div>
 
     <script>
-        // ============================================
-        // ОТРИМУЄМО ДАНІ ПРО БАН
-        // ============================================
-        
         var userData = JSON.parse(localStorage.getItem('userData') || '{}');
         var banReason = userData.ban_reason || 'Порушення правил використання платформи';
         
-        // Показуємо причину бана
         document.getElementById('banReason').innerHTML = 
-            '<i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i> ' + 
-            banReason;
+            '<i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i> ' + banReason;
 
-        // ============================================
-        // КНОПКА ВИХОДУ - ПОВНІСТЮ ОЧИЩУЄ СЕСІЮ
-        // ============================================
-        
-        document.getElementById('logoutBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Повністю очищаємо всі дані сесії
+        document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('userData');
             localStorage.removeItem('isGuest');
-            localStorage.removeItem('banReason');
-            
-            // Очищаємо всі куки
-            document.cookie.split(";").forEach(function(c) { 
-                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-            });
-            
-            // Редірект на логін
             window.location.href = '/login';
         });
 
-        // ============================================
-        // КНОПКА ПІДТРИМКИ
-        // ============================================
-        
-        document.getElementById('supportBtn').addEventListener('click', function(e) {
-            e.preventDefault();
+        document.getElementById('supportBtn').addEventListener('click', function() {
             var email = userData.email || '';
             window.location.href = '/support?banned=true&reason=' + encodeURIComponent(banReason) + '&email=' + encodeURIComponent(email);
-        });
-
-        // ============================================
-        // ЗАБОРОНЯЄМО check-auth.js РОБИТИ РЕДІРЕКТ
-        // ============================================
-        
-        // Встановлюємо флаг, що ми вже на сторінці banned
-        sessionStorage.setItem('onBannedPage', 'true');
-        
-        // При виході зі сторінки - знімаємо флаг
-        window.addEventListener('beforeunload', function() {
-            sessionStorage.removeItem('onBannedPage');
         });
     </script>
 </body>
