@@ -1773,6 +1773,169 @@ function openCreateTask() {
     loadTaskAssignees();
 }
 
+// ============================================
+// ПЕРЕДАЧА ЛІДЕРСТВА (РАЗ НА 7 ДНІВ)
+// ============================================
+
+async function transferLeadership() {
+    var user = auth.getCurrentUser();
+    var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+    
+    if (!isLeader) {
+        await showAlert('Тільки лідер може передавати лідерство', 'error');
+        return;
+    }
+    
+    if (currentOrg && currentOrg.is_active === false) {
+        await showAlert('Організація заморожена. Неможливо передати лідерство.', 'warning');
+        return;
+    }
+    
+    // Перевіряємо чи минуло 7 днів з останньої передачі
+    var lastTransfer = currentOrg.last_leadership_transfer;
+    if (lastTransfer) {
+        var daysPassed = (Date.now() - new Date(lastTransfer).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysPassed < 7) {
+            var remainingDays = Math.ceil(7 - daysPassed);
+            await showAlert(
+                'Передавати лідерство можна не частіше ніж раз на 7 днів.\n\n' +
+                'Залишилось днів: ' + remainingDays,
+                'warning',
+                'Ліміт передач'
+            );
+            return;
+        }
+    }
+    
+    try {
+        var members = await db.getOrganizationMembers(currentOrgId);
+        var users = await db.supabaseQuery('users?select=id,full_name,email');
+        var userMap = {};
+        for (var i = 0; i < users.length; i++) {
+            userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач';
+        }
+        
+        var currentLeader = await db.supabaseQuery('org_members?organization_id=eq.' + currentOrgId + '&is_leader=eq.true');
+        var currentLeaderId = currentLeader && currentLeader.length > 0 ? currentLeader[0].user_id : null;
+        
+        var options = '';
+        for (var i = 0; i < members.length; i++) {
+            var m = members[i];
+            if (m.user_id === currentLeaderId) continue;
+            var userName = userMap[m.user_id] || 'Невідомо';
+            options += '<option value="' + m.id + '" data-user-id="' + m.user_id + '">' + userName + '</option>';
+        }
+        
+        if (!options) {
+            await showAlert('Немає інших учасників для передачі лідерства', 'warning');
+            return;
+        }
+        
+        var html = '';
+        html += '<div style="margin-bottom:1rem;">';
+        html += '<p>Передати лідерство в організації <strong>"' + currentOrg.name + '"</strong> іншому учаснику:</p>';
+        html += '<p style="font-size:0.8rem;color:var(--text-secondary);"><i class="fas fa-info-circle"></i> Передавати лідерство можна раз на 7 днів</p>';
+        html += '<select class="form-control" id="transferLeaderSelect" style="margin-top:0.5rem;">' + options + '</select>';
+        html += '</div>';
+        
+        await showAlert(html, 'info', 'Передача лідерства');
+        
+        var select = document.getElementById('transferLeaderSelect');
+        if (!select) return;
+        
+        var selectedMemberId = select.value;
+        if (!selectedMemberId) return;
+        
+        var selectedUserId = select.options[select.selectedIndex].getAttribute('data-user-id');
+        var selectedUserName = select.options[select.selectedIndex].text;
+        
+        var confirmed = await showConfirm(
+            'Передати лідерство учаснику "' + selectedUserName + '"?\n\n' +
+            'Ви втратите права лідера і станете звичайним учасником.',
+            'Підтвердження'
+        );
+        if (!confirmed) return;
+        
+        if (currentLeader && currentLeader.length > 0) {
+            await db.supabaseQuery('org_members?id=eq.' + currentLeader[0].id, {
+                method: 'PATCH',
+                body: JSON.stringify({ is_leader: false })
+            });
+        }
+        
+        await db.supabaseQuery('org_members?id=eq.' + selectedMemberId, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_leader: true })
+        });
+        
+        await db.updateOrganization(currentOrgId, { 
+            leader_id: selectedUserId,
+            last_leadership_transfer: new Date().toISOString()
+        });
+        
+        await db.addLog('Передано лідерство в організації', 'organization', currentOrgId, {
+            from: user.id,
+            to: selectedUserId,
+            user_name: user.full_name || user.email
+        });
+        
+        await showToast('Лідерство передано учаснику "' + selectedUserName + '"!', 'success');
+        
+        setTimeout(function() {
+            window.location.reload();
+        }, 1500);
+        
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ============================================
+// ВИДАЛЕННЯ ОРГАНІЗАЦІЇ (ЗАБОРОНА ПРИ ЗАМОРОЗЦІ)
+// ============================================
+
+async function deleteOrganization() {
+    var user = auth.getCurrentUser();
+    var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+    
+    if (!isLeader) {
+        await showAlert('Тільки лідер організації може її видалити', 'error');
+        return;
+    }
+    
+    if (currentOrg && currentOrg.is_active === false) {
+        await showAlert(
+            'Неможливо видалити заморожену організацію.\n\n' +
+            'Спочатку зверніться до адміністрації для розмороження.',
+            'warning',
+            'Дія заборонена'
+        );
+        return;
+    }
+    
+    var confirmed = await showConfirm(
+        'Ви впевнені, що хочете видалити організацію "' + currentOrg.name + '"?\n\n' +
+        'Це НЕЗВОРОТНЯ дія! Всі дані будуть втрачені.',
+        'Увага'
+    );
+    if (!confirmed) return;
+    
+    var confirmed2 = await showConfirm(
+        'Всі учасники, чати, завдання, події та інші дані будуть видалені.\n\n' +
+        'Продовжити?',
+        'Останнє попередження'
+    );
+    if (!confirmed2) return;
+    
+    try {
+        await db.deleteOrganization(currentOrgId);
+        await showToast('Організацію видалено', 'success');
+        window.location.href = '/dashboard';
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 async function editTask(taskId) {
     try {
         var tasks = await db.getTasks(currentOrgId);
@@ -2094,6 +2257,16 @@ async function loadSettings() {
 
     var user = auth.getCurrentUser();
     var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+    var isFrozen = currentOrg && currentOrg.is_active === false;
+    
+    // Перевірка чи минуло 7 днів
+    var canTransfer = true;
+    var transferDaysLeft = 0;
+    if (currentOrg && currentOrg.last_leadership_transfer) {
+        var daysPassed = (Date.now() - new Date(currentOrg.last_leadership_transfer).getTime()) / (1000 * 60 * 60 * 24);
+        canTransfer = daysPassed >= 7;
+        transferDaysLeft = Math.ceil(7 - daysPassed);
+    }
 
     container.innerHTML = 
         '<div class="card">' +
@@ -2111,7 +2284,7 @@ async function loadSettings() {
                     '<label class="form-label">Код вступу</label>' +
                     '<div style="display:flex;gap:0.5rem;align-items:center;">' +
                         '<input type="text" class="form-control" id="settingsCode" value="' + (currentOrg ? currentOrg.join_code || '' : '') + '" style="font-family:monospace;font-size:1.2rem;letter-spacing:2px;text-transform:lowercase;" readonly>' +
-                        (isLeader ? 
+                        (isLeader && !isFrozen ? 
                             '<button type="button" class="btn btn-teal" onclick="regenerateCode()" title="Згенерувати новий код">' +
                                 '<i class="fas fa-sync"></i>' +
                             '</button>' : '') +
@@ -2122,10 +2295,20 @@ async function loadSettings() {
                     '<button type="submit" class="btn btn-gold">' +
                         '<i class="fas fa-save"></i> Зберегти налаштування' +
                     '</button>' +
-                    (isLeader ? 
+                    (isLeader && !isFrozen ? 
+                        '<button type="button" class="btn btn-warning" onclick="transferLeadership()" ' + 
+                            (!canTransfer ? 'disabled title="Доступно через ' + transferDaysLeft + ' днів"' : '') + '>' +
+                            '<i class="fas fa-user-crown"></i> ' + 
+                            (canTransfer ? 'Передати лідерство' : 'Передача через ' + transferDaysLeft + ' днів') +
+                        '</button>' : '') +
+                    (isLeader && !isFrozen ? 
                         '<button type="button" class="btn btn-danger" onclick="deleteOrganization()">' +
                             '<i class="fas fa-trash"></i> Видалити організацію' +
                         '</button>' : '') +
+                    (isFrozen && isLeader ?
+                        '<span style="color:#E2503E;font-size:0.85rem;display:flex;align-items:center;gap:0.5rem;">' +
+                            '<i class="fas fa-lock"></i> Організація заморожена — видалення та передача недоступні' +
+                        '</span>' : '') +
                 '</div>' +
             '</form>' +
         '</div>';
