@@ -370,44 +370,16 @@
         // ЗАВАНТАЖЕННЯ АВАТАРА В SUPABASE STORAGE
         // ============================================
 
-        async function ensureBucketExists() {
-            try {
-                var checkResponse = await fetch(SUPABASE_URL + '/storage/v1/bucket/avatars', {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-                    }
-                });
-                
-                if (checkResponse.status === 404) {
-                    var createResponse = await fetch(SUPABASE_URL + '/storage/v1/bucket', {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            id: 'avatars',
-                            name: 'avatars',
-                            public: true
-                        })
-                    });
-                    
-                    if (!createResponse.ok) {
-                        console.error('Failed to create bucket');
-                        return false;
-                    }
-                }
-                return true;
-            } catch (e) {
-                console.error('Bucket check error:', e);
-                return false;
-            }
-        }
-
         async function uploadAvatarToBucket(userId, file) {
             try {
+                // ВАЖЛИВО: тут має йти токен СЕСІЇ юзера, а не anon key -
+                // інакше storage RLS відхиляє запис (403) і фото не зберігається.
+                var token = await getAccessToken();
+                if (!token) {
+                    console.error('No session token, cannot upload avatar');
+                    return null;
+                }
+
                 var ext = file.name.split('.').pop().toLowerCase();
                 var fileName = userId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
                 var uploadUrl = SUPABASE_URL + '/storage/v1/object/avatars/' + fileName;
@@ -416,8 +388,9 @@
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                        'Content-Type': file.type || 'application/octet-stream'
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': file.type || 'application/octet-stream',
+                        'x-upsert': 'true'
                     },
                     body: file
                 });
@@ -494,7 +467,6 @@
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження фото...';
                     
                     try {
-                        await ensureBucketExists();
                         var avatarUrl = await uploadAvatarToBucket(user.id, selectedAvatarFile);
                         
                         if (avatarUrl) {
