@@ -793,8 +793,9 @@
         });
 
         function logoutUser() {
-            showConfirm('Ви впевнені, що хочете вийти?', 'Вихід').then(function(confirmed) {
+            showConfirm('Ви впевнені, що хочете вийти?', 'Вихід').then(async function(confirmed) {
                 if (confirmed) {
+                    try { await window.sb.auth.signOut(); } catch (e) {}
                     localStorage.removeItem('userData');
                     localStorage.removeItem('isGuest');
                     window.location.href = '/login';
