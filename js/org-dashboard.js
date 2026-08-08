@@ -1275,6 +1275,7 @@ async function loadChat() {
     try {
         var messages = await db.getChatMessages(currentOrgId);
         var user = auth.getCurrentUser();
+        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
 
         var html = 
             '<div class="card">' +
@@ -1293,6 +1294,7 @@ async function loadChat() {
                     : 'Невідомо';
                 var isOwn = msg.user_id === (user ? user.id : null);
                 var hasMention = msg.mentions && msg.mentions.indexOf(user ? user.id : null) !== -1;
+                var canDelete = isOwn || isLeader;
 
                 html += 
                     '<div style="display:flex;justify-content:' + (isOwn ? 'flex-end' : 'flex-start') + ';margin-bottom:0.5rem;">' +
@@ -1302,8 +1304,8 @@ async function loadChat() {
                                 (hasMention ? ' (згадування)' : '') +
                             '</div>' +
                             '<div>' + msg.message + '</div>' +
-                            (isOwn ? 
-                                '<button class="btn btn-sm btn-danger" onclick="deleteChatMessage(\'' + msg.id + '\')" style="margin-top:0.25rem;padding:0.1rem 0.5rem;font-size:0.6rem;">' +
+                            (canDelete ? 
+                                '<button class="btn btn-sm btn-danger" onclick="deleteChatMessage(\'' + msg.id + '\')" title="' + (isOwn ? 'Видалити повідомлення' : 'Видалити як керівник організації') + '" style="margin-top:0.25rem;padding:0.1rem 0.5rem;font-size:0.6rem;">' +
                                     '<i class="fas fa-trash"></i>' +
                                 '</button>' : '') +
                         '</div>' +
@@ -1383,7 +1385,8 @@ async function deleteChatMessage(messageId) {
     if (!confirmed) return;
 
     try {
-        await db.deleteChatMessage(messageId);
+        var user = auth.getCurrentUser();
+        await db.deleteChatMessage(messageId, user ? user.id : null);
         await showToast('Повідомлення видалено', 'success');
         await loadChat();
     } catch (error) {

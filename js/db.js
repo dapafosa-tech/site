@@ -688,6 +688,7 @@ async function sendChatMessage(organizationId, userId, message, mentions) {
             user_id: userId,
             message: message,
             mentions: mentions,
+            is_deleted: false,
             created_at: new Date().toISOString()
         }),
         headers: { 'Prefer': 'return=representation' }
@@ -698,14 +699,24 @@ async function sendChatMessage(organizationId, userId, message, mentions) {
 
 async function getChatMessages(organizationId, limit) {
     if (limit === undefined) limit = 50;
-    return supabaseQuery('org_chat_messages?organization_id=eq.' + organizationId + '&order=created_at.desc&limit=' + limit);
+    // Учасникам показуємо лише неприховані повідомлення.
+    // Видалені повідомлення залишаються в БД (is_deleted=true) і доступні в панелі засновника/адміністратора.
+    return supabaseQuery('org_chat_messages?organization_id=eq.' + organizationId + '&is_deleted=eq.false&order=created_at.desc&limit=' + limit);
 }
 
-async function deleteChatMessage(messageId) {
+async function deleteChatMessage(messageId, deletedByUserId) {
+    // М'яке видалення: повідомлення не зникає з БД, а позначається як видалене.
+    // Для всіх учасників воно перестає відображатись, але лишається в історії
+    // й видно в панелі засновника та адміністратора.
     var result = await supabaseQuery('org_chat_messages?id=eq.' + messageId, {
-        method: 'DELETE'
+        method: 'PATCH',
+        body: JSON.stringify({
+            is_deleted: true,
+            deleted_at: new Date().toISOString(),
+            deleted_by: deletedByUserId || null
+        })
     });
-    await addLog('Видалено повідомлення в чаті', 'chat_message', messageId, { deleted: true });
+    await addLog('Видалено повідомлення в чаті', 'chat_message', messageId, { deleted: true, deleted_by: deletedByUserId || null });
     return result;
 }
 

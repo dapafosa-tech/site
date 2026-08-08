@@ -1259,14 +1259,18 @@
                 var orgs = await db.supabaseQuery('organizations?select=id,name');
                 var orgMap = {};
                 if (orgs) { for (var i = 0; i < orgs.length; i++) { orgMap[orgs[i].id] = orgs[i].name || 'Без назви'; } }
-                var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Користувач</th><th>Організація</th><th>Повідомлення</th><th>Дата</th><th>Дії</th></tr></thead><tbody>';
+                var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Користувач</th><th>Організація</th><th>Повідомлення</th><th>Статус</th><th>Дата</th><th>Дії</th></tr></thead><tbody>';
                 if (messages && messages.length > 0) {
                     for (var i = 0; i < messages.length; i++) {
                         var msg = messages[i];
-                        html += '<tr><td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td><td>' + (orgMap[msg.organization_id] || '—') + '</td><td style="max-width:300px;word-wrap:break-word;">' + (msg.message || '') + '</td><td>' + formatDateTimeKyiv(msg.created_at) + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteMessage(\'' + msg.id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+                        var isDeleted = msg.is_deleted === true;
+                        var statusBadge = isDeleted
+                            ? '<span class="badge badge-danger" title="' + (msg.deleted_at ? 'Видалено ' + formatDateTimeKyiv(msg.deleted_at) : 'Видалено користувачем') + '">Видалено</span>'
+                            : '<span class="badge badge-success">Активне</span>';
+                        html += '<tr' + (isDeleted ? ' style="opacity:0.6;"' : '') + '><td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td><td>' + (orgMap[msg.organization_id] || '—') + '</td><td style="max-width:300px;word-wrap:break-word;">' + (msg.message || '') + '</td><td>' + statusBadge + '</td><td>' + formatDateTimeKyiv(msg.created_at) + '</td><td>' + (isDeleted ? '<button class="btn btn-sm btn-danger" onclick="purgeMessage(\'' + msg.id + '\')" title="Видалити назавжди"><i class="fas fa-trash-alt"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="deleteMessage(\'' + msg.id + '\')" title="Приховати повідомлення"><i class="fas fa-trash"></i></button>') + '</td></tr>';
                     }
                 } else {
-                    html += '<tr><td colspan="5" class="text-center text-muted">Немає повідомлень</td></tr>';
+                    html += '<tr><td colspan="6" class="text-center text-muted">Немає повідомлень</td></tr>';
                 }
                 html += '</tbody></table></div>';
                 openModal('Модерація повідомлень', html);
@@ -1274,12 +1278,24 @@
         }
 
         async function deleteMessage(messageId) {
-            var confirmed = await showConfirm('Видалити повідомлення?', 'Підтвердження');
+            var confirmed = await showConfirm('Приховати повідомлення від учасників? Запис лишиться в історії.', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                var user = auth.getCurrentUser();
+                await db.deleteChatMessage(messageId, user ? user.id : null);
+                await db.addLog('Приховано повідомлення (модерація)', 'message', messageId, {});
+                await showToast('Повідомлення приховано від учасників', 'success');
+                moderateMessages();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function purgeMessage(messageId) {
+            var confirmed = await showConfirm('Видалити повідомлення НАЗАВЖДИ? Цю дію не можна скасувати.', 'Остаточне видалення');
             if (!confirmed) return;
             try {
                 await db.supabaseQuery('org_chat_messages?id=eq.' + messageId, { method: 'DELETE' });
-                await db.addLog('Видалено повідомлення', 'message', messageId, {});
-                await showToast('Повідомлення видалено!', 'success');
+                await db.addLog('Остаточно видалено повідомлення', 'message', messageId, {});
+                await showToast('Повідомлення видалено назавжди', 'success');
                 moderateMessages();
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
