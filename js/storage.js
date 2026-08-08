@@ -34,18 +34,18 @@ async function uploadAvatar(file) {
     var token = await getAccessToken();
     if (!token) throw new Error('Сесія недійсна, увійдіть повторно');
 
-    var fileExt = file.name.split('.').pop();
-    var fileName = user.id + '.' + fileExt;
-    
-    // ВАЖЛИВО: правильний шлях для завантаження.
-    // Авторизація має йти токеном СЕСІЇ юзера (не anon key),
-    // інакше RLS-політики бакету avatars відхиляють запит (403) -
-    // саме тому аватарка раніше не завантажувалась.
+    var fileExt = file.name.split('.').pop().toLowerCase();
+    // ВАЖЛИВО: файл має лежати в папці userId/... - саме так це
+    // перевіряє storage RLS-політика (storage.foldername(name)[1] = auth.uid()).
+    // Плаский шлях "userId.ext" без папки цю перевірку не проходить (403).
+    var fileName = user.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + fileExt;
+
     var response = await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + fileName, {
         method: 'POST',
         headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': 'Bearer ' + token,
+            'Content-Type': file.type || 'application/octet-stream',
             'x-upsert': 'true'
         },
         body: file
@@ -58,7 +58,34 @@ async function uploadAvatar(file) {
     }
 
     var publicUrl = SUPABASE_URL + '/storage/v1/object/public/avatars/' + fileName;
-    
+
+    // Прибираємо старі файли аватарки в папці юзера (крім щойно завантаженого)
+    try {
+        var listResponse = await fetch(SUPABASE_URL + '/storage/v1/object/list/avatars', {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prefix: user.id + '/' })
+        });
+        if (listResponse.ok) {
+            var oldFiles = await listResponse.json();
+            for (var i = 0; i < oldFiles.length; i++) {
+                if (fileName !== user.id + '/' + oldFiles[i].name) {
+                    fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + user.id + '/' + oldFiles[i].name, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + token
+                        }
+                    }).catch(function() {});
+                }
+            }
+        }
+    } catch (e) { /* не критично, просто лишиться старий файл */ }
+
     // Оновлюємо профіль
     await db.updateUser(user.id, { avatar_url: publicUrl });
     
@@ -75,7 +102,7 @@ async function deleteAvatar() {
     var token = await getAccessToken();
     if (!token) throw new Error('Сесія недійсна, увійдіть повторно');
 
-    // Шукаємо файл аватарки
+    // Шукаємо файл(и) аватарки всередині папки користувача avatars/{userId}/
     var listResponse = await fetch(SUPABASE_URL + '/storage/v1/object/list/avatars', {
         method: 'POST',
         headers: {
@@ -83,22 +110,15 @@ async function deleteAvatar() {
             'Authorization': 'Bearer ' + token,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ prefix: '' })
+        body: JSON.stringify({ prefix: user.id + '/' })
     });
 
     if (!listResponse.ok) return;
 
     var files = await listResponse.json();
-    var avatarFile = null;
-    for (var i = 0; i < files.length; i++) {
-        if (files[i].name.indexOf(user.id) === 0) {
-            avatarFile = files[i];
-            break;
-        }
-    }
 
-    if (avatarFile) {
-        await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + avatarFile.name, {
+    for (var i = 0; i < files.length; i++) {
+        await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + user.id + '/' + files[i].name, {
             method: 'DELETE',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
