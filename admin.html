@@ -149,6 +149,8 @@
         .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,0.28);}
         .btn-purple{background:#8B5CF6;color:white;}
         .btn-purple:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(139,92,246,0.28);}
+        .btn-success{background:#22C55E;color:white;}
+        .btn-success:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(34,197,94,0.28);}
         .btn-ghost{border-color:var(--ink-line);color:var(--text-onink);}
         .btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
         .btn-sm{padding:0.2rem 0.6rem;font-size:0.7rem;border-radius:4px;border:none;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;}
@@ -163,8 +165,10 @@
         .btn-sm.btn-primary:hover{background:#2563EB;}
         .btn-sm.btn-purple{background:#8B5CF6;color:white;}
         .btn-sm.btn-purple:hover{background:#7C3AED;}
-        .btn-sm.btn-moderator{background:#F59E0B;color:var(--ink);}
-        .btn-sm.btn-admin{background:#E2503E;color:white;}
+        .btn-sm.btn-success{background:#22C55E;color:white;}
+        .btn-sm.btn-success:hover{background:#16A34A;}
+        .btn-sm.btn-gold{background:var(--gold);color:var(--ink);}
+        .btn-sm.btn-gold:hover{background:#d98c0a;}
         .btn-sm i{font-size:0.65rem;}
         .grid-4{
             display:grid;
@@ -264,7 +268,7 @@
             border:1px solid var(--ink-line);
             border-radius:var(--radius);
             padding:2rem;
-            max-width:600px;
+            max-width:640px;
             width:90%;
             max-height:90vh;
             overflow-y:auto;
@@ -419,6 +423,7 @@
             <li><a onclick="loadSection('chat')"><i class="fas fa-comments"></i> Чати</a></li>
             <li><a onclick="loadSection('vacations')"><i class="fas fa-umbrella-beach"></i> Відпустки</a></li>
             <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
+            <li><a onclick="loadSection('appeals')"><i class="fas fa-gavel"></i> Апеляції</a></li>
             <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
             <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
@@ -464,7 +469,6 @@
         </div>
     </main>
 
-    <!-- Модалка перегляду чату -->
     <div class="modal" id="chatModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -477,7 +481,6 @@
         </div>
     </div>
 
-    <!-- Модалка перегляду відпусток -->
     <div class="modal" id="vacationModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -490,7 +493,6 @@
         </div>
     </div>
 
-    <!-- Загальна модалка (використовується, зокрема, для підтримки) -->
     <div class="modal" id="genericModal">
         <div class="modal-content" style="max-width:640px;">
             <div class="modal-header">
@@ -507,20 +509,9 @@
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
     <script>
-        // ============================================
-        // TYPEBIZ - АДМІН-ПАНЕЛЬ
-        // ============================================
-
-        // ============= ПРАВА ДОСТУПУ =============
-
         function hasAccess(user, requiredRole) {
             if (!user) return false;
-            var roleHierarchy = {
-                'user': 0,
-                'moderator': 1,
-                'admin': 2,
-                'owner': 3
-            };
+            var roleHierarchy = { 'user': 0, 'moderator': 1, 'admin': 2, 'owner': 3 };
             return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
         }
 
@@ -529,7 +520,7 @@
         }
 
         function canBanUser(user) {
-            return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
+            return user && (user.role === 'owner' || user.role === 'admin');
         }
 
         function canDeleteUser(user) {
@@ -556,140 +547,6 @@
             return user && (user.role === 'owner' || user.role === 'admin');
         }
 
-        // ============= СТАТИСТИКА =============
-
-        async function loadStats() {
-            try {
-                var user = auth.getCurrentUser();
-                if (!canViewData(user)) {
-                    document.getElementById('statsGrid').style.display = 'none';
-                    return;
-                }
-
-                var users = await db.supabaseQuery('users?select=*');
-                var orgs = await db.supabaseQuery('organizations?select=*');
-                var messages = await db.supabaseQuery('org_chat_messages?select=*');
-                var vacations = await db.supabaseQuery('org_vacations?select=*');
-
-                document.getElementById('totalUsers').textContent = users ? users.length : 0;
-                document.getElementById('totalOrgs').textContent = orgs ? orgs.length : 0;
-                document.getElementById('totalMessages').textContent = messages ? messages.length : 0;
-                document.getElementById('totalVacations').textContent = vacations ? vacations.length : 0;
-            } catch (error) {
-                console.error('Load stats error:', error);
-            }
-        }
-
-        async function loadRecentLogs() {
-            try {
-                var user = auth.getCurrentUser();
-                if (!canViewData(user)) {
-                    document.getElementById('recentLogs').innerHTML = '<p class="text-muted">Немає доступу до логів</p>';
-                    return;
-                }
-
-                var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=20');
-                var container = document.getElementById('recentLogs');
-
-                if (!logs || logs.length === 0) {
-                    container.innerHTML = '<p class="text-muted">Логів поки немає</p>';
-                    return;
-                }
-
-                var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody>';
-                
-                for (var i = 0; i < logs.length; i++) {
-                    var log = logs[i];
-                    var date = formatDateTimeKyiv(log.created_at);
-                    var userName = log.user_name || 'Система';
-                    html += '<tr>' +
-                        '<td style="font-size:0.85rem;">' + date + '</td>' +
-                        '<td><strong>' + userName + '</strong></td>' +
-                        '<td><span class="badge badge-primary">' + (log.action || '—') + '</span></td>' +
-                        '<td>' + (log.entity_type || '—') + '</td>' +
-                    '</tr>';
-                }
-
-                html += '</tbody></table></div>';
-                container.innerHTML = html;
-            } catch (error) {
-                console.error('Load logs error:', error);
-                document.getElementById('recentLogs').innerHTML = '<p class="text-danger">Помилка завантаження логів</p>';
-            }
-        }
-
-        // ============= НАВІГАЦІЯ =============
-
-        function loadSection(section) {
-            var links = document.querySelectorAll('.nav-menu a');
-            for (var i = 0; i < links.length; i++) {
-                links[i].classList.remove('active');
-            }
-            for (var j = 0; j < links.length; j++) {
-                var onclick = links[j].getAttribute('onclick') || '';
-                if (onclick.indexOf(section) !== -1) {
-                    links[j].classList.add('active');
-                }
-            }
-            
-            var titles = {
-                'overview': 'Огляд',
-                'users': 'Користувачі',
-                'orgs': 'Організації',
-                'chat': 'Чати',
-                'vacations': 'Відпустки',
-                'requests': 'Заявки',
-                'support': 'Техпідтримка',
-                'logs': 'Логи'
-            };
-            
-            document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
-            
-            switch(section) {
-                case 'overview':
-                    loadOverview();
-                    break;
-                case 'users':
-                    loadUsers();
-                    break;
-                case 'orgs':
-                    loadOrgs();
-                    break;
-                case 'chat':
-                    loadChat();
-                    break;
-                case 'vacations':
-                    loadVacations();
-                    break;
-                case 'requests':
-                    loadRequests();
-                    break;
-                case 'support':
-                    loadSupportManagement();
-                    break;
-                case 'logs':
-                    loadLogs();
-                    break;
-                default:
-                    loadOverview();
-            }
-        }
-
-        async function loadOverview() {
-            var container = document.getElementById('adminContent');
-            container.innerHTML = 
-                '<div class="card">' +
-                    '<div class="card-header">' +
-                        '<h3 class="card-title">Останні дії</h3>' +
-                    '</div>' +
-                    '<div id="recentLogs">' +
-                        '<p class="text-muted">Завантаження...</p>' +
-                    '</div>' +
-                '</div>';
-            await loadRecentLogs();
-            await loadStats();
-        }
-
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
         }
@@ -700,256 +557,283 @@
             document.getElementById('genericModal').classList.add('active');
         }
 
+        function formatDateKyiv(d) {
+            try { return new Date(d).toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
+
+        function formatDateTimeKyiv(d) {
+            try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
+
+        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator'; }
+
+        function getRoleBadgeHtml(role) {
+            var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'user': '👤 Користувач' };
+            return labels[role] || '👤 Користувач';
+        }
+
+        function showToast(message, type) {
+            var container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;max-width:380px;width:100%;pointer-events:none;';
+                document.body.appendChild(container);
+            }
+            var colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#4f46e5' };
+            var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            var toast = document.createElement('div');
+            toast.style.cssText = 'background:var(--ink-soft);border:1px solid var(--ink-line);border-left:4px solid ' + colors[type] + ';border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideInRight 0.3s ease;pointer-events:auto;color:var(--text-onink);font-family:"IBM Plex Sans",sans-serif;';
+            toast.innerHTML = '<span style="color:' + colors[type] + ';font-size:1.2rem;flex-shrink:0;"><i class="fas ' + (icons[type] || icons.info) + '"></i></span><span style="flex:1;font-size:0.9rem;">' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;"><i class="fas fa-times"></i></button>';
+            container.appendChild(toast);
+            setTimeout(function() { if (toast.parentElement) { toast.style.animation = 'slideOutRight 0.3s ease forwards'; setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300); } }, 4000);
+        }
+
+        function showAlert(message, type) {
+            var titles = { success: 'Успішно!', error: 'Помилка!', warning: 'Увага!', info: 'Інформація' };
+            var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            var colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#4f46e5' };
+            return new Promise(function(resolve) {
+                var overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+                overlay.innerHTML = '<div style="background:var(--ink-soft);border:1px solid var(--ink-line);border-radius:12px;padding:2rem;max-width:440px;width:90%;box-shadow:0 30px 80px rgba(0,0,0,0.6);animation:modalSlideIn 0.3s ease;"><div style="text-align:center;font-size:3rem;color:' + colors[type] + ';margin-bottom:1rem;"><i class="fas ' + (icons[type] || icons.info) + '"></i></div><h3 style="text-align:center;font-size:1.2rem;font-weight:700;margin-bottom:0.5rem;color:var(--text-onink);">' + (titles[type] || 'Інформація') + '</h3><p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;font-size:0.95rem;">' + message + '</p><div style="display:flex;justify-content:center;gap:0.75rem;"><button class="btn btn-gold" id="alertOkBtn" style="min-width:100px;justify-content:center;">OK</button></div></div>';
+                document.body.appendChild(overlay);
+                overlay.querySelector('#alertOkBtn').addEventListener('click', function() { overlay.remove(); resolve(true); });
+                overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.remove(); resolve(true); } });
+            });
+        }
+
+        function showConfirm(message, title) {
+            return new Promise(function(resolve) {
+                var overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+                overlay.innerHTML = '<div style="background:var(--ink-soft);border:1px solid var(--ink-line);border-radius:12px;padding:2rem;max-width:440px;width:90%;box-shadow:0 30px 80px rgba(0,0,0,0.6);animation:modalSlideIn 0.3s ease;"><div style="text-align:center;font-size:3rem;color:#f59e0b;margin-bottom:1rem;"><i class="fas fa-question-circle"></i></div><h3 style="text-align:center;font-size:1.2rem;font-weight:700;margin-bottom:0.5rem;color:var(--text-onink);">' + (title || 'Підтвердження') + '</h3><p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;font-size:0.95rem;">' + message + '</p><div style="display:flex;justify-content:center;gap:0.75rem;"><button class="btn btn-ghost" data-result="false" style="min-width:100px;justify-content:center;">Ні</button><button class="btn btn-gold" data-result="true" style="min-width:100px;justify-content:center;">Так</button></div></div>';
+                document.body.appendChild(overlay);
+                overlay.querySelectorAll('.btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var result = this.getAttribute('data-result') === 'true';
+                        overlay.remove();
+                        resolve(result);
+                    });
+                });
+                overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.remove(); resolve(false); } });
+            });
+        }
+
+        function showPrompt(message, defaultValue, title) {
+            return new Promise(function(resolve) {
+                var overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+                overlay.innerHTML = '<div style="background:var(--ink-soft);border:1px solid var(--ink-line);border-radius:12px;padding:2rem;max-width:440px;width:90%;box-shadow:0 30px 80px rgba(0,0,0,0.6);animation:modalSlideIn 0.3s ease;"><div style="text-align:center;font-size:2.5rem;color:#4f46e5;margin-bottom:1rem;"><i class="fas fa-edit"></i></div><h3 style="text-align:center;font-size:1.2rem;font-weight:700;margin-bottom:0.5rem;color:var(--text-onink);">' + (title || 'Введіть значення') + '</h3><p style="text-align:center;color:var(--muted);margin-bottom:1.5rem;font-size:0.95rem;">' + message + '</p><div class="form-group" style="margin-bottom:1.5rem;"><input type="text" class="form-control" id="promptInput" value="' + (defaultValue || '') + '" style="width:100%;padding:0.75rem 1rem;background:var(--ink);border:1px solid var(--ink-line);border-radius:6px;color:var(--text-onink);font-size:1rem;"></div><div style="display:flex;justify-content:center;gap:0.75rem;"><button class="btn btn-ghost" data-result="cancel" style="min-width:100px;justify-content:center;">Скасувати</button><button class="btn btn-gold" data-result="ok" style="min-width:100px;justify-content:center;">OK</button></div></div>';
+                document.body.appendChild(overlay);
+                var input = overlay.querySelector('#promptInput');
+                input.focus();
+                input.select();
+                overlay.querySelectorAll('.btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        if (this.getAttribute('data-result') === 'ok') {
+                            overlay.remove();
+                            resolve(input.value);
+                        } else {
+                            overlay.remove();
+                            resolve(null);
+                        }
+                    });
+                });
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { overlay.remove(); resolve(input.value); }
+                    else if (e.key === 'Escape') { overlay.remove(); resolve(null); }
+                });
+                overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.remove(); resolve(null); } });
+            });
+        }
+
+        var style = document.createElement('style');
+        style.textContent = '@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
+        document.head.appendChild(style);
+
         async function handleLogout() {
             var confirmed = await showConfirm('Ви впевнені, що хочете вийти?', 'Вихід');
-            if (confirmed) {
-                auth.logoutUser();
-            }
+            if (confirmed) { auth.logoutUser(); }
         }
 
         document.querySelectorAll('.modal').forEach(function(modal) {
             modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.classList.remove('active');
-                }
+                if (e.target === this) this.classList.remove('active');
             });
         });
 
-        // ============= КОРИСТУВАЧІ =============
+        async function loadStats() {
+            try {
+                var user = auth.getCurrentUser();
+                if (!canViewData(user)) { document.getElementById('statsGrid').style.display = 'none'; return; }
+                var users = await db.supabaseQuery('users?select=*');
+                var orgs = await db.supabaseQuery('organizations?select=*');
+                var messages = await db.supabaseQuery('org_chat_messages?select=*');
+                var vacations = await db.supabaseQuery('org_vacations?select=*');
+                document.getElementById('totalUsers').textContent = users ? users.length : 0;
+                document.getElementById('totalOrgs').textContent = orgs ? orgs.length : 0;
+                document.getElementById('totalMessages').textContent = messages ? messages.length : 0;
+                document.getElementById('totalVacations').textContent = vacations ? vacations.length : 0;
+            } catch (error) { console.error('Load stats error:', error); }
+        }
+
+        async function loadRecentLogs() {
+            try {
+                var user = auth.getCurrentUser();
+                if (!canViewData(user)) { document.getElementById('recentLogs').innerHTML = '<p class="text-muted">Немає доступу до логів</p>'; return; }
+                var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=20');
+                var container = document.getElementById('recentLogs');
+                if (!logs || logs.length === 0) { container.innerHTML = '<p class="text-muted">Логів поки немає</p>'; return; }
+                var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody>';
+                for (var i = 0; i < logs.length; i++) {
+                    var log = logs[i];
+                    html += '<tr><td style="font-size:0.85rem;">' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + (log.user_name || 'Система') + '</strong></td><td><span class="badge badge-primary">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
+                }
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } catch (error) { console.error('Load logs error:', error); document.getElementById('recentLogs').innerHTML = '<p class="text-danger">Помилка завантаження логів</p>'; }
+        }
+
+        function loadSection(section) {
+            var links = document.querySelectorAll('.nav-menu a');
+            for (var i = 0; i < links.length; i++) links[i].classList.remove('active');
+            for (var j = 0; j < links.length; j++) {
+                var onclick = links[j].getAttribute('onclick') || '';
+                if (onclick.indexOf(section) !== -1) links[j].classList.add('active');
+            }
+            var titles = { 'overview': 'Огляд', 'users': 'Користувачі', 'orgs': 'Організації', 'chat': 'Чати', 'vacations': 'Відпустки', 'requests': 'Заявки', 'appeals': 'Апеляції', 'support': 'Техпідтримка', 'logs': 'Логи' };
+            document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
+            switch(section) {
+                case 'overview': loadOverview(); break;
+                case 'users': loadUsers(); break;
+                case 'orgs': loadOrgs(); break;
+                case 'chat': loadChat(); break;
+                case 'vacations': loadVacations(); break;
+                case 'requests': loadRequests(); break;
+                case 'appeals': loadAppeals(); break;
+                case 'support': loadSupportManagement(); break;
+                case 'logs': loadLogs(); break;
+                default: loadOverview();
+            }
+        }
+
+        async function loadOverview() {
+            var container = document.getElementById('adminContent');
+            container.innerHTML = '<div class="card"><div class="card-header"><h3 class="card-title">Останні дії</h3></div><div id="recentLogs"><p class="text-muted">Завантаження...</p></div></div>';
+            await loadRecentLogs();
+            await loadStats();
+        }
 
         async function loadUsers() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
-            
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var users = await db.supabaseQuery('users?select=*');
-                
-                var html = 
-                    '<div class="card">' +
-                        '<div class="card-header">' +
-                            '<h3 class="card-title">Всі користувачі</h3>' +
-                            '<span class="badge badge-primary">' + (users ? users.length : 0) + '</span>' +
-                        '</div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()">' +
-                                '<button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' +
-                            '</div>' +
-                            '<select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()">' +
-                                '<option value="">Всі ролі</option>' +
-                                '<option value="owner">Засновник</option>' +
-                                '<option value="admin">Адмін</option>' +
-                                '<option value="moderator">Модератор</option>' +
-                                '<option value="user">Користувач</option>' +
-                            '</select>' +
-                            '<select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()">' +
-                                '<option value="">Всі статуси</option>' +
-                                '<option value="active">Активний</option>' +
-                                '<option value="banned">Заблокований</option>' +
-                            '</select>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="usersTable">' +
-                                '<thead>' +
-                                    '<tr>' +
-                                        '<th>Ім\'я</th>' +
-                                        '<th>Email</th>' +
-                                        '<th>Роль</th>' +
-                                        '<th>Статус</th>' +
-                                        '<th>Дії</th>' +
-                                    '</tr>' +
-                                '</thead>' +
-                                '<tbody id="usersTableBody">';
-
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі користувачі</h3><span class="badge badge-primary">' + (users ? users.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()"><button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()"><option value="">Всі ролі</option><option value="owner">Засновник</option><option value="admin">Адмін</option><option value="moderator">Модератор</option><option value="user">Користувач</option></select><select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()"><option value="">Всі статуси</option><option value="active">Активний</option><option value="banned">Заблокований</option></select></div><div style="overflow-x:auto;"><table class="table" id="usersTable"><thead><tr><th>Ім\'я</th><th>Email</th><th>Роль</th><th>Статус</th><th>Дії</th></tr></thead><tbody id="usersTableBody">';
                 if (users && users.length > 0) {
+                    var roleLabels = { 'owner': '<span class="badge" style="background:#8B5CF6;color:white;">Засновник</span>', 'admin': '<span class="badge badge-danger">Адмін</span>', 'moderator': '<span class="badge badge-warning">Модератор</span>', 'user': '<span class="badge badge-primary">Користувач</span>' };
                     for (var i = 0; i < users.length; i++) {
                         var u = users[i];
-                        var isUserOwner = u.role === 'owner';
-                        var isUserAdmin = u.role === 'admin';
-                        var isUserModerator = u.role === 'moderator';
                         var isUserBanned = u.is_banned === true;
                         var isCurrentUser = u.id === user.id;
-                        
-                        var roleLabels = {
-                            'owner': '<span class="badge" style="background:#8B5CF6;color:white;">Засновник</span>',
-                            'admin': '<span class="badge badge-danger">Адмін</span>',
-                            'moderator': '<span class="badge badge-warning">Модератор</span>',
-                            'user': '<span class="badge badge-primary">Користувач</span>'
-                        };
-                        
                         var actionsHtml = '<div class="actions-cell">';
-                        
-                        // Бан/Розбан (Owner + Admin повністю, Модератор — тільки звичайних користувачів)
-                        var moderatorCanBanTarget = user.role !== 'moderator' || (!isUserOwner && !isUserAdmin && !isUserModerator);
-                        if (canBanUser(user) && !isCurrentUser && moderatorCanBanTarget) {
-                            if (isUserBanned) {
-                                actionsHtml += '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>';
-                            } else {
-                                actionsHtml += '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
-                            }
+                        if (canBanUser(user) && !isCurrentUser) {
+                            actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
                         }
-                        
-                        // Зробити модератором (тільки Owner)
-                        if (canChangeRoles(user) && !isCurrentUser && !isUserOwner && !isUserAdmin && !isUserModerator) {
-                            actionsHtml += '<button class="btn btn-sm btn-moderator" onclick="changeUserRole(\'' + u.id + '\', \'moderator\')" title="Зробити модератором" style="background:#F59E0B;color:#0F1115;"><i class="fas fa-user-shield"></i></button>';
-                        }
-                        
-                        // Зробити адміном (тільки Owner)
-                        if (canChangeRoles(user) && !isCurrentUser && !isUserOwner && !isUserAdmin) {
-                            actionsHtml += '<button class="btn btn-sm btn-admin" onclick="changeUserRole(\'' + u.id + '\', \'admin\')" title="Зробити адміном" style="background:#E2503E;color:white;"><i class="fas fa-user-crown"></i></button>';
-                        }
-                        
-                        // Зняти роль (тільки Owner)
-                        if (canChangeRoles(user) && !isCurrentUser && !isUserOwner && (isUserAdmin || isUserModerator)) {
-                            actionsHtml += '<button class="btn btn-sm btn-warning" onclick="changeUserRole(\'' + u.id + '\', \'user\')" title="Зняти роль"><i class="fas fa-user-minus"></i></button>';
-                        }
-                        
-                        // Видалити (Owner + Admin)
                         if (canDeleteUser(user) && !isCurrentUser) {
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
-                        
                         actionsHtml += '</div>';
-                        
-                        html += 
-                            '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '">' +
-                                '<td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td>' +
-                                '<td>' + (u.email || '—') + '</td>' +
-                                '<td>' + (roleLabels[u.role] || roleLabels.user) + '</td>' +
-                                '<td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
-                                '<td>' + actionsHtml + '</td>' +
-                            '</tr>';
+                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td><td>' + actionsHtml + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="5" class="text-center text-muted">Немає користувачів</td></tr>';
                 }
-
-                html += 
-                                '</tbody>' +
-                            '</table>' +
-                        '</div>' +
-                    '</div>';
-
+                html += '</tbody></table></div></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('Load users error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження користувачів</p></div>';
-            }
+            } catch (error) { console.error('Load users error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження користувачів</p></div>'; }
         }
 
         function filterUsersTable() {
             var searchInput = document.getElementById('userSearchInput');
             var roleFilter = document.getElementById('userRoleFilter');
             var statusFilter = document.getElementById('userStatusFilter');
-            
             if (!searchInput) return;
-            
             var query = searchInput.value.toLowerCase().trim();
             var role = roleFilter ? roleFilter.value : '';
             var status = statusFilter ? statusFilter.value : '';
-            
             var rows = document.querySelectorAll('#usersTableBody tr');
             rows.forEach(function(row) {
                 var name = row.getAttribute('data-name') || '';
                 var email = row.getAttribute('data-email') || '';
                 var rowRole = row.getAttribute('data-role') || '';
                 var rowStatus = row.getAttribute('data-status') || '';
-                
                 var matchSearch = name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
                 var matchRole = !role || rowRole === role;
                 var matchStatus = !status || rowStatus === status;
-                
-                if (matchSearch && matchRole && matchStatus) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = (matchSearch && matchRole && matchStatus) ? '' : 'none';
             });
         }
 
-        // ============= ОРГАНІЗАЦІЇ =============
+        async function banUser(userId) {
+            var user = auth.getCurrentUser();
+            if (!canBanUser(user)) { await showAlert('Тільки засновник або адмін може блокувати', 'error'); return; }
+            var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
+            if (reason === null) return;
+            if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
+            var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача?', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
+                if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
+                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), role: 'user' }) });
+                var userData = await db.supabaseQuery('users?id=eq.' + userId);
+                var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
+                await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: userName });
+                await showToast('Користувача заблоковано!', 'success');
+                loadUsers();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function unbanUser(userId) {
+            var user = auth.getCurrentUser();
+            if (!canBanUser(user)) { await showAlert('Тільки засновник або адмін може розблоковувати', 'error'); return; }
+            var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
+                var userData = await db.supabaseQuery('users?id=eq.' + userId);
+                var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
+                await db.addLog('Розблоковано користувача', 'user', userId, { user_name: userName });
+                await showToast('Користувача розблоковано!', 'success');
+                loadUsers();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function deleteUser(id) {
+            var user = auth.getCurrentUser();
+            if (!canDeleteUser(user)) { await showAlert('Тільки засновник або адмін може видаляти', 'error'); return; }
+            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача?', 'Підтвердження');
+            if (!confirmed) return;
+            try { await db.deleteUser(id); await showToast('Користувача видалено', 'success'); loadUsers(); } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
 
         async function loadOrgs() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
-            
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var orgs = await db.supabaseQuery('organizations?select=*');
-                
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
-                if (users) {
-                    for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо';
-                    }
-                }
-                
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
                 var members = await db.supabaseQuery('org_members?select=*');
                 var leaderMap = {};
-                if (members) {
-                    for (var i = 0; i < members.length; i++) {
-                        var m = members[i];
-                        if (m.is_leader) {
-                            leaderMap[m.organization_id] = m.user_id;
-                        }
-                    }
-                }
-                
-                var typeLabels = {
-                    'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
-                    'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
-                    'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
-                    'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
-                    'it': 'IT-компанія', 'other': 'Інше'
-                };
-                
-                var html = 
-                    '<div class="card">' +
-                        '<div class="card-header">' +
-                            '<h3 class="card-title">Всі організації</h3>' +
-                            '<span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span>' +
-                        '</div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="orgSearchInput" placeholder="Пошук за назвою або типом..." oninput="filterOrgsTable()">' +
-                                '<button class="search-clear" onclick="document.getElementById(\'orgSearchInput\').value=\'\';filterOrgsTable();this.classList.remove(\'visible\');">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' +
-                            '</div>' +
-                            '<select class="filter-select" id="orgStatusFilter" onchange="filterOrgsTable()">' +
-                                '<option value="">Всі статуси</option>' +
-                                '<option value="active">Активна</option>' +
-                                '<option value="frozen">Заморожена</option>' +
-                            '</select>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="orgsTable">' +
-                                '<thead>' +
-                                    '<tr>' +
-                                        '<th>Назва</th>' +
-                                        '<th>Тип</th>' +
-                                        '<th>Код</th>' +
-                                        '<th>Лідер</th>' +
-                                        '<th>Статус</th>' +
-                                        '<th>Дії</th>' +
-                                    '</tr>' +
-                                '</thead>' +
-                                '<tbody id="orgsTableBody">';
-
+                if (members) { for (var i = 0; i < members.length; i++) { var m = members[i]; if (m.is_leader) { leaderMap[m.organization_id] = m.user_id; } } }
+                var typeLabels = { 'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія', 'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан', 'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал', 'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість', 'it': 'IT-компанія', 'other': 'Інше' };
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі організації</h3><span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="orgSearchInput" placeholder="Пошук за назвою або типом..." oninput="filterOrgsTable()"><button class="search-clear" onclick="document.getElementById(\'orgSearchInput\').value=\'\';filterOrgsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="orgStatusFilter" onchange="filterOrgsTable()"><option value="">Всі статуси</option><option value="active">Активна</option><option value="frozen">Заморожена</option></select></div><div style="overflow-x:auto;"><table class="table" id="orgsTable"><thead><tr><th>Назва</th><th>Тип</th><th>Код</th><th>Лідер</th><th>Статус</th><th>Дії</th></tr></thead><tbody id="orgsTableBody">';
                 if (orgs && orgs.length > 0) {
                     for (var i = 0; i < orgs.length; i++) {
                         var org = orgs[i];
@@ -960,261 +844,137 @@
                         var statusText = isActive ? 'Активна' : 'Заморожена';
                         var statusClass = isActive ? 'badge-success' : 'badge-danger';
                         var statusValue = isActive ? 'active' : 'frozen';
-                        
                         var actionsHtml = '<div class="actions-cell">';
-                        
-                        // Передати лідерство (тільки Owner)
-                        if (canTransferLeadership(user)) {
-                            actionsHtml += '<button class="btn btn-sm btn-purple" onclick="openTransferLeadership(\'' + org.id + '\', \'' + (org.name || '') + '\')" title="Передати лідерство"><i class="fas fa-user-crown"></i></button>';
-                        }
-                        
-                        // Перейменувати (тільки Owner)
-                        if (canRenameOrg(user)) {
-                            actionsHtml += '<button class="btn btn-sm btn-primary" onclick="renameOrg(\'' + org.id + '\', \'' + (org.name || '') + '\')" title="Перейменувати"><i class="fas fa-edit"></i></button>';
-                        }
-                        
-                        // Заморозити/Розморозити (Owner + Admin)
                         if (canFreezeOrg(user)) {
-                            if (isActive) {
-                                actionsHtml += '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити"><i class="fas fa-pause"></i></button>';
-                            } else {
-                                actionsHtml += '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити"><i class="fas fa-play"></i></button>';
-                            }
+                            actionsHtml += isActive ? '<button class="btn btn-sm btn-warning" onclick="freezeOrg(\'' + org.id + '\')" title="Заморозити"><i class="fas fa-pause"></i></button>' : '<button class="btn btn-sm btn-teal" onclick="unfreezeOrg(\'' + org.id + '\')" title="Розморозити"><i class="fas fa-play"></i></button>';
                         }
-                        
-                        // Видалити (Owner + Admin)
                         if (canDeleteOrg(user)) {
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteOrg(\'' + org.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
-                        
                         actionsHtml += '</div>';
-                        
-                        html += 
-                            '<tr data-name="' + (org.name || '').toLowerCase() + '" data-type="' + (typeLabels[org.type] || org.type || '').toLowerCase() + '" data-status="' + statusValue + '">' +
-                                '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
-                                '<td>' + (typeLabels[org.type] || org.type || '—') + '</td>' +
-                                '<td style="font-family:monospace;font-size:0.8rem;text-transform:lowercase;">' + (org.join_code || '—') + '</td>' +
-                                '<td>' + leaderName + '</td>' +
-                                '<td><span class="badge ' + statusClass + '">' + statusText + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td>' +
-                                '<td>' + actionsHtml + '</td>' +
-                            '</tr>';
+                        html += '<tr data-name="' + (org.name || '').toLowerCase() + '" data-type="' + (typeLabels[org.type] || org.type || '').toLowerCase() + '" data-status="' + statusValue + '"><td><strong>' + (org.name || 'Без назви') + '</strong></td><td>' + (typeLabels[org.type] || org.type || '—') + '</td><td style="font-family:monospace;font-size:0.8rem;text-transform:lowercase;">' + (org.join_code || '—') + '</td><td>' + leaderName + '</td><td><span class="badge ' + statusClass + '">' + statusText + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td><td>' + actionsHtml + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="6" class="text-center text-muted">Немає організацій</td></tr>';
                 }
-
-                html += 
-                                '</tbody>' +
-                            '</table>' +
-                        '</div>' +
-                    '</div>';
-
+                html += '</tbody></table></div></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('Load orgs error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження організацій</p></div>';
-            }
+            } catch (error) { console.error('Load orgs error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження організацій</p></div>'; }
         }
 
         function filterOrgsTable() {
             var searchInput = document.getElementById('orgSearchInput');
             var statusFilter = document.getElementById('orgStatusFilter');
-            
             if (!searchInput) return;
-            
             var query = searchInput.value.toLowerCase().trim();
             var status = statusFilter ? statusFilter.value : '';
-            
             var rows = document.querySelectorAll('#orgsTableBody tr');
             rows.forEach(function(row) {
                 var name = row.getAttribute('data-name') || '';
                 var type = row.getAttribute('data-type') || '';
                 var rowStatus = row.getAttribute('data-status') || '';
-                
                 var matchSearch = name.indexOf(query) !== -1 || type.indexOf(query) !== -1;
                 var matchStatus = !status || rowStatus === status;
-                
-                if (matchSearch && matchStatus) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = (matchSearch && matchStatus) ? '' : 'none';
             });
         }
 
-        // ============= ЧАТИ =============
+        async function freezeOrg(orgId) {
+            var user = auth.getCurrentUser();
+            if (!canFreezeOrg(user)) { await showAlert('Тільки засновник або адмін може заморожувати', 'error'); return; }
+            var reason = await showPrompt('Введіть причину заморозки організації:', 'Порушення правил', 'Заморозка організації');
+            if (reason === null) return;
+            if (!reason || reason.trim() === '') { await showAlert('Введіть причину заморозки', 'warning'); return; }
+            var confirmed = await showConfirm('Ви впевнені, що хочете заморозити цю організацію?', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                await db.updateOrganization(orgId, { is_active: false, freeze_reason: reason.trim(), frozen_by: user.id, frozen_at: new Date().toISOString() });
+                await db.addLog('Заморожено організацію', 'organization', orgId, { reason: reason.trim() });
+                await showToast('Організацію заморожено!', 'success');
+                loadOrgs();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function unfreezeOrg(orgId) {
+            var user = auth.getCurrentUser();
+            if (!canFreezeOrg(user)) { await showAlert('Тільки засновник або адмін може розморожувати', 'error'); return; }
+            var confirmed = await showConfirm('Розморозити цю організацію?', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                await db.updateOrganization(orgId, { is_active: true, freeze_reason: null, frozen_by: null, frozen_at: null });
+                await db.addLog('Розморожено організацію', 'organization', orgId, {});
+                await showToast('Організацію розморожено!', 'success');
+                loadOrgs();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function deleteOrg(id) {
+            var user = auth.getCurrentUser();
+            if (!canDeleteOrg(user)) { await showAlert('Тільки засновник або адмін може видаляти', 'error'); return; }
+            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю організацію? Всі дані будуть втрачені.', 'Увага');
+            if (!confirmed) return;
+            try { await db.deleteOrganization(id); await showToast('Організацію видалено', 'success'); loadOrgs(); } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
 
         async function loadChat() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
-            
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
-                
-                var html = 
-                    '<div class="card">' +
-                        '<div class="card-header">' +
-                            '<h3 class="card-title">Чати організацій</h3>' +
-                        '</div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="chatSearchInput" placeholder="Пошук за назвою організації..." oninput="filterChatsTable()">' +
-                                '<button class="search-clear" onclick="document.getElementById(\'chatSearchInput\').value=\'\';filterChatsTable();this.classList.remove(\'visible\');">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="chatsTable">' +
-                                '<thead>' +
-                                    '<tr>' +
-                                        '<th>Організація</th>' +
-                                        '<th>Статус</th>' +
-                                        '<th>Повідомлень</th>' +
-                                        '<th>Дії</th>' +
-                                    '</tr>' +
-                                '</thead>' +
-                                '<tbody id="chatsTableBody">';
-
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Чати організацій</h3></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="chatSearchInput" placeholder="Пошук за назвою організації..." oninput="filterChatsTable()"><button class="search-clear" onclick="document.getElementById(\'chatSearchInput\').value=\'\';filterChatsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div><div style="overflow-x:auto;"><table class="table" id="chatsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Повідомлень</th><th>Дії</th></tr></thead><tbody id="chatsTableBody">';
                 if (orgs && orgs.length > 0) {
                     for (var i = 0; i < orgs.length; i++) {
                         var org = orgs[i];
                         var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + org.id);
                         var count = messages ? messages.length : 0;
                         var isActive = org.is_active !== false;
-                        
-                        html += 
-                            '<tr data-name="' + (org.name || '').toLowerCase() + '">' +
-                                '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
-                                '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
-                                '<td>' + count + '</td>' +
-                                '<td>' +
-                                    '<button class="btn btn-sm btn-teal" onclick="viewChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" title="Переглянути чат"><i class="fas fa-eye"></i></button>' +
-                                '</td>' +
-                            '</tr>';
+                        html += '<tr data-name="' + (org.name || '').toLowerCase() + '"><td><strong>' + (org.name || 'Без назви') + '</strong></td><td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td><td>' + count + '</td><td><button class="btn btn-sm btn-teal" onclick="viewChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" title="Переглянути чат"><i class="fas fa-eye"></i></button></td></tr>';
                     }
-                } else {
-                    html += '<tr><td colspan="4" class="text-center text-muted">Немає організацій</td></tr>';
-                }
-
-                html += 
-                                '</tbody>' +
-                            '</table>' +
-                        '</div>' +
-                    '</div>';
-
+                } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає організацій</td></tr>'; }
+                html += '</tbody></table></div></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('Load chat error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження чатів</p></div>';
-            }
+            } catch (error) { console.error('Load chat error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження чатів</p></div>'; }
         }
 
         function filterChatsTable() {
             var searchInput = document.getElementById('chatSearchInput');
             if (!searchInput) return;
-            
             var query = searchInput.value.toLowerCase().trim();
             var rows = document.querySelectorAll('#chatsTableBody tr');
             rows.forEach(function(row) {
                 var name = row.getAttribute('data-name') || '';
-                if (name.indexOf(query) !== -1) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = name.indexOf(query) !== -1 ? '' : 'none';
             });
         }
 
         async function viewChat(orgId, orgName) {
             document.getElementById('chatModalTitle').textContent = 'Чат: ' + orgName;
             document.getElementById('chatModal').classList.add('active');
-            
             try {
                 var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + orgId + '&order=created_at.asc&limit=50');
                 var container = document.getElementById('chatMessagesContainer');
-                
-                if (!messages || messages.length === 0) {
-                    container.innerHTML = '<p class="text-muted">Немає повідомлень</p>';
-                    return;
-                }
-                
+                if (!messages || messages.length === 0) { container.innerHTML = '<p class="text-muted">Немає повідомлень</p>'; return; }
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
-                if (users) {
-                    for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач';
-                    }
-                }
-                
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач'; } }
                 var html = '';
                 for (var i = 0; i < messages.length; i++) {
                     var msg = messages[i];
                     var userName = userMap[msg.user_id] || 'Невідомий користувач';
-                    
-                    html += 
-                        '<div style="padding:0.75rem;border-bottom:1px solid var(--ink-line);">' +
-                            '<div style="font-size:0.8rem;color:var(--gold);display:flex;justify-content:space-between;">' +
-                                '<span><i class="fas fa-user"></i> ' + userName + '</span>' +
-                                '<span style="color:var(--muted);font-size:0.7rem;">' + formatDateTimeKyiv(msg.created_at) + '</span>' +
-                            '</div>' +
-                            '<div style="margin-top:0.4rem;font-size:0.95rem;">' + (msg.message || '') + '</div>' +
-                        '</div>';
+                    html += '<div style="padding:0.75rem;border-bottom:1px solid var(--ink-line);"><div style="font-size:0.8rem;color:var(--gold);display:flex;justify-content:space-between;"><span><i class="fas fa-user"></i> ' + userName + '</span><span style="color:var(--muted);font-size:0.7rem;">' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;font-size:0.95rem;">' + (msg.message || '') + '</div></div>';
                 }
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('View chat error:', error);
-                document.getElementById('chatMessagesContainer').innerHTML = '<p class="text-danger">Помилка завантаження повідомлень</p>';
-            }
+            } catch (error) { console.error('View chat error:', error); document.getElementById('chatMessagesContainer').innerHTML = '<p class="text-danger">Помилка завантаження повідомлень</p>'; }
         }
-
-        // ============= ВІДПУСТКИ =============
 
         async function loadVacations() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
-            
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
-                
-                var html = 
-                    '<div class="card">' +
-                        '<div class="card-header">' +
-                            '<h3 class="card-title">Відпустки в організаціях</h3>' +
-                        '</div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="vacationSearchInput" placeholder="Пошук за назвою організації..." oninput="filterVacationsTable()">' +
-                                '<button class="search-clear" onclick="document.getElementById(\'vacationSearchInput\').value=\'\';filterVacationsTable();this.classList.remove(\'visible\');">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="vacationsTable">' +
-                                '<thead>' +
-                                    '<tr>' +
-                                        '<th>Організація</th>' +
-                                        '<th>Статус</th>' +
-                                        '<th>Заявок</th>' +
-                                        '<th>Очікують</th>' +
-                                        '<th>Дії</th>' +
-                                    '</tr>' +
-                                '</thead>' +
-                                '<tbody id="vacationsTableBody">';
-
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Відпустки в організаціях</h3></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="vacationSearchInput" placeholder="Пошук за назвою організації..." oninput="filterVacationsTable()"><button class="search-clear" onclick="document.getElementById(\'vacationSearchInput\').value=\'\';filterVacationsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div><div style="overflow-x:auto;"><table class="table" id="vacationsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Заявок</th><th>Очікують</th><th>Дії</th></tr></thead><tbody id="vacationsTableBody">';
                 if (orgs && orgs.length > 0) {
                     for (var i = 0; i < orgs.length; i++) {
                         var org = orgs[i];
@@ -1222,305 +982,250 @@
                         var count = vacations ? vacations.length : 0;
                         var pending = vacations ? vacations.filter(function(v) { return v.status === 'pending'; }).length : 0;
                         var isActive = org.is_active !== false;
-                        
-                        html += 
-                            '<tr data-name="' + (org.name || '').toLowerCase() + '">' +
-                                '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
-                                '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
-                                '<td>' + count + '</td>' +
-                                '<td><span class="badge badge-warning">' + pending + '</span></td>' +
-                                '<td>' +
-                                    '<button class="btn btn-sm btn-teal" onclick="viewVacations(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" title="Переглянути відпустки"><i class="fas fa-eye"></i></button>' +
-                                '</td>' +
-                            '</tr>';
+                        html += '<tr data-name="' + (org.name || '').toLowerCase() + '"><td><strong>' + (org.name || 'Без назви') + '</strong></td><td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td><td>' + count + '</td><td><span class="badge badge-warning">' + pending + '</span></td><td><button class="btn btn-sm btn-teal" onclick="viewVacations(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" title="Переглянути відпустки"><i class="fas fa-eye"></i></button></td></tr>';
                     }
-                } else {
-                    html += '<tr><td colspan="5" class="text-center text-muted">Немає організацій</td></tr>';
-                }
-
-                html += 
-                                '</tbody>' +
-                            '</table>' +
-                        '</div>' +
-                    '</div>';
-
+                } else { html += '<tr><td colspan="5" class="text-center text-muted">Немає організацій</td></tr>'; }
+                html += '</tbody></table></div></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('Load vacations error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження відпусток</p></div>';
-            }
+            } catch (error) { console.error('Load vacations error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження відпусток</p></div>'; }
         }
 
         function filterVacationsTable() {
             var searchInput = document.getElementById('vacationSearchInput');
             if (!searchInput) return;
-            
             var query = searchInput.value.toLowerCase().trim();
             var rows = document.querySelectorAll('#vacationsTableBody tr');
             rows.forEach(function(row) {
                 var name = row.getAttribute('data-name') || '';
-                if (name.indexOf(query) !== -1) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = name.indexOf(query) !== -1 ? '' : 'none';
             });
         }
 
         async function viewVacations(orgId, orgName) {
             document.getElementById('vacationModalTitle').textContent = 'Відпустки: ' + orgName;
             document.getElementById('vacationModal').classList.add('active');
-            
             try {
                 var vacations = await db.supabaseQuery('org_vacations?organization_id=eq.' + orgId + '&order=created_at.desc');
                 var container = document.getElementById('vacationContainer');
-                
-                if (!vacations || vacations.length === 0) {
-                    container.innerHTML = '<p class="text-muted">Немає заявок на відпустку</p>';
-                    return;
-                }
-                
-                var vacationStatusLabels = {
-                    'pending': 'Очікує',
-                    'approved': 'Схвалено',
-                    'rejected': 'Відхилено',
-                    'cancelled': 'Скасовано'
-                };
-                var vacationTypeLabels = {
-                    'annual': 'Щорічна',
-                    'sick': 'Лікарняний',
-                    'unpaid': 'Без збереження',
-                    'maternity': 'Декретна',
-                    'other': 'Інша'
-                };
-                
+                if (!vacations || vacations.length === 0) { container.innerHTML = '<p class="text-muted">Немає заявок на відпустку</p>'; return; }
+                var vacationStatusLabels = { 'pending': 'Очікує', 'approved': 'Схвалено', 'rejected': 'Відхилено', 'cancelled': 'Скасовано' };
+                var vacationTypeLabels = { 'annual': 'Щорічна', 'sick': 'Лікарняний', 'unpaid': 'Без збереження', 'maternity': 'Декретна', 'other': 'Інша' };
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
-                if (users) {
-                    for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач';
-                    }
-                }
-                
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач'; } }
                 var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Користувач</th><th>Період</th><th>Тип</th><th>Статус</th></tr></thead><tbody>';
-                
                 for (var i = 0; i < vacations.length; i++) {
                     var vac = vacations[i];
                     var userName = userMap[vac.user_id] || 'Невідомий користувач';
-                    var statusClass = vac.status === 'pending' ? 'badge-warning' : 
-                                     vac.status === 'approved' ? 'badge-success' : 
-                                     vac.status === 'cancelled' ? 'badge-secondary' : 'badge-danger';
-                    
-                    html += 
-                        '<tr>' +
-                            '<td><strong>' + userName + '</strong></td>' +
-                            '<td>' + formatDateKyiv(vac.start_date) + ' - ' + formatDateKyiv(vac.end_date) + '</td>' +
-                            '<td>' + (vacationTypeLabels[vac.type] || vac.type || '—') + '</td>' +
-                            '<td><span class="badge ' + statusClass + '">' + (vacationStatusLabels[vac.status] || vac.status || '—') + '</span></td>' +
-                        '</tr>';
+                    var statusClass = vac.status === 'pending' ? 'badge-warning' : vac.status === 'approved' ? 'badge-success' : vac.status === 'cancelled' ? 'badge-secondary' : 'badge-danger';
+                    html += '<tr><td><strong>' + userName + '</strong></td><td>' + formatDateKyiv(vac.start_date) + ' - ' + formatDateKyiv(vac.end_date) + '</td><td>' + (vacationTypeLabels[vac.type] || vac.type || '—') + '</td><td><span class="badge ' + statusClass + '">' + (vacationStatusLabels[vac.status] || vac.status || '—') + '</span></td></tr>';
                 }
-                
                 html += '</tbody></table></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('View vacations error:', error);
-                document.getElementById('vacationContainer').innerHTML = '<p class="text-danger">Помилка завантаження даних</p>';
-            }
+            } catch (error) { console.error('View vacations error:', error); document.getElementById('vacationContainer').innerHTML = '<p class="text-danger">Помилка завантаження даних</p>'; }
         }
-
-        // ============= ЗАЯВКИ =============
 
         async function loadRequests() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
-            
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var requests = await db.supabaseQuery('join_requests?select=*');
-                
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
-                if (users) {
-                    for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо';
-                    }
-                }
-                
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
                 var orgs = await db.supabaseQuery('organizations?select=id,name');
                 var orgMap = {};
-                if (orgs) {
-                    for (var i = 0; i < orgs.length; i++) {
-                        orgMap[orgs[i].id] = orgs[i].name || 'Без назви';
-                    }
-                }
-                
-                var html = 
-                    '<div class="card">' +
-                        '<div class="card-header">' +
-                            '<h3 class="card-title">Всі заявки на вступ</h3>' +
-                            '<span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span>' +
-                        '</div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." oninput="filterRequestsTable()">' +
-                                '<button class="search-clear" onclick="document.getElementById(\'requestSearchInput\').value=\'\';filterRequestsTable();this.classList.remove(\'visible\');">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' +
-                            '</div>' +
-                            '<select class="filter-select" id="requestStatusFilter" onchange="filterRequestsTable()">' +
-                                '<option value="">Всі статуси</option>' +
-                                '<option value="pending">Очікує</option>' +
-                                '<option value="approved">Схвалено</option>' +
-                                '<option value="rejected">Відхилено</option>' +
-                            '</select>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="requestsTable">' +
-                                '<thead>' +
-                                    '<tr>' +
-                                        '<th>Користувач</th>' +
-                                        '<th>Організація</th>' +
-                                        '<th>Повідомлення</th>' +
-                                        '<th>Статус</th>' +
-                                        '<th>Дата</th>' +
-                                    '</tr>' +
-                                '</thead>' +
-                                '<tbody id="requestsTableBody">';
-
+                if (orgs) { for (var i = 0; i < orgs.length; i++) { orgMap[orgs[i].id] = orgs[i].name || 'Без назви'; } }
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі заявки на вступ</h3><span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." oninput="filterRequestsTable()"><button class="search-clear" onclick="document.getElementById(\'requestSearchInput\').value=\'\';filterRequestsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="requestStatusFilter" onchange="filterRequestsTable()"><option value="">Всі статуси</option><option value="pending">Очікує</option><option value="approved">Схвалено</option><option value="rejected">Відхилено</option></select></div><div style="overflow-x:auto;"><table class="table" id="requestsTable"><thead><tr><th>Користувач</th><th>Організація</th><th>Повідомлення</th><th>Статус</th><th>Дата</th></tr></thead><tbody id="requestsTableBody">';
                 if (requests && requests.length > 0) {
-                    var statusLabels = {
-                        'pending': 'Очікує',
-                        'approved': 'Схвалено',
-                        'rejected': 'Відхилено'
-                    };
-                    
+                    var statusLabels = { 'pending': 'Очікує', 'approved': 'Схвалено', 'rejected': 'Відхилено' };
                     for (var i = 0; i < requests.length; i++) {
                         var req = requests[i];
                         var userName = userMap[req.user_id] || 'Невідомо';
                         var orgName = orgMap[req.organization_id] || '—';
-                        var statusClass = req.status === 'pending' ? 'badge-warning' : 
-                                         req.status === 'approved' ? 'badge-success' : 'badge-danger';
+                        var statusClass = req.status === 'pending' ? 'badge-warning' : req.status === 'approved' ? 'badge-success' : 'badge-danger';
                         var statusValue = req.status || 'pending';
-                        
-                        html += 
-                            '<tr data-user="' + userName.toLowerCase() + '" data-org="' + orgName.toLowerCase() + '" data-status="' + statusValue + '">' +
-                                '<td><strong>' + userName + '</strong></td>' +
-                                '<td>' + orgName + '</td>' +
-                                '<td>' + (req.message || 'Без повідомлення') + '</td>' +
-                                '<td><span class="badge ' + statusClass + '">' + (statusLabels[req.status] || req.status) + '</span></td>' +
-                                '<td>' + formatDateKyiv(req.created_at) + '</td>' +
-                            '</tr>';
+                        html += '<tr data-user="' + userName.toLowerCase() + '" data-org="' + orgName.toLowerCase() + '" data-status="' + statusValue + '"><td><strong>' + userName + '</strong></td><td>' + orgName + '</td><td>' + (req.message || 'Без повідомлення') + '</td><td><span class="badge ' + statusClass + '">' + (statusLabels[req.status] || req.status) + '</span></td><td>' + formatDateKyiv(req.created_at) + '</td></tr>';
                     }
-                } else {
-                    html += '<tr><td colspan="5" class="text-center text-muted">Немає заявок</td></tr>';
-                }
-
-                html += 
-                                '</tbody>' +
-                            '</table>' +
-                        '</div>' +
-                    '</div>';
-
+                } else { html += '<tr><td colspan="5" class="text-center text-muted">Немає заявок</td></tr>'; }
+                html += '</tbody></table></div></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('Load requests error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження заявок</p></div>';
-            }
+            } catch (error) { console.error('Load requests error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження заявок</p></div>'; }
         }
 
         function filterRequestsTable() {
             var searchInput = document.getElementById('requestSearchInput');
             var statusFilter = document.getElementById('requestStatusFilter');
-            
             if (!searchInput) return;
-            
             var query = searchInput.value.toLowerCase().trim();
             var status = statusFilter ? statusFilter.value : '';
-            
             var rows = document.querySelectorAll('#requestsTableBody tr');
             rows.forEach(function(row) {
                 var userName = row.getAttribute('data-user') || '';
                 var orgName = row.getAttribute('data-org') || '';
                 var rowStatus = row.getAttribute('data-status') || '';
-                
                 var matchSearch = userName.indexOf(query) !== -1 || orgName.indexOf(query) !== -1;
                 var matchStatus = !status || rowStatus === status;
-                
-                if (matchSearch && matchStatus) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = (matchSearch && matchStatus) ? '' : 'none';
             });
+        }
+
+        // ============= АПЕЛЯЦІЇ =============
+
+        async function loadAppeals() {
+            var container = document.getElementById('adminContent');
+            var user = auth.getCurrentUser();
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
+            try {
+                var appeals = await db.getAppeals();
+                var users = await db.supabaseQuery('users?select=id,full_name,email');
+                var userMap = {};
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📋 Апеляції користувачів</h3><span class="badge badge-primary">' + (appeals ? appeals.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="appealSearchInput" placeholder="Пошук за користувачем..." oninput="filterAppealsTable()"><button class="search-clear" onclick="document.getElementById(\'appealSearchInput\').value=\'\';filterAppealsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="appealStatusFilter" onchange="filterAppealsTable()"><option value="">Всі статуси</option><option value="pending">⏳ Очікується</option><option value="approved">✅ Схвалено</option><option value="rejected">❌ Відмовлено</option><option value="closed">🔒 Закрито</option></select></div><div style="overflow-x:auto;"><table class="table" id="appealsTable"><thead><tr><th>Користувач</th><th>Причина бана</th><th>Статус</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="appealsTableBody">';
+                if (appeals && appeals.length > 0) {
+                    var statusLabels = { 'pending': '⏳ Очікується', 'approved': '✅ Схвалено', 'rejected': '❌ Відмовлено', 'closed': '🔒 Закрито' };
+                    var statusClasses = { 'pending': 'badge-warning', 'approved': 'badge-success', 'rejected': 'badge-danger', 'closed': 'badge-secondary' };
+                    for (var i = 0; i < appeals.length; i++) {
+                        var a = appeals[i];
+                        var userName = userMap[a.user_id] || 'Невідомо';
+                        var userEmail = users && users.find(function(u) { return u.id === a.user_id; })?.email || '';
+                        var actionsHtml = '<div class="actions-cell"><button class="btn btn-sm btn-primary" onclick="viewAppeal(\'' + a.id + '\')"><i class="fas fa-eye"></i></button>';
+                        if (a.status === 'pending') {
+                            actionsHtml += '<button class="btn btn-sm btn-success" onclick="approveAppeal(\'' + a.id + '\')"><i class="fas fa-check"></i></button>';
+                            actionsHtml += '<button class="btn btn-sm btn-danger" onclick="rejectAppeal(\'' + a.id + '\')"><i class="fas fa-times"></i></button>';
+                        }
+                        actionsHtml += '</div>';
+                        html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + a.status + '"><td><strong>' + userName + '</strong></td><td>' + (a.ban_reason || '—') + '</td><td><span class="badge ' + (statusClasses[a.status] || 'badge-secondary') + '">' + (statusLabels[a.status] || a.status) + '</span></td><td>' + formatDateKyiv(a.created_at) + '</td><td>' + actionsHtml + '</td></tr>';
+                    }
+                } else { html += '<tr><td colspan="5" class="text-center text-muted">Немає апеляцій</td></tr>'; }
+                html += '</tbody></table></div></div>';
+                container.innerHTML = html;
+            } catch (error) { container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження апеляцій</p></div>'; }
+        }
+
+        function filterAppealsTable() {
+            var searchInput = document.getElementById('appealSearchInput');
+            var statusFilter = document.getElementById('appealStatusFilter');
+            if (!searchInput) return;
+            var query = searchInput.value.toLowerCase().trim();
+            var status = statusFilter ? statusFilter.value : '';
+            var rows = document.querySelectorAll('#appealsTableBody tr');
+            rows.forEach(function(row) {
+                var user = row.getAttribute('data-user') || '';
+                var rowStatus = row.getAttribute('data-status') || '';
+                var matchSearch = user.indexOf(query) !== -1;
+                var matchStatus = !status || rowStatus === status;
+                row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+            });
+        }
+
+        async function viewAppeal(appealId) {
+            try {
+                var appeals = await db.getAppeals({ appealId: appealId });
+                if (!appeals || appeals.length === 0) { await showAlert('Апеляцію не знайдено', 'error'); return; }
+                var appeal = appeals[0];
+                var messages = await db.getAppealMessages(appealId);
+                var users = await db.supabaseQuery('users?select=id,full_name,email');
+                var userMap = {};
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач'; } }
+                var statusLabels = { 'pending': '⏳ Очікується', 'approved': '✅ Схвалено', 'rejected': '❌ Відмовлено', 'closed': '🔒 Закрито' };
+                var html = '<div><p><strong>Користувач:</strong> ' + (userMap[appeal.user_id] || 'Невідомо') + '</p><p><strong>Причина бана:</strong> ' + (appeal.ban_reason || '—') + '</p><p><strong>Статус:</strong> ' + (statusLabels[appeal.status] || appeal.status) + '</p><hr style="border-color:var(--ink-line);">';
+                if (messages && messages.length > 0) {
+                    for (var i = 0; i < messages.length; i++) {
+                        var msg = messages[i];
+                        var isAdmin = msg.sender_type === 'admin' || msg.sender_type === 'owner';
+                        var senderLabel = isAdmin ? '👑 Адміністрація' : (userMap[msg.sender_id] || 'Користувач');
+                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isAdmin ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isAdmin ? 'var(--gold)' : 'var(--teal)') + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
+                    }
+                }
+                if (appeal.status === 'pending') {
+                    html += '<hr style="border-color:var(--ink-line);"><div style="display:flex;gap:0.5rem;flex-direction:column;"><textarea class="form-control" id="appealReply" placeholder="Відповідь користувачу..." rows="3"></textarea><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-gold" onclick="sendAppealReply(\'' + appealId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button><button class="btn btn-success" onclick="approveAppeal(\'' + appealId + '\')"><i class="fas fa-check"></i> Схвалити</button><button class="btn btn-danger" onclick="rejectAppeal(\'' + appealId + '\')"><i class="fas fa-times"></i> Відхилити</button></div></div>';
+                } else { html += '<p class="text-muted">✅ Апеляцію оброблено</p>'; }
+                html += '</div>';
+                openModal('Апеляція #' + appealId.substring(0, 8), html);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function sendAppealReply(appealId) {
+            var textarea = document.getElementById('appealReply');
+            if (!textarea) return;
+            var message = textarea.value.trim();
+            if (!message) { await showAlert('Введіть повідомлення', 'warning'); return; }
+            var user = auth.getCurrentUser();
+            try {
+                await db.sendAppealMessage({ appeal_id: appealId, sender_id: user.id, sender_type: user.role, message: message, created_at: new Date().toISOString() });
+                await db.updateAppealStatus(appealId, 'pending');
+                await db.addLog('Відповідь в апеляції', 'appeal', appealId, {});
+                await showToast('Відповідь відправлено!', 'success');
+                await loadAppeals();
+                await viewAppeal(appealId);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function approveAppeal(appealId) {
+            var confirmed = await showConfirm('Схвалити апеляцію? Користувач буде розблокований.', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                var appeals = await db.getAppeals({ appealId: appealId });
+                if (!appeals || appeals.length === 0) { await showAlert('Апеляцію не знайдено', 'error'); return; }
+                var appeal = appeals[0];
+                await db.updateAppealStatus(appealId, 'approved');
+                await db.supabaseQuery('users?id=eq.' + appeal.user_id, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
+                await db.addLog('Розблоковано за апеляцією', 'appeal', appealId, { user_id: appeal.user_id, appeal_id: appealId, action: 'approve' });
+                await showToast('✅ Апеляцію схвалено, користувача розблоковано!', 'success');
+                await loadAppeals();
+                closeModal('genericModal');
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function rejectAppeal(appealId) {
+            var confirmed = await showConfirm('Відхилити апеляцію? Користувач залишиться заблокованим.', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                var appeals = await db.getAppeals({ appealId: appealId });
+                if (!appeals || appeals.length === 0) { await showAlert('Апеляцію не знайдено', 'error'); return; }
+                var appeal = appeals[0];
+                await db.updateAppealStatus(appealId, 'rejected');
+                await db.addLog('Відхилено апеляцію', 'appeal', appealId, { user_id: appeal.user_id, appeal_id: appealId, action: 'reject' });
+                await showToast('❌ Апеляцію відхилено', 'success');
+                await loadAppeals();
+                closeModal('genericModal');
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         // ============= ТЕХПІДТРИМКА =============
 
         var supportTicketsCache = [];
         var supportUserMapCache = {};
+        var statusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
 
         async function loadSupportManagement() {
             var user = auth.getCurrentUser();
             var container = document.getElementById('adminContent');
-
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             container.innerHTML = '<div class="card"><p class="text-muted">Завантаження заявок...</p></div>';
-
             try {
                 var tickets = await db.getSupportTickets();
                 var users = await db.getUsersWithRoles();
-
                 var userMap = {};
-                if (users) {
-                    for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i];
-                    }
-                }
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i]; } }
                 supportTicketsCache = tickets || [];
                 supportUserMapCache = userMap;
-
                 renderSupportTicketsTable();
-            } catch (error) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>';
-            }
+            } catch (error) { container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>'; }
         }
-
-        var statusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
 
         function renderSupportTicketsTable() {
             var container = document.getElementById('adminContent');
             var userMap = supportUserMapCache;
-
             var sorted = supportTicketsCache.slice().sort(function(a, b) {
                 var wa = statusWeight[a.status] !== undefined ? statusWeight[a.status] : 1;
                 var wb = statusWeight[b.status] !== undefined ? statusWeight[b.status] : 1;
                 if (wa !== wb) return wa - wb;
                 return new Date(b.created_at) - new Date(a.created_at);
             });
-
-            var html = '<div class="card">';
-            html += '<div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
-            html += '<div class="search-filters">';
-            html += '<div class="search-wrapper"><i class="fas fa-search search-icon"></i>';
-            html += '<input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()">';
-            html += '<button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button>';
-            html += '</div>';
-            html += '<select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()">';
-            html += '<option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option>';
-            html += '</select>';
-            html += '</div>';
-
-            html += '<div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
-
+            var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div><div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
             if (sorted.length > 0) {
                 for (var i = 0; i < sorted.length; i++) {
                     var t = sorted[i];
@@ -1530,20 +1235,9 @@
                     var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
                     var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
                     var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
-
-                    html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '">' +
-                        '<td><strong>' + userName + '</strong></td>' +
-                        '<td>' + (t.subject || '—') + '</td>' +
-                        '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
-                        '<td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td>' +
-                        '<td>' + formatDateKyiv(t.created_at) + '</td>' +
-                        '<td><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i> Відкрити</button></td>' +
-                    '</tr>';
+                    html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '"><td><strong>' + userName + '</strong></td><td>' + (t.subject || '—') + '</td><td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td><td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td><td>' + formatDateKyiv(t.created_at) + '</td><td><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i> Відкрити</button></td></tr>';
                 }
-            } else {
-                html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
-            }
-
+            } else { html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>'; }
             html += '</tbody></table></div></div>';
             container.innerHTML = html;
         }
@@ -1562,567 +1256,110 @@
         async function viewSupportTicket(ticketId) {
             try {
                 var t = await db.getSupportTicket(ticketId);
-                if (!t) {
-                    await showAlert('Заявку не знайдено', 'error');
-                    return;
-                }
-
+                if (!t) { await showAlert('Заявку не знайдено', 'error'); return; }
                 var messages = await db.getSupportMessages(ticketId);
                 var u = supportUserMapCache[t.user_id];
                 var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
-
                 var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
-
-                var html = '<div>';
-                html += '<p><strong>Тема:</strong> ' + t.subject + '</p>';
-                html += '<p><strong>Від:</strong> ' + userName + '</p>';
-                html += '<p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p>';
-                html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div>';
-                html += '<hr style="border-color:var(--ink-line);">';
-
+                var html = '<div><p><strong>Тема:</strong> ' + t.subject + '</p><p><strong>Від:</strong> ' + userName + '</p><p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p><div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div><hr style="border-color:var(--ink-line);">';
                 if (messages && messages.length > 0) {
                     for (var i = 0; i < messages.length; i++) {
                         var msg = messages[i];
                         var isStaff = isStaffRole(msg.sender_type);
                         var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
-                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : 'var(--teal)') + ';">';
-                        html += '<div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;">';
-                        html += '<span>' + senderLabel + '</span>';
-                        html += '<span>' + formatDateTimeKyiv(msg.created_at) + '</span>';
-                        html += '</div>';
-                        html += '<div style="margin-top:0.4rem;">' + msg.message + '</div>';
-                        html += '</div>';
+                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : 'var(--teal)') + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
                     }
                 }
-
                 if (t.status !== 'closed') {
-                    html += '<hr style="border-color:var(--ink-line);">';
-                    html += '<div style="display:flex;gap:0.5rem;flex-direction:column;">';
-                    html += '<textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea>';
-                    html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">';
-                    html += '<button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button>';
-                    if (t.status !== 'in_progress') {
-                        html += '<button class="btn btn-warning" onclick="changeSupportStatus(\'' + ticketId + '\', \'in_progress\')"><i class="fas fa-play"></i> Взяти в роботу</button>';
-                    }
-                    html += '<button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button>';
-                    html += '</div></div>';
-                } else {
-                    html += '<p class="text-muted">✅ Заявку закрито</p>';
-                }
-
+                    html += '<hr style="border-color:var(--ink-line);"><div style="display:flex;gap:0.5rem;flex-direction:column;"><textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button><button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button></div></div>';
+                } else { html += '<p class="text-muted">✅ Заявку закрито</p>'; }
                 html += '</div>';
-
                 openModal('Заявка #' + ticketId.substring(0, 8), html);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         async function sendSupportReply(ticketId) {
             var textarea = document.getElementById('supportReply');
             if (!textarea) return;
-
             var message = textarea.value.trim();
-            if (!message) {
-                await showAlert('Введіть повідомлення', 'warning');
-                return;
-            }
-
+            if (!message) { await showAlert('Введіть повідомлення', 'warning'); return; }
             var user = auth.getCurrentUser();
-
             try {
-                await db.sendSupportMessage({
-                    ticket_id: ticketId,
-                    sender_id: user.id,
-                    sender_type: user.role,
-                    message: message
-                });
-
+                await db.sendSupportMessage({ ticket_id: ticketId, sender_id: user.id, sender_type: user.role, message: message });
                 await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
-
                 await db.addLog('Відповідь в підтримку', 'support', ticketId, {});
                 await showToast('Відповідь відправлено!', 'success');
                 await loadSupportManagement();
                 await viewSupportTicket(ticketId);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function changeSupportStatus(ticketId, status) {
-            try {
-                await db.updateSupportTicket(ticketId, { status: status });
-                await db.addLog('Змінено статус заявки', 'support', ticketId, { status: status });
-                await showToast('Статус змінено!', 'success');
-                await loadSupportManagement();
-                await viewSupportTicket(ticketId);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         async function closeSupportTicket(ticketId) {
             var confirmed = await showConfirm('Закрити заявку?', 'Підтвердження');
             if (!confirmed) return;
-
             try {
                 await db.updateSupportTicket(ticketId, { status: 'closed' });
                 await db.addLog('Закрито заявку в підтримку', 'support', ticketId, {});
                 await showToast('Заявку закрито!', 'success');
                 await loadSupportManagement();
                 await viewSupportTicket(ticketId);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
-
-        // ============= ЛОГИ =============
 
         async function loadLogs() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
-            
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=200');
-                
-                var html = 
-                    '<div class="card">' +
-                        '<div class="card-header">' +
-                            '<h3 class="card-title">Всі логи системи</h3>' +
-                            '<span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span>' +
-                        '</div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()">' +
-                                '<button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');">' +
-                                    '<i class="fas fa-times"></i>' +
-                                '</button>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="logsTable">' +
-                                '<thead>' +
-                                    '<tr>' +
-                                        '<th>Час</th>' +
-                                        '<th>Користувач</th>' +
-                                        '<th>Дія</th>' +
-                                        '<th>Тип</th>' +
-                                    '</tr>' +
-                                '</thead>' +
-                                '<tbody id="logsTableBody">';
-
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div><div style="overflow-x:auto;"><table class="table" id="logsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="logsTableBody">';
                 if (logs && logs.length > 0) {
                     var users = await db.supabaseQuery('users?select=id,full_name,email');
                     var userMap = {};
-                    if (users) {
-                        for (var i = 0; i < users.length; i++) {
-                            userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо';
-                        }
-                    }
-                    
+                    if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
                     for (var i = 0; i < logs.length; i++) {
                         var log = logs[i];
                         var userName = log.user_name || userMap[log.user_id] || 'Система';
-                        var action = log.action || '—';
-                        var entity = log.entity_type || '—';
-                        
-                        html += 
-                            '<tr data-user="' + userName.toLowerCase() + '" data-action="' + action.toLowerCase() + '" data-entity="' + entity.toLowerCase() + '">' +
-                                '<td>' + formatDateTimeKyiv(log.created_at) + '</td>' +
-                                '<td><strong>' + userName + '</strong></td>' +
-                                '<td><span class="badge badge-primary">' + action + '</span></td>' +
-                                '<td>' + entity + '</td>' +
-                            '</tr>';
+                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge badge-primary">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
                     }
-                } else {
-                    html += '<tr><td colspan="4" class="text-center text-muted">Немає логів</td></tr>';
-                }
-
-                html += 
-                                '</tbody>' +
-                            '</table>' +
-                        '</div>' +
-                    '</div>';
-
+                } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає логів</td></tr>'; }
+                html += '</tbody></table></div></div>';
                 container.innerHTML = html;
-            } catch (error) {
-                console.error('Load logs error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження логів</p></div>';
-            }
+            } catch (error) { console.error('Load logs error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження логів</p></div>'; }
         }
 
         function filterLogsTable() {
             var searchInput = document.getElementById('logSearchInput');
             if (!searchInput) return;
-            
             var query = searchInput.value.toLowerCase().trim();
             var rows = document.querySelectorAll('#logsTableBody tr');
             rows.forEach(function(row) {
                 var userName = row.getAttribute('data-user') || '';
                 var action = row.getAttribute('data-action') || '';
                 var entity = row.getAttribute('data-entity') || '';
-                
                 var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
-                
-                if (matchSearch) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = matchSearch ? '' : 'none';
             });
         }
 
-        // ============= ФУНКЦІЇ ДІЙ =============
-
-        async function changeUserRole(userId, newRole) {
-            var user = auth.getCurrentUser();
-            if (!canChangeRoles(user)) {
-                await showAlert('Тільки засновник може змінювати ролі', 'error');
-                return;
-            }
-            
-            var roleLabels = {
-                'owner': 'засновника',
-                'admin': 'адміністратора',
-                'moderator': 'модератора',
-                'user': 'звичайного користувача'
-            };
-            
-            var confirmed = await showConfirm('Змінити роль цього користувача на "' + roleLabels[newRole] + '"?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                await db.setUserRole(userId, newRole);
-                await db.addLog('Змінено роль користувача', 'user', userId, { new_role: newRole });
-                await showToast('Роль змінено!', 'success');
-                loadUsers();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function banUser(userId) {
-            var user = auth.getCurrentUser();
-            if (!canBanUser(user)) {
-                await showAlert('Тільки засновник, адмін або модератор може блокувати', 'error');
-                return;
-            }
-
-            if (user.role === 'moderator') {
-                var targetData = await db.supabaseQuery('users?id=eq.' + userId + '&select=role');
-                var targetRole = targetData && targetData.length > 0 ? targetData[0].role : 'user';
-                if (targetRole !== 'user') {
-                    await showAlert('Модератор може блокувати лише звичайних користувачів', 'error');
-                    return;
-                }
-            }
-            
-            var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
-            if (reason === null) return;
-            if (!reason || reason.trim() === '') {
-                await showAlert('Введіть причину блокування', 'warning');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
-                if (members && members.length > 0) {
-                    for (var i = 0; i < members.length; i++) {
-                        await db.removeMemberFromOrganization(members[i].id);
-                    }
-                }
-                
-                await db.supabaseQuery('users?id=eq.' + userId, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ 
-                        is_banned: true, 
-                        ban_reason: reason.trim(),
-                        role: 'user'
-                    })
-                });
-                
-                var userData = await db.supabaseQuery('users?id=eq.' + userId);
-                var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
-                await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: userName });
-                await showToast('Користувача заблоковано!', 'success');
-                loadUsers();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function unbanUser(userId) {
-            var user = auth.getCurrentUser();
-            if (!canBanUser(user)) {
-                await showAlert('Тільки засновник, адмін або модератор може розблоковувати', 'error');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                await db.supabaseQuery('users?id=eq.' + userId, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ 
-                        is_banned: false, 
-                        ban_reason: null 
-                    })
-                });
-                
-                var userData = await db.supabaseQuery('users?id=eq.' + userId);
-                var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
-                await db.addLog('Розблоковано користувача', 'user', userId, { user_name: userName });
-                await showToast('Користувача розблоковано!', 'success');
-                loadUsers();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function deleteUser(id) {
-            var user = auth.getCurrentUser();
-            if (!canDeleteUser(user)) {
-                await showAlert('Тільки засновник або адмін може видаляти', 'error');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                await db.deleteUser(id);
-                await showToast('Користувача видалено', 'success');
-                loadUsers();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function renameOrg(orgId, currentName) {
-            var user = auth.getCurrentUser();
-            if (!canRenameOrg(user)) {
-                await showAlert('Тільки засновник може перейменовувати', 'error');
-                return;
-            }
-            
-            var newName = await showPrompt('Введіть нову назву організації:', currentName, 'Перейменування організації');
-            if (newName === null) return;
-            if (!newName || newName.trim() === '') {
-                await showAlert('Введіть назву організації', 'warning');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Змінити назву з "' + currentName + '" на "' + newName.trim() + '"?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                await db.updateOrganization(orgId, { name: newName.trim() });
-                await db.addLog('Перейменовано організацію', 'organization', orgId, { old_name: currentName, new_name: newName.trim() });
-                await showToast('Організацію перейменовано!', 'success');
-                loadOrgs();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function openTransferLeadership(orgId, orgName) {
-            var user = auth.getCurrentUser();
-            if (!canTransferLeadership(user)) {
-                await showAlert('Тільки засновник може передавати лідерство', 'error');
-                return;
-            }
-            
-            try {
-                var members = await db.getOrganizationMembers(orgId);
-                var users = await db.supabaseQuery('users?select=id,full_name,email');
-                var userMap = {};
-                for (var i = 0; i < users.length; i++) {
-                    userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач';
-                }
-                
-                var currentLeader = await db.supabaseQuery('org_members?organization_id=eq.' + orgId + '&is_leader=eq.true');
-                var currentLeaderId = currentLeader && currentLeader.length > 0 ? currentLeader[0].user_id : null;
-                
-                var options = '';
-                for (var i = 0; i < members.length; i++) {
-                    var m = members[i];
-                    if (m.user_id === currentLeaderId) continue;
-                    var userName = userMap[m.user_id] || 'Невідомо';
-                    options += '<option value="' + m.id + '" data-user-id="' + m.user_id + '">' + userName + '</option>';
-                }
-                
-                if (!options) {
-                    await showAlert('Немає інших учасників для передачі лідерства', 'warning');
-                    return;
-                }
-                
-                var html = '';
-                html += '<div style="margin-bottom:1rem;">';
-                html += '<p>Передати лідерство в організації <strong>"' + orgName + '"</strong> іншому учаснику:</p>';
-                html += '<select class="form-control" id="transferLeaderSelect" style="margin-top:0.5rem;">' + options + '</select>';
-                html += '</div>';
-                
-                await showAlert(html, 'info', 'Передача лідерства');
-                
-                var select = document.getElementById('transferLeaderSelect');
-                if (!select) return;
-                
-                var selectedMemberId = select.value;
-                if (!selectedMemberId) return;
-                
-                var confirmed = await showConfirm('Ви впевнені, що хочете передати лідерство цьому учаснику?', 'Підтвердження');
-                if (!confirmed) return;
-                
-                if (currentLeader && currentLeader.length > 0) {
-                    await db.supabaseQuery('org_members?id=eq.' + currentLeader[0].id, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ is_leader: false })
-                    });
-                }
-                
-                await db.supabaseQuery('org_members?id=eq.' + selectedMemberId, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ is_leader: true })
-                });
-                
-                await db.addLog('Передано лідерство в організації', 'organization', orgId, {});
-                await showToast('Лідерство передано!', 'success');
-                loadOrgs();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function freezeOrg(orgId) {
-            var user = auth.getCurrentUser();
-            if (!canFreezeOrg(user)) {
-                await showAlert('Тільки засновник або адмін може заморожувати', 'error');
-                return;
-            }
-            
-            var reason = await showPrompt('Введіть причину заморозки організації:', 'Порушення правил', 'Заморозка організації');
-            if (reason === null) return;
-            if (!reason || reason.trim() === '') {
-                await showAlert('Введіть причину заморозки', 'warning');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Ви впевнені, що хочете заморозити цю організацію?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                await db.updateOrganization(orgId, { 
-                    is_active: false, 
-                    freeze_reason: reason.trim(),
-                    frozen_by: user.id,
-                    frozen_at: new Date().toISOString()
-                });
-                
-                await db.addLog('Заморожено організацію', 'organization', orgId, { reason: reason.trim() });
-                await showToast('Організацію заморожено!', 'success');
-                loadOrgs();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function unfreezeOrg(orgId) {
-            var user = auth.getCurrentUser();
-            if (!canFreezeOrg(user)) {
-                await showAlert('Тільки засновник або адмін може розморожувати', 'error');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Розморозити цю організацію?', 'Підтвердження');
-            if (!confirmed) return;
-            
-            try {
-                await db.updateOrganization(orgId, { 
-                    is_active: true, 
-                    freeze_reason: null,
-                    frozen_by: null,
-                    frozen_at: null
-                });
-                
-                await db.addLog('Розморожено організацію', 'organization', orgId, {});
-                await showToast('Організацію розморожено!', 'success');
-                loadOrgs();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function deleteOrg(id) {
-            var user = auth.getCurrentUser();
-            if (!canDeleteOrg(user)) {
-                await showAlert('Тільки засновник або адмін може видаляти', 'error');
-                return;
-            }
-            
-            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю організацію? Всі дані будуть втрачені.', 'Увага');
-            if (!confirmed) return;
-            
-            try {
-                await db.deleteOrganization(id);
-                await showToast('Організацію видалено', 'success');
-                loadOrgs();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        // ============= ІНІЦІАЛІЗАЦІЯ =============
-
         async function init() {
             var user = auth.getCurrentUser();
-            
-            if (!user) {
-                window.location.href = '/login';
-                return;
-            }
-
-            // Якщо owner - перенаправляємо на owner-panel
-            if (user.role === 'owner') {
-                window.location.href = '/owner-panel';
-                return;
-            }
-
-            // Показуємо ім'я та аватар
+            if (!user) { window.location.href = '/login'; return; }
+            if (user.role === 'owner') { window.location.href = '/owner-panel'; return; }
             document.getElementById('userName').textContent = user.full_name || 'Користувач';
             document.getElementById('userEmail').textContent = user.email;
-
             var avatarEl = document.getElementById('userAvatar');
-            if (user.avatar_url) {
-                avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
-            } else {
-                avatarEl.textContent = (user.full_name || 'A')[0].toUpperCase();
-            }
-            
-            // Перевіряємо доступ (admin, moderator)
+            if (user.avatar_url) { avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">'; } else { avatarEl.textContent = (user.full_name || 'A')[0].toUpperCase(); }
             var hasAccess = user && (user.role === 'admin' || user.role === 'moderator');
-            
             if (!hasAccess) {
-                document.getElementById('adminContent').innerHTML = 
-                    '<div class="card"><p class="text-danger">Доступ заборонено. Потрібні права: admin або moderator.</p></div>';
+                document.getElementById('adminContent').innerHTML = '<div class="card"><p class="text-danger">Доступ заборонено. Потрібні права: admin або moderator.</p></div>';
                 document.getElementById('statsGrid').style.display = 'none';
                 return;
             }
-
             await loadStats();
             await loadOverview();
         }
 
-        // Запуск
         init();
     </script>
 </body>
