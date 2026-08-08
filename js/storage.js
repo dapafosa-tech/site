@@ -31,15 +31,22 @@ async function uploadAvatar(file) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
 
+    var token = await getAccessToken();
+    if (!token) throw new Error('Сесія недійсна, увійдіть повторно');
+
     var fileExt = file.name.split('.').pop();
     var fileName = user.id + '.' + fileExt;
     
-    // ВАЖЛИВО: правильний шлях для завантаження
+    // ВАЖЛИВО: правильний шлях для завантаження.
+    // Авторизація має йти токеном СЕСІЇ юзера (не anon key),
+    // інакше RLS-політики бакету avatars відхиляють запит (403) -
+    // саме тому аватарка раніше не завантажувалась.
     var response = await fetch(SUPABASE_URL + '/storage/v1/object/avatars/' + fileName, {
         method: 'POST',
         headers: {
             'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            'Authorization': 'Bearer ' + token,
+            'x-upsert': 'true'
         },
         body: file
     });
@@ -65,12 +72,18 @@ async function deleteAvatar() {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
 
+    var token = await getAccessToken();
+    if (!token) throw new Error('Сесія недійсна, увійдіть повторно');
+
     // Шукаємо файл аватарки
     var listResponse = await fetch(SUPABASE_URL + '/storage/v1/object/list/avatars', {
+        method: 'POST',
         headers: {
             'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-        }
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prefix: '' })
     });
 
     if (!listResponse.ok) return;
@@ -89,7 +102,7 @@ async function deleteAvatar() {
             method: 'DELETE',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                'Authorization': 'Bearer ' + token
             }
         });
     }
