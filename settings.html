@@ -52,17 +52,40 @@
         }
         .header .back:hover{color:var(--gold);}
         .header h1{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;}
-        .avatar-section{display:flex;align-items:center;gap:1.25rem;margin-bottom:2rem;}
+        .avatar-section{display:flex;flex-direction:column;align-items:center;gap:0.75rem;margin-bottom:2.5rem;}
         .avatar-preview{
-            width:80px;height:80px;border-radius:50%;
+            position:relative;
+            width:120px;height:120px;border-radius:50%;
             background:var(--ink);border:2px solid var(--ink-line);
             display:flex;align-items:center;justify-content:center;
-            overflow:hidden;flex-shrink:0;font-size:1.8rem;font-weight:700;
+            overflow:hidden;flex-shrink:0;font-size:2.4rem;font-weight:700;
             color:var(--gold);cursor:pointer;
+            transition:border-color .2s;
         }
+        .avatar-preview:hover{border-color:var(--gold);}
         .avatar-preview img{width:100%;height:100%;object-fit:cover;}
-        .avatar-actions{display:flex;flex-direction:column;gap:0.5rem;}
-        .avatar-actions .btn{padding:0.45rem 1rem;font-size:0.8rem;}
+        .avatar-preview .overlay{
+            position:absolute;inset:0;
+            background:rgba(15,17,21,0.72);
+            color:var(--text-onink);
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            gap:0.25rem;font-size:0.75rem;font-weight:600;
+            opacity:0;transition:opacity .2s;
+            text-align:center;
+        }
+        .avatar-preview:hover .overlay,
+        .avatar-preview.uploading .overlay{opacity:1;}
+        .avatar-preview .overlay i{font-size:1.1rem;}
+        .avatar-remove{
+            position:absolute;top:-2px;right:-2px;
+            width:26px;height:26px;border-radius:50%;
+            background:#E2503E;color:#fff;
+            display:flex;align-items:center;justify-content:center;
+            font-size:0.7rem;border:2px solid var(--ink-soft);
+            cursor:pointer;z-index:2;
+        }
+        .avatar-remove:hover{background:#c8402f;}
+        .avatar-hint{font-size:0.8rem;color:var(--muted);}
         #avatarFileInput{display:none;}
         .form-group{margin-bottom:1.5rem;}
         .form-label{display:block;font-weight:600;margin-bottom:0.4rem;font-size:0.85rem;}
@@ -124,16 +147,10 @@
         <div class="avatar-section">
             <div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('avatarFileInput').click()">
                 <span id="avatarInitial">U</span>
+                <div class="overlay"><i class="fas fa-camera"></i>Змінити фото</div>
             </div>
-            <div class="avatar-actions">
-                <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarChange(event)">
-                <button type="button" class="btn btn-gold" onclick="document.getElementById('avatarFileInput').click()">
-                    <i class="fas fa-upload"></i> Змінити фото
-                </button>
-                <button type="button" class="btn btn-danger" id="removeAvatarBtn" onclick="handleAvatarRemove()">
-                    <i class="fas fa-trash"></i> Видалити фото
-                </button>
-            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarChange(event)">
+            <span class="avatar-hint">Натисніть на аватар, щоб змінити фото</span>
         </div>
 
         <form id="settingsForm">
@@ -167,10 +184,16 @@
     <script>
         function renderAvatar(user) {
             var preview = document.getElementById('avatarPreview');
+            var overlayHtml = '<div class="overlay"><i class="fas fa-camera"></i>Змінити фото</div>';
             if (user && user.avatar_url) {
-                preview.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
+                preview.innerHTML =
+                    '<img src="' + user.avatar_url + '" alt="Аватар">' +
+                    overlayHtml +
+                    '<div class="avatar-remove" title="Видалити фото" onclick="handleAvatarRemove(event)"><i class="fas fa-times"></i></div>';
             } else {
-                preview.innerHTML = '<span id="avatarInitial">' + ((user && user.full_name ? user.full_name : 'U')[0].toUpperCase()) + '</span>';
+                preview.innerHTML =
+                    '<span id="avatarInitial">' + ((user && user.full_name ? user.full_name : 'U')[0].toUpperCase()) + '</span>' +
+                    overlayHtml;
             }
         }
 
@@ -185,6 +208,9 @@
                 return;
             }
 
+            var preview = document.getElementById('avatarPreview');
+            preview.classList.add('uploading');
+
             try {
                 var url = await storage.uploadAvatar(file);
                 renderAvatar(auth.getCurrentUser());
@@ -192,11 +218,16 @@
             } catch (error) {
                 showToast('Помилка: ' + error.message, 'error');
             } finally {
+                preview.classList.remove('uploading');
                 event.target.value = '';
             }
         }
 
-        async function handleAvatarRemove() {
+        async function handleAvatarRemove(event) {
+            event.stopPropagation();
+            var confirmed = await showConfirm('Видалити фото профілю?', 'Видалення аватара');
+            if (!confirmed) return;
+
             try {
                 await storage.deleteAvatar();
                 renderAvatar(auth.getCurrentUser());
