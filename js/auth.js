@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - AUTH LAYER (ПОВНА ВЕРСІЯ З ФІКСАМИ)
+// TYPEBIZ - AUTH LAYER
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -30,29 +30,16 @@ function generateUUID() {
     });
 }
 
-// ============================================
-// ПЕРЕВІРКА БАНА - ОДИНАКОВА ЛОГІКА ДЛЯ ВСІХ МІСЦЬ
-// ============================================
-
-async function checkUserBanned(userId, accessToken) {
+async function checkUserBanned(userId) {
     if (!userId) return null;
-    
     try {
-        var headers = {
-            'apikey': SUPABASE_ANON_KEY
-        };
-        if (accessToken) {
-            headers['Authorization'] = 'Bearer ' + accessToken;
-        } else {
-            headers['Authorization'] = 'Bearer ' + SUPABASE_ANON_KEY;
-        }
-        
         var response = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + userId + '&select=is_banned,ban_reason', {
-            headers: headers
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            }
         });
-
         if (!response.ok) return null;
-        
         var data = await response.json();
         if (data && data.length > 0) {
             return {
@@ -67,13 +54,8 @@ async function checkUserBanned(userId, accessToken) {
     }
 }
 
-// ============================================
-// ВХІД
-// ============================================
-
 async function loginUser(email, password) {
     try {
-        // Шукаємо користувача
         var response = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -86,17 +68,15 @@ async function loginUser(email, password) {
         }
 
         var users = await response.json();
-        
         if (!users || users.length === 0) {
             throw new Error('Користувача не знайдено');
         }
 
         var user = users[0];
         
-        // ПЕРЕВІРКА НА БАН - ПЕРШИМ ДІЛОМ!
-        var banInfo = await checkUserBanned(user.id, SUPABASE_ANON_KEY);
+        // ПЕРЕВІРКА БАНА
+        var banInfo = await checkUserBanned(user.id);
         if (banInfo && banInfo.is_banned === true) {
-            // Зберігаємо інформацію про бан в localStorage для сторінки banned
             localStorage.setItem('userData', JSON.stringify({
                 id: user.id,
                 email: user.email,
@@ -104,23 +84,19 @@ async function loginUser(email, password) {
                 is_banned: true,
                 ban_reason: banInfo.ban_reason || 'Порушення правил платформи'
             }));
-            // Редірект на сторінку бана
+            // КИДАЄМО НА СТОРІНКУ БАНУ
             window.location.href = '/banned';
-            // ВАЖЛИВО: ВИХОДИМО З ФУНКЦІЇ, ЩОБ НЕ ПРОДОВЖУВАТИ
             return { success: false, error: 'Акаунт заблоковано', banned: true };
         }
 
-        // Перевіряємо пароль (якщо зберігається в БД - в реальному проєкті має бути хеш)
         if (user.password && user.password !== password) {
             throw new Error('Невірний пароль');
         }
 
-        // Зберігаємо сесію ТІЛЬКИ ЯКЩО НЕ ЗАБАНЕНИЙ
         localStorage.setItem('userData', JSON.stringify(user));
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
-        // Редірект на дашборд
         window.location.href = '/dashboard';
         return { success: true, user: user };
         
@@ -129,75 +105,8 @@ async function loginUser(email, password) {
     }
 }
 
-// ============================================
-// РЕЄСТРАЦІЯ
-// ============================================
-
-async function isRegistrationAllowed() {
-    try {
-        var response = await fetch(SUPABASE_URL + '/rest/v1/system_settings?key=eq.allow_registration', {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-        if (!response.ok) return true;
-        var rows = await response.json();
-        if (rows && rows.length > 0) {
-            return rows[0].value !== 'false';
-        }
-        return true;
-    } catch {
-        return true;
-    }
-}
-
-async function checkEmailDomainAllowed(email) {
-    try {
-        var domain = (email.split('@')[1] || '').toLowerCase().trim();
-        if (!domain) return true;
-
-        var response = await fetch(SUPABASE_URL + '/rest/v1/email_domains?select=domain,type', {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-            }
-        });
-        if (!response.ok) return true;
-
-        var rows = await response.json();
-        if (!rows || rows.length === 0) return true;
-
-        var blocked = [];
-        var allowed = [];
-        for (var i = 0; i < rows.length; i++) {
-            var d = (rows[i].domain || '').toLowerCase().trim();
-            if (!d) continue;
-            if (rows[i].type === 'block') blocked.push(d);
-            else allowed.push(d);
-        }
-
-        if (blocked.indexOf(domain) !== -1) return false;
-        if (allowed.length > 0 && allowed.indexOf(domain) === -1) return false;
-
-        return true;
-    } catch {
-        return true;
-    }
-}
-
 async function registerUser(email, password, fullName) {
     try {
-        var allowed = await isRegistrationAllowed();
-        if (!allowed) {
-            throw new Error('Реєстрація нових користувачів тимчасово вимкнена адміністрацією.');
-        }
-
-        var domainOk = await checkEmailDomainAllowed(email);
-        if (!domainOk) {
-            throw new Error('Реєстрація з поштою цього домену заборонена. Зверніться до адміністрації.');
-        }
-
         var checkResponse = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email), {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -245,13 +154,10 @@ async function registerUser(email, password, fullName) {
         var result = await response.json();
         var user = result[0] || result;
         
-        // Зберігаємо сесію
         localStorage.setItem('userData', JSON.stringify(user));
         localStorage.setItem('isGuest', 'false');
         currentUser = user;
 
-        // НЕ РОБИМО РЕДІРЕКТ ТУТ! 
-        // Це робить register.html ПІСЛЯ завантаження аватарки
         return { success: true, user: user };
         
     } catch (error) {
@@ -259,37 +165,22 @@ async function registerUser(email, password, fullName) {
     }
 }
 
-// ============================================
-// ПЕРЕВІРКА АВТОРИЗАЦІЇ (ДЛЯ ВСІХ СТОРІНОК)
-// ============================================
-
 async function checkAuth() {
     var user = getCurrentUser();
     if (!user) return false;
 
-    // Якщо вже є мітка про бан - редірект на banned
     if (user.is_banned === true) {
-        if (window.location.pathname !== '/banned') {
-            window.location.href = '/banned';
-        }
         return false;
     }
 
     try {
-        var banInfo = await checkUserBanned(user.id, SUPABASE_ANON_KEY);
+        var banInfo = await checkUserBanned(user.id);
         if (banInfo && banInfo.is_banned === true) {
-            // Оновлюємо дані з причиною бана
             user.is_banned = true;
             user.ban_reason = banInfo.ban_reason || 'Порушення правил платформи';
             localStorage.setItem('userData', JSON.stringify(user));
-            
-            if (window.location.pathname !== '/banned') {
-                window.location.href = '/banned';
-            }
             return false;
         }
-        
-        // Оновлюємо дані користувача
         currentUser = user;
         return true;
     } catch {
@@ -300,70 +191,13 @@ async function checkAuth() {
 async function requireAuth() {
     var isAuth = await checkAuth();
     if (!isAuth) {
-        // Якщо ми вже на banned - не редіректимо
-        if (window.location.pathname !== '/banned') {
+        // ЯКЩО КОРИСТУВАЧ ЗАБАНЕНИЙ - КИДАЄМО НА BANNED
+        var user = getCurrentUser();
+        if (user && user.is_banned === true) {
+            window.location.href = '/banned';
+        } else {
             window.location.href = '/login';
         }
-        return false;
-    }
-    return true;
-}
-
-async function requireAdmin() {
-    var isAuth = await checkAuth();
-    if (!isAuth) {
-        if (window.location.pathname !== '/banned') {
-            window.location.href = '/login';
-        }
-        return false;
-    }
-    
-    var user = getCurrentUser();
-    if (user && user.role !== 'admin' && user.role !== 'owner') {
-        if (window.showAlert) {
-            await window.showAlert('Доступ заборонено. Потрібні права адміністратора.', 'error');
-        }
-        window.location.href = '/dashboard';
-        return false;
-    }
-    return true;
-}
-
-async function requireOwner() {
-    var isAuth = await checkAuth();
-    if (!isAuth) {
-        if (window.location.pathname !== '/banned') {
-            window.location.href = '/login';
-        }
-        return false;
-    }
-    
-    var user = getCurrentUser();
-    if (user && user.role !== 'owner') {
-        if (window.showAlert) {
-            await window.showAlert('Доступ заборонено. Потрібні права засновника.', 'error');
-        }
-        window.location.href = '/dashboard';
-        return false;
-    }
-    return true;
-}
-
-async function requireModerator() {
-    var isAuth = await checkAuth();
-    if (!isAuth) {
-        if (window.location.pathname !== '/banned') {
-            window.location.href = '/login';
-        }
-        return false;
-    }
-    
-    var user = getCurrentUser();
-    if (user && user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'owner') {
-        if (window.showAlert) {
-            await window.showAlert('Доступ заборонено. Потрібні права модератора або вище.', 'error');
-        }
-        window.location.href = '/dashboard';
         return false;
     }
     return true;
@@ -386,37 +220,14 @@ function isOwner() {
     return user && user.role === 'owner';
 }
 
-function isModerator() {
-    var user = getCurrentUser();
-    return user && (user.role === 'admin' || user.role === 'moderator' || user.role === 'owner');
-}
-
-function getUserRole() {
-    var user = getCurrentUser();
-    return user ? user.role : 'user';
-}
-
-// ============================================
-// ЕКСПОРТ
-// ============================================
-
 window.auth = {
     getCurrentUser: getCurrentUser,
     checkAuth: checkAuth,
     requireAuth: requireAuth,
-    requireAdmin: requireAdmin,
-    requireOwner: requireOwner,
-    requireModerator: requireModerator,
     logoutUser: logoutUser,
     loginUser: loginUser,
     registerUser: registerUser,
-    isRegistrationAllowed: isRegistrationAllowed,
-    checkEmailDomainAllowed: checkEmailDomainAllowed,
     isAdmin: isAdmin,
     isOwner: isOwner,
-    isModerator: isModerator,
-    getUserRole: getUserRole,
     checkUserBanned: checkUserBanned
 };
-
-console.log('✅ Auth module loaded successfully');
