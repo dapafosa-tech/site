@@ -241,6 +241,22 @@ async function loadOrganization() {
     loadSection('overview');
 }
 
+function toggleMobileSidebar() {
+    document.getElementById('sidebar').classList.toggle('mobile-active');
+    document.getElementById('sidebarBackdrop').classList.toggle('active');
+}
+
+function closeMobileSidebar() {
+    document.getElementById('sidebar').classList.remove('mobile-active');
+    document.getElementById('sidebarBackdrop').classList.remove('active');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.sidebar .nav-menu a').forEach(function(link) {
+        link.addEventListener('click', closeMobileSidebar);
+    });
+});
+
 function loadSection(section) {
     var links = document.querySelectorAll('.nav-menu a');
     for (var i = 0; i < links.length; i++) {
