@@ -177,6 +177,14 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(242, 169, 59, 0.3);
         }
+        .banned-box .btn-danger {
+            background: var(--red);
+            color: white;
+        }
+        .banned-box .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(226, 80, 62, 0.3);
+        }
         .banned-box .btn-outline {
             background: transparent;
             border-color: var(--ink-line);
@@ -222,15 +230,6 @@
             letter-spacing: 0.3px;
             margin-bottom: 0.5rem;
         }
-        .banned-box .countdown {
-            margin-top: 1rem;
-            font-size: 0.8rem;
-            color: var(--muted);
-        }
-        .banned-box .countdown span {
-            color: var(--gold);
-            font-weight: 600;
-        }
         @media (max-width: 480px) {
             .banned-box { padding: 2.5rem 1.5rem; }
             .banned-box .btn-group { flex-direction: column; }
@@ -273,16 +272,12 @@
         </p>
 
         <div class="btn-group">
-            <a href="/support" class="btn btn-primary" id="supportBtn">
+            <button class="btn btn-danger" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Вийти з акаунта
+            </button>
+            <button class="btn btn-primary" id="supportBtn">
                 <i class="fas fa-headset"></i> Звернутися в підтримку
-            </a>
-            <a href="/login" class="btn btn-outline" id="logoutBtn">
-                <i class="fas fa-sign-out-alt"></i> Вийти та спробувати знову
-            </a>
-        </div>
-
-        <div class="countdown">
-            Перенаправлення на сторінку входу через <span id="countdown">10</span> секунд
+            </button>
         </div>
 
         <div class="footer">
@@ -291,18 +286,12 @@
         </div>
     </div>
 
-    <script src="/js/db.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/ui.js"></script>
     <script>
-        // Перевіряємо, чи є дані про бан
+        // ============================================
+        // ОТРИМУЄМО ДАНІ ПРО БАН
+        // ============================================
+        
         var userData = JSON.parse(localStorage.getItem('userData') || '{}');
-        
-        // Якщо немає даних про бан - редірект на логін
-        if (!userData.is_banned) {
-            window.location.href = '/login';
-        }
-        
         var banReason = userData.ban_reason || 'Порушення правил використання платформи';
         
         // Показуємо причину бана
@@ -310,35 +299,48 @@
             '<i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i> ' + 
             banReason;
 
-        // Обробка кнопки виходу
+        // ============================================
+        // КНОПКА ВИХОДУ - ПОВНІСТЮ ОЧИЩУЄ СЕСІЮ
+        // ============================================
+        
         document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
+            
+            // Повністю очищаємо всі дані сесії
             localStorage.removeItem('userData');
             localStorage.removeItem('isGuest');
+            localStorage.removeItem('banReason');
+            
+            // Очищаємо всі куки
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Редірект на логін
             window.location.href = '/login';
         });
 
-        // Обробка кнопки підтримки
+        // ============================================
+        // КНОПКА ПІДТРИМКИ
+        // ============================================
+        
         document.getElementById('supportBtn').addEventListener('click', function(e) {
             e.preventDefault();
             var email = userData.email || '';
             window.location.href = '/support?banned=true&reason=' + encodeURIComponent(banReason) + '&email=' + encodeURIComponent(email);
         });
 
-        // Таймер зворотного відліку
-        var seconds = 10;
-        var countdownEl = document.getElementById('countdown');
-        var countdownInterval = setInterval(function() {
-            seconds--;
-            countdownEl.textContent = seconds;
-            if (seconds <= 0) {
-                clearInterval(countdownInterval);
-                // Видаляємо сесію і перенаправляємо на логін
-                localStorage.removeItem('userData');
-                localStorage.removeItem('isGuest');
-                window.location.href = '/login';
-            }
-        }, 1000);
+        // ============================================
+        // ЗАБОРОНЯЄМО check-auth.js РОБИТИ РЕДІРЕКТ
+        // ============================================
+        
+        // Встановлюємо флаг, що ми вже на сторінці banned
+        sessionStorage.setItem('onBannedPage', 'true');
+        
+        // При виході зі сторінки - знімаємо флаг
+        window.addEventListener('beforeunload', function() {
+            sessionStorage.removeItem('onBannedPage');
+        });
     </script>
 </body>
 </html>
