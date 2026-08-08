@@ -3,6 +3,33 @@ if (typeof SUPABASE_URL === 'undefined') {
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 }
 
+// ============================================
+// SUPABASE AUTH CLIENT
+// Один спільний клієнт supabase-js для всього сайту.
+// Використовується для авторизації (auth.js) та для
+// підстановки токена залогіненого юзера в усі REST-запити,
+// щоб працювали RLS-політики (auth.uid() в SQL).
+// ============================================
+if (typeof window.sb === 'undefined') {
+    window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        }
+    });
+}
+
+// Повертає access_token поточної сесії Supabase Auth, або null якщо гість.
+async function getAccessToken() {
+    try {
+        var { data } = await window.sb.auth.getSession();
+        return (data && data.session) ? data.session.access_token : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function getCurrentUser() {
     try {
         var userData = localStorage.getItem('userData');
@@ -39,9 +66,13 @@ function generateJoinCode() {
 async function supabaseQuery(endpoint, options) {
     if (options === undefined) options = {};
     var url = SUPABASE_URL + '/rest/v1/' + endpoint;
+    // Якщо юзер залогінений через Supabase Auth - шлемо його особистий JWT,
+    // щоб RLS-політики бачили auth.uid(). Якщо гість - анонімний ключ
+    // (працює тільки там, де RLS дозволяє читання для anon).
+    var token = await getAccessToken();
     var headers = {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + (token || SUPABASE_ANON_KEY),
         'Content-Type': 'application/json'
     };
     if (options.headers) {

@@ -775,6 +775,163 @@
             font-weight: 700;
             color: var(--gold);
         }
+
+        /* ==================== ЧАТ ==================== */
+        .chat-card {
+            display: flex;
+            flex-direction: column;
+            /* На десктопі - зручна фіксована висота, на мобільному керується медіа-запитом нижче */
+            height: 70vh;
+            max-height: 640px;
+            padding-bottom: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 0.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .chat-empty {
+            margin: auto;
+            padding: 2rem 0;
+        }
+
+        .chat-row {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .chat-row-own {
+            justify-content: flex-end;
+        }
+
+        .chat-bubble {
+            max-width: 78%;
+            background: var(--ink);
+            color: var(--text-onink);
+            padding: 0.5rem 0.85rem;
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--ink-line);
+            word-break: break-word;
+        }
+
+        .chat-bubble-own {
+            background: var(--gold);
+            color: var(--ink);
+            border: none;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-bubble-mention {
+            box-shadow: 0 0 0 2px var(--teal);
+        }
+
+        .chat-bubble-meta {
+            font-size: 0.68rem;
+            opacity: 0.7;
+            margin-bottom: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-bubble-text {
+            font-size: 0.92rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .chat-bubble-delete {
+            margin-top: 0.35rem;
+            padding: 0.15rem 0.5rem;
+            font-size: 0.62rem;
+        }
+
+        .chat-form {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem 0.25rem;
+            border-top: 1px solid var(--ink-line);
+            background: var(--bg-card);
+            /* прилипає до низу картки, а не "гуляє" по сторінці */
+            position: sticky;
+            bottom: 0;
+        }
+
+        .chat-form .form-control {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            /* На телефоні чат займає майже весь видимий екран під топбаром,
+               а поле вводу завжди видно і доступне, без потреби скролити сторінку. */
+            .chat-card {
+                height: calc(100dvh - 130px);
+                max-height: none;
+                border-radius: 10px;
+            }
+            .chat-bubble { max-width: 88%; }
+            .chat-form {
+                padding: 0.6rem;
+                gap: 0.4rem;
+            }
+            .chat-form .form-control {
+                font-size: 16px; /* забороняє Safari/iOS автозум інпута при фокусі */
+            }
+        }
+
+        /* ==================== ЗАГАЛЬНІ МОБІЛЬНІ ПОКРАЩЕННЯ ==================== */
+        @media (max-width: 768px) {
+            /* Таблиці не ламають верстку, а скролляться горизонтально */
+            .table-responsive,
+            table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Кнопки в шапках секцій не вилазять за екран */
+            .card-header {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            /* Модалки не обрізаються і скролляться, клавіатура не ховає поля */
+            .modal-content {
+                max-height: 85dvh;
+                overflow-y: auto;
+            }
+
+            /* Форми - inputs мінімум 16px, щоб iOS не зумив автоматично */
+            .form-control,
+            select,
+            textarea {
+                font-size: 16px;
+            }
+
+            /* Ряди дій (набори кнопок) переносяться, а не стискаються в кашу */
+            .totals-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .order-item-select .form-control {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .totals-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2087,6 +2244,7 @@
     </div>
 
     <!-- ===== СКРИПТИ ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>

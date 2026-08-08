@@ -93,6 +93,13 @@
             body{padding:1rem;}
             .settings-container{padding:1.5rem;}
         }
+    /* ==================== Загальні мобільні виправлення ==================== */
+        @media (max-width: 768px) {
+            table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .modal-content { max-height: 85dvh; overflow-y: auto; }
+            .form-control, select, textarea { font-size: 16px; }
+            .card-header { flex-wrap: wrap; gap: 0.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -125,6 +132,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>

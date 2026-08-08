@@ -1277,65 +1277,98 @@ document.getElementById('assignEmployeeForm')?.addEventListener('submit', async 
     }
 });
 
+// Рендерить один "бабл" повідомлення. Винесено окремо, щоб можна було
+// додавати нові повідомлення без повного перемальовування списку.
+function renderChatBubble(msg, userName, currentUserId, isLeader) {
+    var isOwn = msg.user_id === currentUserId;
+    var hasMention = msg.mentions && msg.mentions.indexOf(currentUserId) !== -1;
+    var canDelete = isOwn || isLeader;
+    return (
+        '<div class="chat-row ' + (isOwn ? 'chat-row-own' : '') + '" data-msg-id="' + msg.id + '">' +
+            '<div class="chat-bubble ' + (isOwn ? 'chat-bubble-own' : '') + (hasMention ? ' chat-bubble-mention' : '') + '">' +
+                '<div class="chat-bubble-meta">' +
+                    escapeHtml(userName) + ' · ' + formatTimeKyiv(msg.created_at) +
+                    (hasMention ? ' (згадування)' : '') +
+                '</div>' +
+                '<div class="chat-bubble-text">' + escapeHtml(msg.message) + '</div>' +
+                (canDelete ?
+                    '<button class="btn btn-sm btn-danger chat-bubble-delete" onclick="deleteChatMessage(\'' + msg.id + '\')" title="' + (isOwn ? 'Видалити повідомлення' : 'Видалити як керівник організації') + '">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' : '') +
+            '</div>' +
+        '</div>'
+    );
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+var _chatMembersCache = null;
+var _chatMembersCacheOrgId = null;
+
+// Один запит замість N+1: підтягує профілі всіх учасників організації разом.
+async function getChatMemberProfiles(orgId) {
+    if (_chatMembersCache && _chatMembersCacheOrgId === orgId) return _chatMembersCache;
+    var members = await db.getOrganizationMembers(orgId);
+    var ids = (members || []).map(function(m) { return m.user_id; }).filter(Boolean);
+    var profiles = {};
+    if (ids.length > 0) {
+        var uniqueIds = ids.filter(function(id, idx) { return ids.indexOf(id) === idx; });
+        var rows = await db.supabaseQuery('users?id=in.(' + uniqueIds.join(',') + ')&select=id,full_name,email');
+        (rows || []).forEach(function(r) { profiles[r.id] = r; });
+    }
+    _chatMembersCache = { members: members || [], profiles: profiles };
+    _chatMembersCacheOrgId = orgId;
+    return _chatMembersCache;
+}
+
 async function loadChat() {
     if (!checkOrgActive()) {
         var container = document.getElementById('sectionContent');
         container.innerHTML = '<div class="alert alert-danger">Доступ заборонено. Організація заморожена.</div>';
         return;
     }
-    
+
     var container = document.getElementById('sectionContent');
     document.getElementById('pageTitle').textContent = 'Чат';
     document.getElementById('pageSubtitle').textContent = 'Спілкування в організації';
 
     try {
+        _chatMembersCache = null; // свіжий список учасників при вході в розділ
         var messages = await db.getChatMessages(currentOrgId);
         var user = auth.getCurrentUser();
-        var isLeader = currentOrg && currentOrg.leader_id === (user ? user.id : null);
+        var currentUserId = user ? user.id : null;
+        var isLeader = currentOrg && currentOrg.leader_id === currentUserId;
+        var memberData = await getChatMemberProfiles(currentOrgId);
 
-        var html = 
-            '<div class="card">' +
+        var bubblesHtml = '';
+        if (messages && messages.length > 0) {
+            for (var i = messages.length - 1; i >= 0; i--) {
+                var msg = messages[i];
+                var profile = memberData.profiles[msg.user_id];
+                var userName = profile ? (profile.full_name || profile.email || 'Невідомо') : 'Невідомо';
+                bubblesHtml += renderChatBubble(msg, userName, currentUserId, isLeader);
+            }
+        } else {
+            bubblesHtml = '<div class="text-center text-muted chat-empty">Немає повідомлень. Напишіть першим!</div>';
+        }
+
+        var html =
+            '<div class="card chat-card">' +
                 '<div class="card-header">' +
                     '<h3 class="card-title">Чат організації</h3>' +
                     '<small style="color:var(--muted);font-size:0.7rem;">Використовуйте @ для згадування</small>' +
                 '</div>' +
-                '<div id="chatMessages" style="max-height:400px;overflow-y:auto;margin-bottom:1rem;padding:0.5rem;">';
-
-        if (messages && messages.length > 0) {
-            for (var i = messages.length - 1; i >= 0; i--) {
-                var msg = messages[i];
-                var userData = await db.supabaseQuery('users?id=eq.' + msg.user_id);
-                var userName = userData && userData.length > 0 
-                    ? (userData[0].full_name || userData[0].email || 'Невідомо') 
-                    : 'Невідомо';
-                var isOwn = msg.user_id === (user ? user.id : null);
-                var hasMention = msg.mentions && msg.mentions.indexOf(user ? user.id : null) !== -1;
-                var canDelete = isOwn || isLeader;
-
-                html += 
-                    '<div style="display:flex;justify-content:' + (isOwn ? 'flex-end' : 'flex-start') + ';margin-bottom:0.5rem;">' +
-                        '<div style="max-width:70%;background:' + (isOwn ? 'var(--gold)' : 'var(--ink)') + ';color:' + (isOwn ? 'var(--ink)' : 'var(--text-onink)') + ';padding:0.5rem 1rem;border-radius:12px;border-bottom-' + (isOwn ? 'right' : 'left') + '-radius:4px;border:' + (isOwn ? 'none' : '1px solid var(--ink-line)') + ';">' +
-                            '<div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.2rem;">' +
-                                userName + ' · ' + formatTimeKyiv(msg.created_at) +
-                                (hasMention ? ' (згадування)' : '') +
-                            '</div>' +
-                            '<div>' + msg.message + '</div>' +
-                            (canDelete ? 
-                                '<button class="btn btn-sm btn-danger" onclick="deleteChatMessage(\'' + msg.id + '\')" title="' + (isOwn ? 'Видалити повідомлення' : 'Видалити як керівник організації') + '" style="margin-top:0.25rem;padding:0.1rem 0.5rem;font-size:0.6rem;">' +
-                                    '<i class="fas fa-trash"></i>' +
-                                '</button>' : '') +
-                        '</div>' +
-                    '</div>';
-            }
-        } else {
-            html += '<div class="text-center text-muted">Немає повідомлень. Напишіть першим!</div>';
-        }
-
-        html += 
-                '</div>' +
-                '<form id="chatForm" style="display:flex;gap:0.5rem;">' +
-                    '<input type="text" class="form-control" id="chatInput" placeholder="Введіть повідомлення... (використовуйте @ для згадування)" required>' +
-                    '<button type="submit" class="btn btn-gold">' +
+                '<div id="chatMessages" class="chat-messages">' + bubblesHtml + '</div>' +
+                '<form id="chatForm" class="chat-form">' +
+                    '<input type="text" class="form-control" id="chatInput" placeholder="Повідомлення... (@ для згадування)" autocomplete="off" required>' +
+                    '<button type="submit" class="btn btn-gold" id="chatSendBtn">' +
                         '<i class="fas fa-paper-plane"></i>' +
                     '</button>' +
                 '</form>' +
@@ -1351,43 +1384,65 @@ async function loadChat() {
         document.getElementById('chatForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var input = document.getElementById('chatInput');
+            var sendBtn = document.getElementById('chatSendBtn');
             var message = input.value.trim();
 
             if (!message) return;
 
-            if (window.db && db.findBannedWord) {
-                var badWord = await db.findBannedWord(message);
-                if (badWord) {
-                    await showAlert('Повідомлення містить заборонене слово. Відредагуйте текст.', 'warning');
-                    return;
-                }
-            }
-
-            var mentionRegex = /@(\S+)/g;
-            var mentions = [];
-            var match;
-            var allMembers = await db.getOrganizationMembers(currentOrgId);
-            
-            while ((match = mentionRegex.exec(message)) !== null) {
-                var username = match[1];
-                for (var m = 0; m < allMembers.length; m++) {
-                    var member = allMembers[m];
-                    var memberData = await db.supabaseQuery('users?id=eq.' + member.user_id);
-                    if (memberData && memberData.length > 0 && 
-                        (memberData[0].full_name && memberData[0].full_name.toLowerCase().indexOf(username.toLowerCase()) !== -1 || 
-                         memberData[0].email && memberData[0].email.toLowerCase().indexOf(username.toLowerCase()) !== -1)) {
-                        mentions.push(member.user_id);
-                        break;
-                    }
-                }
-            }
+            input.disabled = true;
+            sendBtn.disabled = true;
 
             try {
-                await db.sendChatMessage(currentOrgId, (auth.getCurrentUser() ? auth.getCurrentUser().id : null), message, mentions);
+                if (window.db && db.findBannedWord) {
+                    var badWord = await db.findBannedWord(message);
+                    if (badWord) {
+                        await showAlert('Повідомлення містить заборонене слово. Відредагуйте текст.', 'warning');
+                        return;
+                    }
+                }
+
+                var mentionRegex = /@(\S+)/g;
+                var mentions = [];
+                var match;
+                var members = memberData.members;
+
+                while ((match = mentionRegex.exec(message)) !== null) {
+                    var username = match[1].toLowerCase();
+                    for (var m = 0; m < members.length; m++) {
+                        var p = memberData.profiles[members[m].user_id];
+                        if (p && (
+                            (p.full_name && p.full_name.toLowerCase().indexOf(username) !== -1) ||
+                            (p.email && p.email.toLowerCase().indexOf(username) !== -1)
+                        )) {
+                            mentions.push(members[m].user_id);
+                            break;
+                        }
+                    }
+                }
+
+                var created = await db.sendChatMessage(currentOrgId, currentUserId, message, mentions);
                 input.value = '';
-                await loadChat();
+
+                // Додаємо нове повідомлення в кінець списку без повного
+                // перезавантаження - швидше і без "стрибка" екрана на мобільному.
+                var newMsg = (created && created[0]) ? created[0] : {
+                    id: 'tmp-' + Date.now(),
+                    user_id: currentUserId,
+                    message: message,
+                    mentions: mentions,
+                    created_at: new Date().toISOString()
+                };
+                var emptyState = messagesContainer.querySelector('.chat-empty');
+                if (emptyState) emptyState.remove();
+                var userName = (user && (user.full_name || user.email)) || 'Ви';
+                messagesContainer.insertAdjacentHTML('beforeend', renderChatBubble(newMsg, userName, currentUserId, isLeader));
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             } catch (error) {
                 await showAlert('Помилка відправки: ' + error.message, 'error');
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
             }
         });
 
