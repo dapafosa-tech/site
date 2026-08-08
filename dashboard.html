@@ -734,7 +734,7 @@
     <script src="/js/check-auth.js"></script>
     <script>
         // ============================================
-        // TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ З ФІКСАМИ)
+        // TYPEBIZ - ДАШБОРД
         // ============================================
 
         function logoutUser() {
@@ -998,7 +998,7 @@
                 return;
             }
 
-            // Додаткова перевірка бана (для безпеки)
+            // Додаткова перевірка бана
             if (user.is_banned === true) {
                 window.location.href = '/banned';
                 return;
@@ -1014,7 +1014,6 @@
                 avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
             }
 
-            // Показуємо правильну панель залежно від ролі
             var adminLink = document.getElementById('adminLink');
             var ownerLink = document.getElementById('ownerLink');
 
@@ -1201,10 +1200,6 @@
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
         });
 
-        // ============================================
-        // ПІДТРИМКА - ВІДПРАВКА ЗВЕРНЕННЯ
-        // ============================================
-
         document.getElementById('supportForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -1244,7 +1239,7 @@
                 });
 
                 await db.addLog('Створено заявку в підтримку', 'support', null, { subject: subject, type: type });
-                showToast('✅ Ваше звернення відправлено! Ми зв\'яжемося з вами найближчим часом.', 'success');
+                showToast('✅ Ваше звернення відправлено!', 'success');
                 closeModal('supportModal');
                 document.getElementById('supportForm').reset();
                 openSupport();
@@ -1271,21 +1266,17 @@
 
         (async function init() {
             try {
-                // Перевіряємо авторизацію через auth.requireAuth()
                 var isAuth = await auth.requireAuth();
                 if (!isAuth) {
-                    // requireAuth() зробить редірект на /login або /banned
                     return;
                 }
 
-                // Додаткова перевірка бана
                 var user = auth.getCurrentUser();
                 if (user && user.is_banned === true) {
                     window.location.href = '/banned';
                     return;
                 }
 
-                // Завантажуємо дашборд
                 await loadDashboard();
                 loadCustomOrgTypes();
                 
@@ -1294,7 +1285,6 @@
                 }
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
-                // Якщо помилка - перенаправляємо на логін
                 window.location.href = '/login';
             }
         })();
