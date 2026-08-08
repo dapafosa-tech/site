@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - DATABASE LAYER (ПОВНА ВЕРСІЯ)
+// TYPEBIZ - DATABASE LAYER (ПОВНА ВЕРСІЯ З АПЕЛЯЦІЯМИ)
 // ============================================
 
 if (typeof SUPABASE_URL === 'undefined') {
@@ -101,7 +101,7 @@ async function supabaseQuery(endpoint, options) {
 }
 
 // ============================================
-// СИСТЕМНІ НАЛАШТУВАННЯ (owner-panel -> реальне застосування)
+// СИСТЕМНІ НАЛАШТУВАННЯ
 // ============================================
 
 var _systemSettingsCache = null;
@@ -146,7 +146,6 @@ function clearBannedWordsCache() {
     _bannedWordsCache = null;
 }
 
-// Повертає перше знайдене заборонене слово в тексті, або null
 async function findBannedWord(text) {
     var words = await getBannedWords();
     if (!words.length || !text) return null;
@@ -271,6 +270,45 @@ async function isUserBanned(userId) {
 
 async function getUsersWithRoles() {
     return supabaseQuery('users?select=id,full_name,email,role,is_banned,ban_reason');
+}
+
+// ============================================
+// АПЕЛЯЦІЇ
+// ============================================
+
+async function getAppeals(filters) {
+    if (filters === undefined) filters = {};
+    var query = 'appeals?order=created_at.desc';
+    if (filters.userId) {
+        query += '&user_id=eq.' + filters.userId;
+    }
+    if (filters.status) {
+        query += '&status=eq.' + filters.status;
+    }
+    if (filters.appealId) {
+        query += '&id=eq.' + filters.appealId;
+    }
+    return supabaseQuery(query);
+}
+
+async function getAppealMessages(appealId) {
+    return supabaseQuery('appeal_messages?appeal_id=eq.' + appealId + '&order=created_at.asc');
+}
+
+async function updateAppealStatus(appealId, status) {
+    var result = await supabaseQuery('appeals?id=eq.' + appealId, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: status, updated_at: new Date().toISOString() })
+    });
+    await addLog('Змінено статус апеляції', 'appeal', appealId, { status: status });
+    return result;
+}
+
+async function sendAppealMessage(data) {
+    return supabaseQuery('appeal_messages', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
 }
 
 // ============================================
@@ -437,7 +475,6 @@ async function getUserAllOrganizations() {
     }
 }
 
-// Організації, де користувач саме ЛІДЕР (не просто учасник)
 async function getUserLedOrganizations() {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
@@ -1536,30 +1573,21 @@ async function getUserReports(userId) {
 // ============================================
 
 window.db = {
-    // Основний запит
     supabaseQuery: supabaseQuery,
-    
-    // Логи
     addLog: addLog,
     getUserName: getUserName,
-
-    // Системні налаштування (owner-panel)
     getSystemSettings: getSystemSettings,
     clearSystemSettingsCache: clearSystemSettingsCache,
     getBannedWords: getBannedWords,
     clearBannedWordsCache: clearBannedWordsCache,
     findBannedWord: findBannedWord,
     getActiveAnnouncements: getActiveAnnouncements,
-    
-    // Користувачі
     getUserRole: getUserRole,
     isUserBanned: isUserBanned,
     getUsersWithRoles: getUsersWithRoles,
     updateUser: updateUser,
     deleteUser: deleteUser,
     setUserRole: setUserRole,
-    
-    // Організації
     createOrganization: createOrganization,
     getUserOrganizations: getUserOrganizations,
     getUserAllOrganizations: getUserAllOrganizations,
@@ -1567,25 +1595,17 @@ window.db = {
     updateOrganization: updateOrganization,
     deleteOrganization: deleteOrganization,
     getOrganizationByJoinCode: getOrganizationByJoinCode,
-    
-    // Посади
     getOrganizationRanks: getOrganizationRanks,
     createRank: createRank,
     updateRank: updateRank,
     deleteRank: deleteRank,
-    
-    // Учасники
     addMemberToOrganization: addMemberToOrganization,
     getOrganizationMembers: getOrganizationMembers,
     updateMemberRank: updateMemberRank,
     removeMemberFromOrganization: removeMemberFromOrganization,
-    
-    // Заявки
     createJoinRequest: createJoinRequest,
     getJoinRequests: getJoinRequests,
     updateJoinRequest: updateJoinRequest,
-    
-    // Співробітники та відділи
     createEmployee: createEmployee,
     getOrganizationEmployees: getOrganizationEmployees,
     updateEmployee: updateEmployee,
@@ -1597,134 +1617,97 @@ window.db = {
     assignEmployeeToDepartment: assignEmployeeToDepartment,
     getEmployeesByDepartment: getEmployeesByDepartment,
     removeEmployeeFromDepartment: removeEmployeeFromDepartment,
-    
-    // Чат
     sendChatMessage: sendChatMessage,
     getChatMessages: getChatMessages,
     deleteChatMessage: deleteChatMessage,
-    
-    // Відпустки
     createVacation: createVacation,
     getVacations: getVacations,
     getUserVacations: getUserVacations,
     updateVacationStatus: updateVacationStatus,
     deleteVacation: deleteVacation,
-    
-    // Події
     createEvent: createEvent,
     getEvents: getEvents,
     deleteEvent: deleteEvent,
-    
-    // Завдання
     createTask: createTask,
     getTasks: getTasks,
     updateTask: updateTask,
     deleteTask: deleteTask,
-    
-    // Опитування
     createPoll: createPoll,
     getPolls: getPolls,
     votePoll: votePoll,
     getPollResults: getPollResults,
     deletePoll: deletePoll,
-    
-    // Нотифікації
     createNotification: createNotification,
     getNotifications: getNotifications,
     markNotificationRead: markNotificationRead,
-    
-    // Клініка
     getClinicPatients: getClinicPatients,
     createClinicPatient: createClinicPatient,
     getClinicAppointments: getClinicAppointments,
     createClinicAppointment: createClinicAppointment,
-    
-    // Магазин
     getShopProducts: getShopProducts,
     createShopProduct: createShopProduct,
     getShopSales: getShopSales,
     createShopSale: createShopSale,
-    
-    // Бібліотека
     getLibraryBooks: getLibraryBooks,
     createLibraryBook: createLibraryBook,
     getLibraryLoans: getLibraryLoans,
     createLibraryLoan: createLibraryLoan,
     getLibraryReaders: getLibraryReaders,
     createLibraryReader: createLibraryReader,
-    
-    // Школа
     getSchoolStudents: getSchoolStudents,
     createSchoolStudent: createSchoolStudent,
     getSchoolClasses: getSchoolClasses,
     createSchoolClass: createSchoolClass,
     createSchoolGrade: createSchoolGrade,
-    
-    // Ресторан
     getRestaurantMenu: getRestaurantMenu,
     createRestaurantMenuItem: createRestaurantMenuItem,
     getRestaurantOrders: getRestaurantOrders,
     createRestaurantOrder: createRestaurantOrder,
     getRestaurantBookings: getRestaurantBookings,
     createRestaurantBooking: createRestaurantBooking,
-    
-    // Готель
     getHotelRooms: getHotelRooms,
     createHotelRoom: createHotelRoom,
     getHotelBookings: getHotelBookings,
     createHotelBooking: createHotelBooking,
-    
-    // Спортзал
     getGymMemberships: getGymMemberships,
     createGymMembership: createGymMembership,
     getGymTrainings: getGymTrainings,
     createGymTraining: createGymTraining,
-    
-    // Салон краси
     getBeautyServices: getBeautyServices,
     createBeautyService: createBeautyService,
     getBeautyAppointments: getBeautyAppointments,
     createBeautyAppointment: createBeautyAppointment,
-    
-    // Автосервіс
     getAutoOrders: getAutoOrders,
     createAutoOrder: createAutoOrder,
     getAutoParts: getAutoParts,
     createAutoPart: createAutoPart,
-    
-    // Нерухомість
     getRealtyProperties: getRealtyProperties,
     createRealtyProperty: createRealtyProperty,
     getRealtyDeals: getRealtyDeals,
     createRealtyDeal: createRealtyDeal,
-    
-    // Логістика
     getLogisticsOrders: getLogisticsOrders,
     createLogisticsOrder: createLogisticsOrder,
-    
-    // Доставка
     getDeliveryOrders: getDeliveryOrders,
     createDeliveryOrder: createDeliveryOrder,
-    
-    // IT
     getItProjects: getItProjects,
     createItProject: createItProject,
     getItBugs: getItBugs,
     createItBug: createItBug,
-    
-    // ===== СКАРГИ =====
     createReport: createReport,
     getReports: getReports,
     getReport: getReport,
     updateReportStatus: updateReportStatus,
     deleteReport: deleteReport,
     getUserReports: getUserReports,
-
-    // ===== ПІДТРИМКА (ТІКЕТИ) =====
     createSupportTicket: createSupportTicket,
     getSupportTickets: getSupportTickets,
     getSupportTicket: getSupportTicket,
     updateSupportTicket: updateSupportTicket,
     getSupportMessages: getSupportMessages,
-    sendSupportMessage: sendSupportMessage
+    sendSupportMessage: sendSupportMessage,
+    // ===== АПЕЛЯЦІЇ =====
+    getAppeals: getAppeals,
+    getAppealMessages: getAppealMessages,
+    updateAppealStatus: updateAppealStatus,
+    sendAppealMessage: sendAppealMessage
 };
