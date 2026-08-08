@@ -11,6 +11,7 @@
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
+    { "source": "/banned", "destination": "/banned.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
