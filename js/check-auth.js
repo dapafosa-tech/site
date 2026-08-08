@@ -1,19 +1,21 @@
 // ============================================
 // check-auth.js - УНІВЕРСАЛЬНА ПЕРЕВІРКА АВТОРИЗАЦІЇ ТА БАНА
-// Підключати на ВСІХ сторінках ПІСЛЯ db.js та auth.js
 // ============================================
 
 (async function checkAuthAndBan() {
     try {
+        // ЯКЩО МИ ВЖЕ НА СТОРІНЦІ BANNED - НІЧОГО НЕ РОБИМО!
+        if (window.location.pathname === '/banned') {
+            return;
+        }
+        
         var userData = localStorage.getItem('userData');
         var currentPath = window.location.pathname;
         var publicPages = ['/login', '/register', '/banned', '/'];
-        var isPublicPage = publicPages.indexOf(currentPath) !== -1;
         
         // Якщо немає даних користувача
         if (!userData) {
-            // Якщо сторінка не публічна - редірект на логін
-            if (!isPublicPage) {
+            if (publicPages.indexOf(currentPath) === -1) {
                 window.location.href = '/login';
             }
             return;
@@ -21,20 +23,14 @@
 
         var user = JSON.parse(userData);
         
-        // ============================================
-        // ПЕРЕВІРКА БАНА
-        // ============================================
-        
-        // Якщо вже є мітка про бан в localStorage
+        // Якщо користувач забанений - редірект на banned
         if (user.is_banned === true) {
-            if (currentPath !== '/banned') {
-                window.location.href = '/banned';
-            }
+            window.location.href = '/banned';
             return;
         }
 
-        // Перевіряємо статус бана в БД (якщо є id)
-        if (user.id && currentPath !== '/banned') {
+        // Перевіряємо статус бана в БД
+        if (user.id) {
             try {
                 var response = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + user.id + '&select=is_banned,ban_reason', {
                     headers: {
@@ -46,14 +42,10 @@
                 if (response.ok) {
                     var data = await response.json();
                     if (data && data.length > 0 && data[0].is_banned === true) {
-                        // Користувач забанений - оновлюємо дані
                         user.is_banned = true;
                         user.ban_reason = data[0].ban_reason || 'Порушення правил платформи';
                         localStorage.setItem('userData', JSON.stringify(user));
-                        
-                        if (currentPath !== '/banned') {
-                            window.location.href = '/banned';
-                        }
+                        window.location.href = '/banned';
                         return;
                     }
                 }
@@ -62,26 +54,12 @@
             }
         }
 
-        // ============================================
-        // РЕДІРЕКТИ ДЛЯ ПУБЛІЧНИХ СТОРІНОК
-        // ============================================
-        
-        // Якщо користувач авторизований і намагається зайти на публічну сторінку
-        if (isPublicPage && currentPath !== '/banned') {
-            // Перевіряємо чи дійсний користувач
-            if (user.id) {
-                window.location.href = '/dashboard';
-                return;
-            }
-        }
-
-        // Якщо сторінка закрита і немає користувача - редірект
-        if (!isPublicPage && !user.id) {
-            window.location.href = '/login';
+        // Якщо на публічній сторінці і авторизований - редірект на дашборд
+        if (publicPages.indexOf(currentPath) !== -1 && user.id) {
+            window.location.href = '/dashboard';
         }
 
     } catch (e) {
         console.error('checkAuthAndBan error:', e);
-        // У разі помилки - не блокуємо сторінку
     }
 })();
