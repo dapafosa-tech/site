@@ -47,7 +47,6 @@
         ::-webkit-scrollbar-thumb{background:var(--ink-line);border-radius:8px;border:2px solid var(--ink);}
         ::-webkit-scrollbar-thumb:hover{background:var(--muted-dim);}
 
-        /* ===== SIDEBAR ===== */
         .sidebar{
             position:fixed;
             left:0;top:0;
@@ -152,7 +151,6 @@
         .sidebar .nav-menu .owner-link a:hover{background:var(--gold-glow);}
         .sidebar-spacer{flex:1;}
 
-        /* ===== MAIN ===== */
         .main-content{
             margin-left:268px;
             padding:2.4rem 2.8rem;
@@ -204,8 +202,25 @@
         .btn:disabled{opacity:0.55;cursor:not-allowed;transform:none !important;}
         .btn-sm{padding:0.35rem 0.7rem;font-size:0.78rem;border-radius:6px;}
         .btn-icon{padding:0.5rem 0.7rem;}
+        .btn-back{
+            background:var(--teal);
+            color:var(--ink);
+            border:none;
+            padding:0.35rem 0.8rem;
+            border-radius:6px;
+            font-size:0.75rem;
+            cursor:pointer;
+            transition:transform 0.2s, box-shadow 0.2s;
+            display:inline-flex;
+            align-items:center;
+            gap:0.4rem;
+            font-weight:600;
+        }
+        .btn-back:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 20px rgba(70,201,184,0.3);
+        }
 
-        /* ===== BADGES ===== */
         .badge{
             display:inline-block;
             padding:0.2rem 0.7rem;
@@ -219,7 +234,6 @@
         .badge-warning{background:#F59E0B20;color:#F59E0B;}
         .badge-secondary{background:var(--ink-line);color:var(--muted);}
 
-        /* ===== ТІКЕТИ ПІДТРИМКИ ===== */
         .ticket-card{
             background:var(--ink);
             border:1px solid var(--ink-line);
@@ -238,7 +252,6 @@
         .support-msg .support-msg-top{font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
         .support-msg .support-msg-body{margin-top:0.4rem;font-size:0.9rem;line-height:1.4;}
 
-        /* ===== ORG GRID ===== */
         .org-grid{
             display:grid;
             grid-template-columns:repeat(auto-fill,minmax(272px,1fr));
@@ -309,7 +322,6 @@
             color:var(--gold);
         }
 
-        /* ===== EMPTY STATE ===== */
         .empty-state{
             text-align:center;
             padding:4.5rem 2rem;
@@ -330,7 +342,6 @@
         .empty-state h3{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;margin-bottom:0.5rem;}
         .empty-state p{color:var(--muted);max-width:380px;margin:0 auto 1.6rem;font-size:0.92rem;}
 
-        /* ===== MODALS ===== */
         .modal{
             display:none;
             position:fixed;
@@ -411,7 +422,6 @@
         .flex-wrap{flex-wrap:wrap;}
         .justify-center{justify-content:center;}
 
-        /* ===== SKELETON ===== */
         .org-card-skeleton {
             background:var(--ink-soft);
             border:1px solid var(--ink-line);
@@ -467,18 +477,11 @@
         <ul class="nav-menu">
             <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мої організації</a></li>
             <li><a href="#" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Приєднатися за кодом</a></li>
-
-            <!-- Адмін-панель для адмінів та модераторів -->
             <li id="adminLink" style="display:none;"><a href="/admin"><i class="fas fa-shield-halved"></i> Адмін-панель</a></li>
-
-            <!-- Панель засновника для власника (owner) -->
             <li id="ownerLink" style="display:none;" class="owner-link">
                 <a href="/owner-panel"><i class="fas fa-crown"></i> <span>Панель засновника</span></a>
             </li>
-
-            <!-- Підтримка -->
             <li><a href="#" onclick="openSupport()"><i class="fas fa-headset"></i> Підтримка</a></li>
-
             <li><a href="/settings"><i class="fas fa-cog"></i> Налаштування</a></li>
         </ul>
 
@@ -528,7 +531,6 @@
         </div>
     </main>
 
-    <!-- Модалка створення організації -->
     <div class="modal" id="createOrgModal">
         <div class="modal-content">
             <div class="modal-tag">TYPEBIZ // NEW RECORD</div>
@@ -626,7 +628,6 @@
         </div>
     </div>
 
-    <!-- Модалка приєднання за кодом -->
     <div class="modal" id="joinOrgModal">
         <div class="modal-content">
             <div class="modal-tag">TYPEBIZ // JOIN REQUEST</div>
@@ -651,7 +652,6 @@
         </div>
     </div>
 
-    <!-- Модалка: історія тікетів підтримки -->
     <div class="modal" id="supportListModal">
         <div class="modal-content" style="max-width:620px;">
             <div class="modal-tag">TYPEBIZ // SUPPORT</div>
@@ -668,14 +668,15 @@
         </div>
     </div>
 
-    <!-- Модалка: перегляд одного тікету -->
     <div class="modal" id="supportTicketModal">
         <div class="modal-content" style="max-width:620px;">
             <div class="modal-tag">TYPEBIZ // SUPPORT</div>
             <div class="modal-header">
                 <h2 id="supportTicketModalTitle">Тікет</h2>
                 <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <button class="btn btn-ghost btn-sm" onclick="backToSupportList()" title="Назад до списку"><i class="fas fa-arrow-left"></i></button>
+                    <button class="btn-back" onclick="backToSupportList()" title="Назад до списку">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </button>
                     <button class="modal-close" onclick="closeModal('supportTicketModal')">&times;</button>
                 </div>
             </div>
@@ -685,7 +686,6 @@
         </div>
     </div>
 
-    <!-- Модалка підтримки -->
     <div class="modal" id="supportModal">
         <div class="modal-content">
             <div class="modal-tag">TYPEBIZ // SUPPORT</div>
@@ -733,10 +733,6 @@
     <script src="/js/ui.js"></script>
     <script src="/js/check-auth.js"></script>
     <script>
-        // ============================================
-        // TYPEBIZ - ДАШБОРД
-        // ============================================
-
         function logoutUser() {
             showConfirm('Ви впевнені, що хочете вийти?', 'Вихід').then(function(confirmed) {
                 if (confirmed) {
@@ -755,29 +751,22 @@
             try {
                 var customTypes = await db.supabaseQuery('org_types?order=name.asc');
                 if (!customTypes || customTypes.length === 0) return;
-
                 var select = document.getElementById('orgType');
                 if (!select) return;
-
                 var existingValues = [];
                 for (var i = 0; i < select.options.length; i++) {
                     existingValues.push(select.options[i].value);
                 }
-
                 for (var j = 0; j < customTypes.length; j++) {
                     var ct = customTypes[j];
                     if (!ct.code || existingValues.indexOf(ct.code) !== -1) continue;
-
                     var opt = document.createElement('option');
                     opt.value = ct.code;
                     opt.textContent = ct.name;
                     select.appendChild(opt);
-
                     typeLabels[ct.code] = ct.name;
                 }
-            } catch (e) {
-                // якщо не вдалось довантажити — стандартні типи все одно доступні
-            }
+            } catch (e) {}
         }
 
         function openJoinOrg() {
@@ -787,10 +776,6 @@
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
         }
-
-        // ============================================
-        // ПІДТРИМКА - ІСТОРІЯ ТІКЕТІВ
-        // ============================================
 
         var myTicketStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
         var myTicketStatusLabels = { open: 'Відкрито', in_progress: 'В роботі', closed: 'Закрито' };
@@ -816,35 +801,29 @@
         async function loadMySupportTickets() {
             var container = document.getElementById('supportTicketsListBody');
             container.innerHTML = '<p class="text-muted">Завантаження...</p>';
-
             try {
                 var user = auth.getCurrentUser();
                 if (!user) {
                     container.innerHTML = '<p class="text-danger">Користувач не авторизований</p>';
                     return;
                 }
-
                 var tickets = await db.getSupportTickets({ userId: user.id });
-
                 var sorted = (tickets || []).slice().sort(function(a, b) {
                     var wa = myTicketStatusWeight[a.status] !== undefined ? myTicketStatusWeight[a.status] : 1;
                     var wb = myTicketStatusWeight[b.status] !== undefined ? myTicketStatusWeight[b.status] : 1;
                     if (wa !== wb) return wa - wb;
                     return new Date(b.created_at) - new Date(a.created_at);
                 });
-
                 if (sorted.length === 0) {
                     container.innerHTML = '<p class="text-muted" style="text-align:center;padding:1.5rem 0;">У вас ще немає звернень.<br>Натисніть «Створити», щоб написати нам.</p>';
                     return;
                 }
-
                 var html = '';
                 for (var i = 0; i < sorted.length; i++) {
                     var t = sorted[i];
                     var statusClass = myTicketStatusClasses[t.status] || 'badge-secondary';
                     var statusLabel = myTicketStatusLabels[t.status] || t.status;
                     var priorityClass = myTicketPriorityClasses[t.priority] || 'badge-primary';
-
                     html += '<div class="ticket-card" onclick="viewMySupportTicket(\'' + t.id + '\')">';
                     html += '<div class="ticket-card-top"><span class="ticket-card-subject">' + (t.subject || '—') + '</span><span class="badge ' + statusClass + '">' + statusLabel + '</span></div>';
                     html += '<div class="ticket-card-meta">';
@@ -853,7 +832,6 @@
                     html += '<span>' + formatDateKyiv(t.created_at) + '</span>';
                     html += '</div></div>';
                 }
-
                 container.innerHTML = html;
             } catch (error) {
                 container.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
@@ -865,27 +843,21 @@
             document.getElementById('supportTicketModal').classList.add('active');
             var body = document.getElementById('supportTicketModalBody');
             body.innerHTML = '<p class="text-muted">Завантаження...</p>';
-
             try {
                 var t = await db.getSupportTicket(ticketId);
                 if (!t) {
                     body.innerHTML = '<p class="text-danger">Тікет не знайдено</p>';
                     return;
                 }
-
                 var messages = await db.getSupportMessages(ticketId);
                 var statusLabel = myTicketStatusLabels[t.status] || t.status;
-
                 document.getElementById('supportTicketModalTitle').textContent = t.subject || 'Тікет';
-
                 var html = '<div class="ticket-card-meta" style="margin-bottom:0.8rem;">';
                 html += '<span class="badge ' + (myTicketStatusClasses[t.status] || 'badge-secondary') + '">' + statusLabel + '</span> ';
                 html += '<span class="badge ' + (myTicketPriorityClasses[t.priority] || 'badge-primary') + '">' + (t.priority || '—') + '</span> ';
                 html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
                 html += '</div>';
-
                 html += '<div class="support-msg"><div class="support-msg-top"><span>👤 Ви</span><span>' + formatDateTimeKyiv(t.created_at) + '</span></div><div class="support-msg-body">' + (t.message || '') + '</div></div>';
-
                 if (messages && messages.length > 0) {
                     for (var i = 0; i < messages.length; i++) {
                         var msg = messages[i];
@@ -896,7 +868,6 @@
                         html += '<div class="support-msg-body">' + msg.message + '</div></div>';
                     }
                 }
-
                 if (t.status !== 'closed') {
                     html += '<div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">';
                     html += '<textarea class="form-control" id="myTicketReply" rows="3" placeholder="Написати повідомлення..."></textarea>';
@@ -905,7 +876,6 @@
                 } else {
                     html += '<p class="text-muted" style="margin-top:1rem;">✅ Тікет закрито</p>';
                 }
-
                 body.innerHTML = html;
             } catch (error) {
                 body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
@@ -915,15 +885,12 @@
         async function sendMySupportReply(ticketId) {
             var textarea = document.getElementById('myTicketReply');
             if (!textarea) return;
-
             var message = textarea.value.trim();
             if (!message) {
                 showAlert('Введіть повідомлення', 'warning');
                 return;
             }
-
             var user = auth.getCurrentUser();
-
             try {
                 await db.sendSupportMessage({
                     ticket_id: ticketId,
@@ -997,26 +964,20 @@
                 window.location.href = '/login';
                 return;
             }
-
-            // Додаткова перевірка бана
             if (user.is_banned === true) {
                 window.location.href = '/banned';
                 return;
             }
-
             document.getElementById('userName').textContent = user.full_name || 'Користувач';
             document.getElementById('userEmail').textContent = user.email;
-
             var avatarEl = document.getElementById('userAvatar');
             if (user.avatar_url) {
                 avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
             } else {
                 avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
             }
-
             var adminLink = document.getElementById('adminLink');
             var ownerLink = document.getElementById('ownerLink');
-
             if (user.role === 'owner') {
                 ownerLink.style.display = 'block';
                 adminLink.style.display = 'none';
@@ -1027,7 +988,6 @@
                 adminLink.style.display = 'none';
                 ownerLink.style.display = 'none';
             }
-
             await loadOrganizations();
         }
 
@@ -1035,51 +995,39 @@
             var loading = document.getElementById('orgLoading');
             var grid = document.getElementById('orgGrid');
             var emptyState = document.getElementById('emptyState');
-
             try {
                 var user = auth.getCurrentUser();
                 if (!user) throw new Error('Користувач не авторизований');
-
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + user.id);
-                
                 if (!members || members.length === 0) {
                     loading.style.display = 'none';
                     grid.style.display = 'none';
                     emptyState.style.display = 'block';
                     return;
                 }
-
                 var orgIds = members.map(function(m) { return m.organization_id; }).join(',');
-                
                 if (!orgIds) {
                     loading.style.display = 'none';
                     grid.style.display = 'none';
                     emptyState.style.display = 'block';
                     return;
                 }
-
                 var orgs = await db.supabaseQuery('organizations?id=in.(' + orgIds + ')');
-
                 loading.style.display = 'none';
                 grid.innerHTML = '';
                 grid.style.display = 'grid';
-
                 if (!orgs || orgs.length === 0) {
                     emptyState.style.display = 'block';
                     grid.style.display = 'none';
                     return;
                 }
-
                 emptyState.style.display = 'none';
-
                 var accentPalette = ['#F2A93B', '#46C9B8', '#E2503E', '#8B93A6'];
-
                 orgs.forEach(function(org) {
                     var iconClass = iconMap[org.type] || 'fa-cubes';
                     var hash = 0;
                     for (var i = 0; i < (org.type || 'other').length; i++) hash += org.type.charCodeAt(i);
                     var accent = accentPalette[hash % accentPalette.length];
-
                     var card = document.createElement('div');
                     card.className = 'org-card';
                     card.style.setProperty('--card-accent', accent);
@@ -1099,7 +1047,6 @@
                     });
                     grid.appendChild(card);
                 });
-
             } catch (error) {
                 loading.style.display = 'none';
                 console.error('loadOrganizations error:', error);
@@ -1109,25 +1056,20 @@
 
         document.getElementById('createOrgForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
             var name = document.getElementById('orgName').value.trim();
             var type = document.getElementById('orgType').value;
             var description = document.getElementById('orgDesc').value.trim();
-
             if (!name) {
                 showAlert('Введіть назву організації', 'warning');
                 return;
             }
-
             if (!type) {
                 showAlert('Оберіть тип організації', 'warning');
                 return;
             }
-
             var submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
-
             try {
                 await db.createOrganization({
                     name: name,
@@ -1136,78 +1078,62 @@
                     is_active: true,
                     settings: {}
                 });
-
                 showToast('Організацію створено!', 'success');
                 closeModal('createOrgModal');
                 document.getElementById('createOrgForm').reset();
                 await loadOrganizations();
-
             } catch (error) {
                 showAlert('Помилка: ' + error.message, 'error');
             }
-
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Створити організацію';
         });
 
         document.getElementById('joinOrgForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
             var code = document.getElementById('joinCode').value.trim().toLowerCase();
             var message = document.getElementById('joinMessage').value.trim();
             var user = auth.getCurrentUser();
-
             if (!code) {
                 showAlert('Введіть код організації', 'warning');
                 return;
             }
-
             var submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
-
             try {
                 var org = await db.getOrganizationByJoinCode(code);
-
                 if (!org) {
                     showAlert('Організацію з таким кодом не знайдено. Перевірте код.', 'warning');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
                     return;
                 }
-
                 var members = await db.getOrganizationMembers(org.id);
                 var alreadyMember = members.some(function(m) { return m.user_id === user.id; });
-
                 if (alreadyMember) {
                     showAlert('Ви вже перебуваєте в цій організації', 'warning');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
                     return;
                 }
-
                 await db.createJoinRequest(org.id, user.id, message);
-
                 showToast('Заявку відправлено! Лідер організації розгляне її.', 'success');
                 closeModal('joinOrgModal');
                 document.getElementById('joinOrgForm').reset();
-
             } catch (error) {
                 showAlert('Помилка: ' + error.message, 'error');
             }
-
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
         });
 
         document.getElementById('supportForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
             var subject = document.getElementById('supportSubject').value.trim();
             var type = document.getElementById('supportType').value;
             var message = document.getElementById('supportMessage').value.trim();
             var priority = document.getElementById('supportPriority').value;
-
             if (!subject) {
                 showAlert('Введіть тему звернення', 'warning');
                 return;
@@ -1220,14 +1146,11 @@
                 showAlert('Введіть опис проблеми', 'warning');
                 return;
             }
-
             var submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
-
             try {
                 var user = auth.getCurrentUser();
-
                 await db.createSupportTicket({
                     user_id: user.id,
                     subject: subject,
@@ -1237,17 +1160,14 @@
                     status: 'open',
                     created_at: new Date().toISOString()
                 });
-
                 await db.addLog('Створено заявку в підтримку', 'support', null, { subject: subject, type: type });
                 showToast('✅ Ваше звернення відправлено!', 'success');
                 closeModal('supportModal');
                 document.getElementById('supportForm').reset();
                 openSupport();
-
             } catch (error) {
                 showAlert('Помилка: ' + error.message, 'error');
             }
-
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити звернення';
         });
@@ -1260,26 +1180,17 @@
             });
         });
 
-        // ============================================
-        // ІНІЦІАЛІЗАЦІЯ
-        // ============================================
-
         (async function init() {
             try {
                 var isAuth = await auth.requireAuth();
-                if (!isAuth) {
-                    return;
-                }
-
+                if (!isAuth) return;
                 var user = auth.getCurrentUser();
                 if (user && user.is_banned === true) {
                     window.location.href = '/banned';
                     return;
                 }
-
                 await loadDashboard();
                 loadCustomOrgTypes();
-                
                 if (window.renderGlobalAnnouncements) {
                     renderGlobalAnnouncements();
                 }
