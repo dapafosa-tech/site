@@ -270,7 +270,6 @@
         .modal-box .text-success { color: var(--teal); }
         .modal-box .text-danger { color: var(--red); }
         .modal-box .text-warning { color: #F59E0B; }
-
         .appeal-status {
             display: inline-block;
             padding: 0.2rem 0.8rem;
@@ -282,7 +281,6 @@
         .appeal-status.approved { background: rgba(70, 201, 184, 0.2); color: var(--teal); }
         .appeal-status.rejected { background: rgba(226, 80, 62, 0.2); color: var(--red); }
         .appeal-status.closed { background: rgba(139, 147, 166, 0.2); color: var(--muted); }
-
         .appeal-message {
             padding: 0.6rem 0.8rem;
             margin: 0.5rem 0;
@@ -301,17 +299,31 @@
             margin-bottom: 0.2rem;
         }
         .appeal-message .msg-text { font-size: 0.9rem; }
-
         .btn-gold {
             background: var(--gold);
             color: var(--ink);
             border: none;
+            padding: 0.65rem 1.3rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
         }
         .btn-gold:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(242, 169, 59, 0.3);
         }
-
+        .btn-gold:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
         @media (max-width: 480px) {
             .banned-box { padding: 2rem 1.2rem; }
             .banned-box .btn-group { flex-direction: column; }
@@ -476,6 +488,8 @@
                 html += '</div>';
                 
                 setTimeout(function() {
+                    localStorage.removeItem('userData');
+                    localStorage.removeItem('isGuest');
                     window.location.href = '/login';
                 }, 3000);
             } else if (currentAppeal.status === 'rejected') {
@@ -483,16 +497,14 @@
                 html += '<p style="color:var(--red);font-weight:600;">❌ Вашу апеляцію відхилено</p>';
                 html += '</div>';
                 
-                if (currentAppeal.status === 'rejected') {
-                    html += '<button class="btn btn-gold btn-block" onclick="createNewAppeal()" style="margin-top:0.8rem;">';
-                    html += '<i class="fas fa-plus"></i> Подати нову апеляцію';
-                    html += '</button>';
-                }
+                html += '<button class="btn-gold btn-block" onclick="createNewAppeal()" style="margin-top:0.8rem;width:100%;">';
+                html += '<i class="fas fa-plus"></i> Подати нову апеляцію';
+                html += '</button>';
             } else if (currentAppeal.status === 'pending') {
                 html += '<hr style="border-color:var(--ink-line);margin:0.8rem 0;">';
                 html += '<form id="appealReplyForm">';
                 html += '<textarea class="form-control" id="appealReplyMessage" placeholder="Напишіть повідомлення адміністрації..." rows="2"></textarea>';
-                html += '<button type="submit" class="btn btn-gold btn-block" style="margin-top:0.6rem;">';
+                html += '<button type="submit" class="btn-gold btn-block" style="margin-top:0.6rem;width:100%;">';
                 html += '<i class="fas fa-paper-plane"></i> Відправити повідомлення';
                 html += '</button>';
                 html += '</form>';
@@ -524,7 +536,7 @@
             html += '<label class="form-label">Ваше пояснення <span style="color:var(--red);">*</span></label>';
             html += '<textarea class="form-control" id="appealMessage" placeholder="Опишіть вашу ситуацію детально..." rows="3" required></textarea>';
             html += '</div>';
-            html += '<button type="submit" class="btn btn-gold btn-block" id="submitAppealBtn">';
+            html += '<button type="submit" class="btn-gold btn-block" id="submitAppealBtn" style="width:100%;">';
             html += '<i class="fas fa-paper-plane"></i> Відправити апеляцію';
             html += '</button>';
             html += '<p class="text-muted" style="margin-top:0.8rem;text-align:center;font-size:0.8rem;">Адміністрація розгляне вашу апеляцію протягом 24 годин</p>';
@@ -535,6 +547,12 @@
                 e.preventDefault();
                 await createAppeal();
             });
+        }
+
+        function createNewAppeal() {
+            currentAppeal = null;
+            appealMessages = [];
+            renderAppealForm();
         }
 
         async function createAppeal() {
@@ -591,11 +609,6 @@
 
                 showToast('✅ Апеляцію подано!', 'success');
                 
-                document.getElementById('appealBtn').innerHTML = '<i class="fas fa-check-circle"></i> Апеляція подана';
-                document.getElementById('appealBtn').style.opacity = '0.6';
-                document.getElementById('appealBtn').style.cursor = 'default';
-                document.getElementById('appealBtn').disabled = true;
-
                 await loadAppealMessages(currentAppeal.id);
                 renderAppealView();
 
@@ -605,12 +618,6 @@
 
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити апеляцію';
-        }
-
-        function createNewAppeal() {
-            currentAppeal = null;
-            appealMessages = [];
-            renderAppealForm();
         }
 
         async function sendAppealMessage() {
@@ -689,21 +696,13 @@
             try {
                 var appeals = await db.supabaseQuery('appeals?user_id=eq.' + userId + '&order=created_at.desc&limit=1');
                 if (appeals && appeals.length > 0) {
-                    var appeal = appeals[0];
-                    if (appeal.status === 'pending') {
+                    currentAppeal = appeals[0];
+                    if (currentAppeal.status === 'pending' || currentAppeal.status === 'approved') {
                         document.getElementById('appealBtn').innerHTML = '<i class="fas fa-check-circle"></i> Апеляція подана';
                         document.getElementById('appealBtn').style.opacity = '0.6';
                         document.getElementById('appealBtn').style.cursor = 'default';
                         document.getElementById('appealBtn').disabled = true;
-                    } else if (appeal.status === 'approved') {
-                        document.getElementById('appealBtn').innerHTML = '<i class="fas fa-check-circle" style="color:var(--teal);"></i> Розблоковано';
-                        document.getElementById('appealBtn').style.opacity = '0.6';
-                        document.getElementById('appealBtn').style.cursor = 'default';
-                        document.getElementById('appealBtn').disabled = true;
-                        setTimeout(function() {
-                            window.location.href = '/login';
-                        }, 3000);
-                    } else if (appeal.status === 'rejected') {
+                    } else if (currentAppeal.status === 'rejected') {
                         document.getElementById('appealBtn').innerHTML = '<i class="fas fa-gavel"></i> Апеляція (повторно)';
                         document.getElementById('appealBtn').style.opacity = '1';
                         document.getElementById('appealBtn').style.cursor = 'pointer';
