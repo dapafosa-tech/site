@@ -1,7 +1,3 @@
-// ============================================
-// TYPEBIZ - DATABASE LAYER (ПОВНА ВЕРСІЯ З АПЕЛЯЦІЯМИ)
-// ============================================
-
 if (typeof SUPABASE_URL === 'undefined') {
     var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
@@ -37,13 +33,8 @@ function generateJoinCode() {
         }
         parts.push(part);
     }
-    var code = parts.join('-');
-    return code;
+    return parts.join('-');
 }
-
-// ============================================
-// ОСНОВНІ ЗАПИТИ ДО SUPABASE
-// ============================================
 
 async function supabaseQuery(endpoint, options) {
     if (options === undefined) options = {};
@@ -53,34 +44,24 @@ async function supabaseQuery(endpoint, options) {
         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
         'Content-Type': 'application/json'
     };
-    
     if (options.headers) {
         for (var key in options.headers) {
             headers[key] = options.headers[key];
         }
     }
-
     try {
         var response = await fetch(url, {
             method: options.method || 'GET',
             headers: headers,
             body: options.body || null
         });
-
-        if (response.status === 204) {
-            return [];
-        }
-
+        if (response.status === 204) return [];
         if (!response.ok) {
             var errorText = await response.text();
             throw new Error('HTTP ' + response.status + ': ' + errorText);
         }
-
         var text = await response.text();
-        if (!text || text.trim() === '') {
-            return [];
-        }
-
+        if (!text || text.trim() === '') return [];
         try {
             return JSON.parse(text);
         } catch {
@@ -93,16 +74,11 @@ async function supabaseQuery(endpoint, options) {
             }
             return [];
         }
-
     } catch (error) {
         console.error('Supabase query error:', error);
         throw error;
     }
 }
-
-// ============================================
-// СИСТЕМНІ НАЛАШТУВАННЯ
-// ============================================
 
 var _systemSettingsCache = null;
 
@@ -133,9 +109,7 @@ async function getBannedWords() {
     if (_bannedWordsCache) return _bannedWordsCache;
     try {
         var rows = await supabaseQuery('banned_words?select=word');
-        _bannedWordsCache = (rows || [])
-            .map(function (r) { return (r.word || '').toLowerCase().trim(); })
-            .filter(function (w) { return w.length > 0; });
+        _bannedWordsCache = (rows || []).map(function(r) { return (r.word || '').toLowerCase().trim(); }).filter(function(w) { return w.length > 0; });
         return _bannedWordsCache;
     } catch (e) {
         return [];
@@ -167,10 +141,6 @@ async function getActiveAnnouncements() {
     }
 }
 
-// ============================================
-// ЛОГИ
-// ============================================
-
 async function getUserName(userId) {
     try {
         var result = await supabaseQuery('users?id=eq.' + userId + '&select=full_name,email');
@@ -187,9 +157,7 @@ async function addLog(action, entityType, entityId, details) {
     try {
         var user = getCurrentUser();
         if (!user) return null;
-        
         var userName = user.full_name || user.email || 'Користувач';
-        
         return await supabaseQuery('activity_logs', {
             method: 'POST',
             body: JSON.stringify({
@@ -204,14 +172,9 @@ async function addLog(action, entityType, entityId, details) {
             })
         });
     } catch (e) {
-        console.warn('Failed to add log:', e);
         return null;
     }
 }
-
-// ============================================
-// КОРИСТУВАЧІ
-// ============================================
 
 async function updateUser(id, data) {
     var result = await supabaseQuery('users?id=eq.' + id, {
@@ -235,7 +198,6 @@ async function setUserRole(userId, role) {
     if (validRoles.indexOf(role) === -1) {
         throw new Error('Невірна роль. Доступні: user, moderator, admin, owner');
     }
-    
     var result = await supabaseQuery('users?id=eq.' + userId, {
         method: 'PATCH',
         body: JSON.stringify({ role: role })
@@ -272,22 +234,12 @@ async function getUsersWithRoles() {
     return supabaseQuery('users?select=id,full_name,email,role,is_banned,ban_reason');
 }
 
-// ============================================
-// АПЕЛЯЦІЇ
-// ============================================
-
 async function getAppeals(filters) {
     if (filters === undefined) filters = {};
     var query = 'appeals?order=created_at.desc';
-    if (filters.userId) {
-        query += '&user_id=eq.' + filters.userId;
-    }
-    if (filters.status) {
-        query += '&status=eq.' + filters.status;
-    }
-    if (filters.appealId) {
-        query += '&id=eq.' + filters.appealId;
-    }
+    if (filters.userId) query += '&user_id=eq.' + filters.userId;
+    if (filters.status) query += '&status=eq.' + filters.status;
+    if (filters.appealId) query += '&id=eq.' + filters.appealId;
     return supabaseQuery(query);
 }
 
@@ -311,10 +263,6 @@ async function sendAppealMessage(data) {
     });
 }
 
-// ============================================
-// ПІДТРИМКА (SUPPORT TICKETS)
-// ============================================
-
 async function createSupportTicket(data) {
     return supabaseQuery('support_tickets', {
         method: 'POST',
@@ -325,12 +273,8 @@ async function createSupportTicket(data) {
 async function getSupportTickets(filters) {
     if (filters === undefined) filters = {};
     var query = 'support_tickets?order=created_at.desc';
-    if (filters.userId) {
-        query += '&user_id=eq.' + filters.userId;
-    }
-    if (filters.status) {
-        query += '&status=eq.' + filters.status;
-    }
+    if (filters.userId) query += '&user_id=eq.' + filters.userId;
+    if (filters.status) query += '&status=eq.' + filters.status;
     return supabaseQuery(query);
 }
 
@@ -357,31 +301,20 @@ async function sendSupportMessage(data) {
     });
 }
 
-// ============================================
-// ОРГАНІЗАЦІЇ
-// ============================================
-
 async function createOrganization(data) {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
-    
-    if (await isUserBanned(user.id)) {
-        throw new Error('Ваш акаунт заблоковано');
-    }
-    
+    if (await isUserBanned(user.id)) throw new Error('Ваш акаунт заблоковано');
     if (user.role !== 'admin' && user.role !== 'owner') {
         var sysSettings = await getSystemSettings();
         var maxOrgs = parseInt(sysSettings['max_organizations'], 10);
         if (!maxOrgs || isNaN(maxOrgs) || maxOrgs < 1) maxOrgs = 1;
-
         var ledOrgs = await getUserLedOrganizations();
         if (ledOrgs && ledOrgs.length >= maxOrgs) {
             throw new Error('Ви досягли ліміту організацій, де можете бути лідером (' + maxOrgs + '). Адміністратори та засновники можуть створювати безлімітно.');
         }
     }
-    
     var joinCode = generateJoinCode();
-    
     var orgData = {
         id: generateUUID(),
         name: data.name,
@@ -394,18 +327,13 @@ async function createOrganization(data) {
         settings: data.settings || {},
         created_at: new Date().toISOString()
     };
-
     var result = await supabaseQuery('organizations', {
         method: 'POST',
         body: JSON.stringify(orgData),
-        headers: {
-            'Prefer': 'return=representation'
-        }
+        headers: { 'Prefer': 'return=representation' }
     });
-
     if (result && result.length > 0) {
         var orgId = result[0].id;
-        
         var rankResult = await supabaseQuery('org_ranks', {
             method: 'POST',
             body: JSON.stringify({
@@ -415,7 +343,7 @@ async function createOrganization(data) {
                 color: '#ef4444',
                 is_default: true,
                 order: 0,
-                permissions: { 
+                permissions: {
                     all: true,
                     manage_members: true,
                     manage_ranks: true,
@@ -428,27 +356,23 @@ async function createOrganization(data) {
                 }
             })
         });
-        
         if (rankResult && rankResult.length > 0) {
             await addMemberToOrganization(orgId, user.id, rankResult[0].id, true);
         } else {
             await addMemberToOrganization(orgId, user.id, null, true);
         }
-        
         await addLog('Створено організацію', 'organization', orgId, {
             name: data.name,
             type: data.type,
             user_name: user.full_name || user.email
         });
     }
-
     return result;
 }
 
 async function getUserOrganizations() {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
-    
     try {
         var orgs = await supabaseQuery('organizations?created_by=eq.' + user.id);
         return orgs || [];
@@ -460,14 +384,11 @@ async function getUserOrganizations() {
 async function getUserAllOrganizations() {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
-    
     try {
         var members = await supabaseQuery('org_members?user_id=eq.' + user.id);
         if (!members || members.length === 0) return [];
-        
         var orgIds = members.map(function(m) { return m.organization_id; }).join(',');
         if (!orgIds) return [];
-        
         var orgs = await supabaseQuery('organizations?id=in.(' + orgIds + ')');
         return orgs || [];
     } catch (error) {
@@ -478,7 +399,6 @@ async function getUserAllOrganizations() {
 async function getUserLedOrganizations() {
     var user = getCurrentUser();
     if (!user) throw new Error('Не авторизовано');
-
     try {
         var orgs = await supabaseQuery('organizations?leader_id=eq.' + user.id);
         return orgs || [];
@@ -512,11 +432,7 @@ async function deleteOrganization(id) {
 async function getOrganizationByJoinCode(code) {
     var cleanCode = code.trim().toLowerCase();
     var result = await supabaseQuery('organizations?join_code=eq.' + cleanCode);
-    
-    if (result && result.length > 0) {
-        return result[0];
-    }
-    
+    if (result && result.length > 0) return result[0];
     if (!cleanCode.includes('-')) {
         var allOrgs = await supabaseQuery('organizations?select=id,name,join_code');
         if (allOrgs) {
@@ -529,13 +445,8 @@ async function getOrganizationByJoinCode(code) {
             }
         }
     }
-    
     return null;
 }
-
-// ============================================
-// ПОСАДИ
-// ============================================
 
 async function getOrganizationRanks(orgId) {
     return supabaseQuery('org_ranks?organization_id=eq.' + orgId + '&order=order.asc');
@@ -555,9 +466,7 @@ async function createRank(orgId, data) {
             is_default: false,
             order: data.order !== undefined ? data.order : order
         }),
-        headers: {
-            'Prefer': 'return=representation'
-        }
+        headers: { 'Prefer': 'return=representation' }
     });
     await addLog('Створено посаду', 'rank', orgId, { name: data.name });
     return result;
@@ -580,17 +489,9 @@ async function deleteRank(id) {
     return result;
 }
 
-// ============================================
-// УЧАСНИКИ
-// ============================================
-
 async function addMemberToOrganization(orgId, userId, rankId, skipLimitCheck) {
     if (rankId === undefined) rankId = null;
-
-    if (await isUserBanned(userId)) {
-        throw new Error('Користувача заблоковано');
-    }
-
+    if (await isUserBanned(userId)) throw new Error('Користувача заблоковано');
     if (!skipLimitCheck) {
         var sysSettings = await getSystemSettings();
         var maxMembers = parseInt(sysSettings['max_members'], 10);
@@ -601,7 +502,6 @@ async function addMemberToOrganization(orgId, userId, rankId, skipLimitCheck) {
             }
         }
     }
-
     var result = await supabaseQuery('org_members', {
         method: 'POST',
         body: JSON.stringify({
@@ -638,17 +538,9 @@ async function removeMemberFromOrganization(memberId) {
     return result;
 }
 
-// ============================================
-// ЗАЯВКИ НА ВСТУП
-// ============================================
-
 async function createJoinRequest(orgId, userId, message) {
     if (message === undefined) message = '';
-    
-    if (await isUserBanned(userId)) {
-        throw new Error('Ваш акаунт заблоковано');
-    }
-    
+    if (await isUserBanned(userId)) throw new Error('Ваш акаунт заблоковано');
     var result = await supabaseQuery('join_requests', {
         method: 'POST',
         body: JSON.stringify({
@@ -659,9 +551,7 @@ async function createJoinRequest(orgId, userId, message) {
             message: message,
             created_at: new Date().toISOString()
         }),
-        headers: {
-            'Prefer': 'return=representation'
-        }
+        headers: { 'Prefer': 'return=representation' }
     });
     await addLog('Створено заявку на вступ', 'join_request', orgId, { user_id: userId });
     return result;
@@ -676,7 +566,7 @@ async function getJoinRequests(orgId, status) {
 async function updateJoinRequest(requestId, status) {
     var result = await supabaseQuery('join_requests?id=eq.' + requestId, {
         method: 'PATCH',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             status: status,
             updated_at: new Date().toISOString()
         })
@@ -684,10 +574,6 @@ async function updateJoinRequest(requestId, status) {
     await addLog('Оновлено заявку на вступ', 'join_request', requestId, { status: status });
     return result;
 }
-
-// ============================================
-// СПІВРОБІТНИКИ ТА ВІДДІЛИ
-// ============================================
 
 async function createEmployee(data) {
     var result = await supabaseQuery('employees', {
@@ -707,9 +593,7 @@ async function createEmployee(data) {
             salary: data.salary || 0,
             status: data.status || 'active'
         }),
-        headers: {
-            'Prefer': 'return=representation'
-        }
+        headers: { 'Prefer': 'return=representation' }
     });
     await addLog('Створено співробітника', 'employee', data.organization_id, data);
     return result;
@@ -745,9 +629,7 @@ async function createDepartment(data) {
             name: data.name,
             description: data.description || ''
         }),
-        headers: {
-            'Prefer': 'return=representation'
-        }
+        headers: { 'Prefer': 'return=representation' }
     });
     await addLog('Створено відділ', 'department', data.organization_id, { name: data.name });
     return result;
@@ -796,10 +678,6 @@ async function removeEmployeeFromDepartment(employeeId) {
     return result;
 }
 
-// ============================================
-// ЧАТ
-// ============================================
-
 async function sendChatMessage(organizationId, userId, message, mentions) {
     if (mentions === undefined) mentions = [];
     var result = await supabaseQuery('org_chat_messages', {
@@ -831,10 +709,6 @@ async function deleteChatMessage(messageId) {
     return result;
 }
 
-// ============================================
-// ВІДПУСТКИ
-// ============================================
-
 async function createVacation(data) {
     var result = await supabaseQuery('org_vacations', {
         method: 'POST',
@@ -858,9 +732,7 @@ async function createVacation(data) {
 
 async function getVacations(organizationId, status) {
     var query = 'org_vacations?organization_id=eq.' + organizationId;
-    if (status) {
-        query += '&status=eq.' + status;
-    }
+    if (status) query += '&status=eq.' + status;
     query += '&order=created_at.desc';
     return supabaseQuery(query);
 }
@@ -870,13 +742,11 @@ async function getUserVacations(userId) {
 }
 
 async function updateVacationStatus(vacationId, status, approvedBy) {
-    var data = { 
+    var data = {
         status: status,
         updated_at: new Date().toISOString()
     };
-    if (approvedBy) {
-        data.approved_by = approvedBy;
-    }
+    if (approvedBy) data.approved_by = approvedBy;
     var result = await supabaseQuery('org_vacations?id=eq.' + vacationId, {
         method: 'PATCH',
         body: JSON.stringify(data)
@@ -892,10 +762,6 @@ async function deleteVacation(vacationId) {
     await addLog('Видалено заявку на відпустку', 'vacation', vacationId, { deleted: true });
     return result;
 }
-
-// ============================================
-// ПОДІЇ
-// ============================================
 
 async function createEvent(data) {
     var result = await supabaseQuery('org_events', {
@@ -927,10 +793,6 @@ async function deleteEvent(id) {
     await addLog('Видалено подію', 'event', id, { deleted: true });
     return result;
 }
-
-// ============================================
-// ЗАВДАННЯ
-// ============================================
 
 async function createTask(data) {
     var result = await supabaseQuery('org_tasks', {
@@ -972,10 +834,6 @@ async function deleteTask(id) {
     await addLog('Видалено завдання', 'task', id, { deleted: true });
     return result;
 }
-
-// ============================================
-// ОПИТУВАННЯ
-// ============================================
 
 async function createPoll(data) {
     var result = await supabaseQuery('org_polls', {
@@ -1027,10 +885,6 @@ async function deletePoll(id) {
     return result;
 }
 
-// ============================================
-// НОТИФІКАЦІЇ
-// ============================================
-
 async function createNotification(data) {
     return supabaseQuery('notifications', {
         method: 'POST',
@@ -1061,10 +915,6 @@ async function markNotificationRead(notificationId) {
     });
 }
 
-// ============================================
-// МОДУЛЬ: КЛІНІКА
-// ============================================
-
 async function getClinicPatients(orgId) {
     return supabaseQuery('clinic_patients?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1093,10 +943,6 @@ async function createClinicAppointment(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: МАГАЗИН
-// ============================================
-
 async function getShopProducts(orgId) {
     return supabaseQuery('shop_products?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1124,10 +970,6 @@ async function createShopSale(data) {
     await addLog('Оформлено продаж', 'shop_sale', data.organization_id, { product_id: data.product_id });
     return result;
 }
-
-// ============================================
-// МОДУЛЬ: БІБЛІОТЕКА
-// ============================================
 
 async function getLibraryBooks(orgId) {
     return supabaseQuery('library_books?organization_id=eq.' + orgId + '&order=created_at.desc');
@@ -1170,10 +1012,6 @@ async function createLibraryReader(data) {
     await addLog('Додано читача бібліотеки', 'library_reader', data.organization_id, { name: data.full_name });
     return result;
 }
-
-// ============================================
-// МОДУЛЬ: ШКОЛА
-// ============================================
 
 async function getSchoolStudents(orgId) {
     return supabaseQuery('school_students?organization_id=eq.' + orgId + '&order=created_at.desc');
@@ -1231,10 +1069,6 @@ async function createSchoolGrade(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: РЕСТОРАН
-// ============================================
-
 async function getRestaurantMenu(orgId) {
     return supabaseQuery('restaurant_menu?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1277,10 +1111,6 @@ async function createRestaurantBooking(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ГОТЕЛЬ
-// ============================================
-
 async function getHotelRooms(orgId) {
     return supabaseQuery('hotel_rooms?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1308,10 +1138,6 @@ async function createHotelBooking(data) {
     await addLog('Створено бронювання в готелі', 'hotel_booking', data.organization_id, { room: data.room_number });
     return result;
 }
-
-// ============================================
-// МОДУЛЬ: СПОРТЗАЛ
-// ============================================
 
 async function getGymMemberships(orgId) {
     return supabaseQuery('gym_memberships?organization_id=eq.' + orgId + '&order=created_at.desc');
@@ -1341,10 +1167,6 @@ async function createGymTraining(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: САЛОН КРАСИ
-// ============================================
-
 async function getBeautyServices(orgId) {
     return supabaseQuery('beauty_services?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1372,10 +1194,6 @@ async function createBeautyAppointment(data) {
     await addLog('Створено запис у салон краси', 'beauty_appointment', data.organization_id, { client: data.client_name });
     return result;
 }
-
-// ============================================
-// МОДУЛЬ: АВТОСЕРВІС
-// ============================================
 
 async function getAutoOrders(orgId) {
     return supabaseQuery('auto_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
@@ -1405,10 +1223,6 @@ async function createAutoPart(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: НЕРУХОМІСТЬ
-// ============================================
-
 async function getRealtyProperties(orgId) {
     return supabaseQuery('realty_properties?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1437,10 +1251,6 @@ async function createRealtyDeal(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ЛОГІСТИКА
-// ============================================
-
 async function getLogisticsOrders(orgId) {
     return supabaseQuery('logistics_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1455,10 +1265,6 @@ async function createLogisticsOrder(data) {
     return result;
 }
 
-// ============================================
-// МОДУЛЬ: ДОСТАВКА
-// ============================================
-
 async function getDeliveryOrders(orgId) {
     return supabaseQuery('delivery_orders?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -1472,10 +1278,6 @@ async function createDeliveryOrder(data) {
     await addLog('Створено замовлення доставки', 'delivery_order', data.organization_id, { client: data.client_name });
     return result;
 }
-
-// ============================================
-// МОДУЛЬ: IT / GAMEDEV
-// ============================================
 
 async function getItProjects(orgId) {
     return supabaseQuery('it_projects?organization_id=eq.' + orgId + '&order=created_at.desc');
@@ -1505,10 +1307,6 @@ async function createItBug(data) {
     return result;
 }
 
-// ============================================
-// СКАРГИ (REPORTS)
-// ============================================
-
 async function createReport(data) {
     var result = await supabaseQuery('reports', {
         method: 'POST',
@@ -1524,18 +1322,16 @@ async function createReport(data) {
         }),
         headers: { 'Prefer': 'return=representation' }
     });
-    await addLog('Створено скаргу', 'report', data.organization_id, { 
-        target_user_id: data.target_user_id, 
-        reason: data.reason 
+    await addLog('Створено скаргу', 'report', data.organization_id, {
+        target_user_id: data.target_user_id,
+        reason: data.reason
     });
     return result;
 }
 
 async function getReports(organizationId) {
     var query = 'reports?order=created_at.desc';
-    if (organizationId) {
-        query += '&organization_id=eq.' + organizationId;
-    }
+    if (organizationId) query += '&organization_id=eq.' + organizationId;
     return supabaseQuery(query);
 }
 
@@ -1547,7 +1343,7 @@ async function getReport(reportId) {
 async function updateReportStatus(reportId, status) {
     var result = await supabaseQuery('reports?id=eq.' + reportId, {
         method: 'PATCH',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             status: status,
             resolved_at: status === 'resolved' ? new Date().toISOString() : null
         })
@@ -1567,10 +1363,6 @@ async function deleteReport(reportId) {
 async function getUserReports(userId) {
     return supabaseQuery('reports?from_user_id=eq.' + userId + '&order=created_at.desc');
 }
-
-// ============================================
-// ЕКСПОРТ ВСІХ ФУНКЦІЙ
-// ============================================
 
 window.db = {
     supabaseQuery: supabaseQuery,
@@ -1705,7 +1497,6 @@ window.db = {
     updateSupportTicket: updateSupportTicket,
     getSupportMessages: getSupportMessages,
     sendSupportMessage: sendSupportMessage,
-    // ===== АПЕЛЯЦІЇ =====
     getAppeals: getAppeals,
     getAppealMessages: getAppealMessages,
     updateAppealStatus: updateAppealStatus,
