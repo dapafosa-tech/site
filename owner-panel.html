@@ -1421,22 +1421,42 @@
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
-        async function approveAppeal(appealId) {
-            var confirmed = await showConfirm('Схвалити апеляцію? Користувач буде розблокований.', 'Підтвердження');
-            if (!confirmed) return;
-            try {
-                var appeals = await db.getAppeals({ appealId: appealId });
-                if (!appeals || appeals.length === 0) { await showAlert('Апеляцію не знайдено', 'error'); return; }
-                var appeal = appeals[0];
-                await db.updateAppealStatus(appealId, 'approved');
-                await db.supabaseQuery('users?id=eq.' + appeal.user_id, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
-                await db.addLog('Розблоковано за апеляцією', 'appeal', appealId, { user_id: appeal.user_id, appeal_id: appealId, action: 'approve' });
-                await showToast('✅ Апеляцію схвалено, користувача розблоковано!', 'success');
-                await loadAppeals();
-                closeModal();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+async function approveAppeal(appealId) {
+    var confirmed = await showConfirm('Схвалити апеляцію? Користувач буде розблокований.', 'Підтвердження');
+    if (!confirmed) return;
+    try {
+        var appeals = await db.getAppeals({ appealId: appealId });
+        if (!appeals || appeals.length === 0) {
+            await showAlert('Апеляцію не знайдено', 'error');
+            return;
         }
-
+        var appeal = appeals[0];
+        
+        var userData = await db.supabaseQuery('users?id=eq.' + appeal.user_id);
+        var userName = userData && userData.length > 0 
+            ? (userData[0].full_name || userData[0].email || 'Користувач') 
+            : 'Користувач';
+        
+        await db.updateAppealStatus(appealId, 'approved');
+        await db.supabaseQuery('users?id=eq.' + appeal.user_id, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_banned: false, ban_reason: null })
+        });
+        
+        await db.addLog('Розблоковано користувача ' + userName + ' за апеляцією №' + appealId.substring(0, 8), 'appeal', appealId, {
+            user_id: appeal.user_id,
+            user_name: userName,
+            appeal_id: appealId,
+            action: 'approve'
+        });
+        
+        await showToast('✅ Апеляцію схвалено, користувача розблоковано!', 'success');
+        await loadAppeals();
+        closeModal('genericModal');
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
         async function rejectAppeal(appealId) {
             var confirmed = await showConfirm('Відхилити апеляцію? Користувач залишиться заблокованим.', 'Підтвердження');
             if (!confirmed) return;
