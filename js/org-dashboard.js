@@ -2470,7 +2470,9 @@ async function deleteUserAccount() {
     try {
         var user = auth.getCurrentUser();
         await db.deleteUser(user.id);
+        try { await window.sb.auth.signOut(); } catch (e) {}
         localStorage.removeItem('userData');
+        localStorage.removeItem('isGuest');
         await showToast('Акаунт видалено', 'success');
         setTimeout(function() {
             window.location.href = '/login';
