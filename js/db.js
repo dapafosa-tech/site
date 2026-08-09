@@ -70,16 +70,20 @@ async function getClientIp() {
     }
 }
 
-// Пишемо last_ip не частіше одного разу за завантаження сторінки
-// (а не на кожен 25-секундний polling у check-auth.js).
-var _ipTrackedThisLoad = false;
-
+// Пишемо last_ip не частіше одного разу за сесію вкладки (sessionStorage
+// переживає переходи між сторінками багатосторінкового сайту, а не тільки
+// один page load, як було раніше - інакше кожен клік по меню = новий
+// запит до ipify).
 async function trackVisitIp(profile) {
-    if (_ipTrackedThisLoad || !profile || !profile.id) return;
-    _ipTrackedThisLoad = true;
+    if (!profile || !profile.id) return;
+    try {
+        if (sessionStorage.getItem('ipTrackedFor') === profile.id) return;
+    } catch (e) {}
     try {
         var ip = await getClientIp();
-        if (!ip || profile.last_ip === ip) return;
+        if (!ip) return;
+        try { sessionStorage.setItem('ipTrackedFor', profile.id); } catch (e) {}
+        if (profile.last_ip === ip) return;
         await supabaseQuery('users?id=eq.' + profile.id, {
             method: 'PATCH',
             body: JSON.stringify({ last_ip: ip })
