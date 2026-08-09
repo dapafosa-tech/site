@@ -561,9 +561,19 @@
             }
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Перевірка пошти...';
 
             try {
+                // 0. Перевіряємо, чи ця пошта вже зареєстрована - ДО спроби реєстрації,
+                // бо сам Supabase мовчки "прикидається успіхом" на існуючий email
+                // (захист від enumeration), і код тоді просто не приходить.
+                var alreadyExists = await auth.checkEmailExists(email);
+                if (alreadyExists) {
+                    throw new Error('Користувач з такою поштою вже зареєстрований. Спробуйте увійти або відновити пароль.');
+                }
+
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
+
                 // 1. Створюємо акаунт
                 var result = await auth.registerUser(email, password, fullName, phone, companyAddress);
                 
