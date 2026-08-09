@@ -50,6 +50,46 @@ function generateUUID() {
     });
 }
 
+// ============================================
+// IP КОРИСТУВАЧА (reg_ip / last_ip)
+// Визначаємо публічний IP клієнта через ipify і кешуємо на час
+// життя вкладки, щоб не смикати зовнішній сервіс на кожен виклик.
+// ============================================
+var _clientIpCache = null;
+
+async function getClientIp() {
+    if (_clientIpCache) return _clientIpCache;
+    try {
+        var res = await fetch('https://api.ipify.org?format=json');
+        if (!res.ok) return null;
+        var data = await res.json();
+        _clientIpCache = data && data.ip ? data.ip : null;
+        return _clientIpCache;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Пишемо last_ip не частіше одного разу за завантаження сторінки
+// (а не на кожен 25-секундний polling у check-auth.js).
+var _ipTrackedThisLoad = false;
+
+async function trackVisitIp(profile) {
+    if (_ipTrackedThisLoad || !profile || !profile.id) return;
+    _ipTrackedThisLoad = true;
+    try {
+        var ip = await getClientIp();
+        if (!ip || profile.last_ip === ip) return;
+        await supabaseQuery('users?id=eq.' + profile.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ last_ip: ip })
+        });
+        profile.last_ip = ip;
+    } catch (e) {
+        console.warn('trackVisitIp error:', e);
+    }
+}
+
 function generateJoinCode() {
     var chars = 'abcdefghijklmnopqrstuvwxyz';
     var parts = [];
