@@ -251,25 +251,117 @@
 
             document.getElementById('settingsForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
+
                 var fullName = document.getElementById('fullName').value.trim();
                 var email = document.getElementById('email').value.trim();
+                var emailChanged = email !== user.email;
+                var submitBtn = document.querySelector('#settingsForm button[type="submit"]');
+
+                submitBtn.disabled = true;
 
                 try {
-                    await db.updateUser(user.id, {
-                        full_name: fullName,
-                        email: email
-                    });
-                    
-                    user.full_name = fullName;
-                    user.email = email;
-                    localStorage.setItem('userData', JSON.stringify(user));
-                    
-                    await showToast('Налаштування збережено!', 'success');
+                    // Ім'я оновлюємо одразу, без підтвердження.
+                    if (fullName !== user.full_name) {
+                        await db.updateUser(user.id, { full_name: fullName });
+                        user.full_name = fullName;
+                        localStorage.setItem('userData', JSON.stringify(user));
+                    }
+
+                    if (!emailChanged) {
+                        await showToast('Налаштування збережено!', 'success');
+                        submitBtn.disabled = false;
+                        return;
+                    }
+
+                    // Email змінюється тільки через підтвердження кодом на нову пошту.
+                    await auth.requestEmailChange(email);
+                    submitBtn.disabled = false;
+                    showToast('Код підтвердження надіслано на ' + email, 'success');
+                    var confirmed = await showEmailChangeOtpModal(email);
+                    if (confirmed) {
+                        document.getElementById('email').value = email;
+                        await showToast('Email успішно змінено!', 'success');
+                    } else {
+                        // Юзер скасував - повертаємо поле до старого значення.
+                        document.getElementById('email').value = user.email;
+                    }
                 } catch (error) {
+                    submitBtn.disabled = false;
                     await showAlert('Помилка: ' + error.message, 'error');
                 }
             });
+
+            // Модалка вводу 6-значного коду для підтвердження зміни email.
+            function showEmailChangeOtpModal(newEmail) {
+                return new Promise(function(resolve) {
+                    var overlay = document.createElement('div');
+                    overlay.className = 'modal-overlay';
+                    overlay.style.cssText =
+                        'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);' +
+                        'backdrop-filter:blur(4px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+                    overlay.innerHTML =
+                        '<div style="background:var(--ink-soft);border:1px solid var(--ink-line);border-radius:12px;' +
+                        'padding:2rem;max-width:420px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.6);">' +
+                            '<div style="text-align:center;font-size:2.5rem;color:var(--gold);margin-bottom:1rem;"><i class="fas fa-envelope-circle-check"></i></div>' +
+                            '<h3 style="text-align:center;font-size:1.15rem;font-weight:700;margin-bottom:0.5rem;">Підтвердження нової пошти</h3>' +
+                            '<p style="text-align:center;color:var(--muted);margin-bottom:1.25rem;font-size:0.9rem;">Код надіслано на <strong>' + newEmail + '</strong>. Введіть 6-значний код з листа.</p>' +
+                            '<input type="text" id="emailOtpInput" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="width:100%;text-align:center;letter-spacing:0.5em;font-size:1.5rem;font-family:\'IBM Plex Mono\',monospace;padding:0.75rem 1rem;background:var(--ink);border:1px solid var(--ink-line);border-radius:6px;color:inherit;margin-bottom:0.75rem;">' +
+                            '<div id="emailOtpMsg" style="text-align:center;font-size:0.8rem;color:var(--muted);margin-bottom:1rem;min-height:1.2em;"></div>' +
+                            '<div style="display:flex;gap:0.75rem;">' +
+                                '<button id="emailOtpCancel" type="button" class="btn" style="flex:1;background:transparent;border:1px solid var(--ink-line);color:inherit;">Скасувати</button>' +
+                                '<button id="emailOtpSubmit" type="button" class="btn btn-gold" style="flex:2;">Підтвердити</button>' +
+                            '</div>' +
+                            '<div style="text-align:center;margin-top:1rem;"><a href="#" id="emailOtpResend" style="color:var(--teal);font-size:0.85rem;text-decoration:none;">Надіслати код повторно</a></div>' +
+                        '</div>';
+                    document.body.appendChild(overlay);
+
+                    var input = overlay.querySelector('#emailOtpInput');
+                    var msg = overlay.querySelector('#emailOtpMsg');
+                    var submitBtn = overlay.querySelector('#emailOtpSubmit');
+                    var cancelBtn = overlay.querySelector('#emailOtpCancel');
+                    var resendLink = overlay.querySelector('#emailOtpResend');
+
+                    setTimeout(function() { input.focus(); }, 50);
+                    input.addEventListener('input', function() { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
+
+                    resendLink.addEventListener('click', async function(e) {
+                        e.preventDefault();
+                        try {
+                            await auth.requestEmailChange(newEmail);
+                            msg.style.color = 'var(--muted)';
+                            msg.textContent = 'Код надіслано повторно.';
+                        } catch (err) {
+                            msg.style.color = '#E2503E';
+                            msg.textContent = 'Помилка: ' + err.message;
+                        }
+                    });
+
+                    async function trySubmit() {
+                        var code = input.value.trim();
+                        if (code.length !== 6) {
+                            msg.style.color = '#E2503E';
+                            msg.textContent = 'Введіть 6-значний код';
+                            return;
+                        }
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Перевірка...';
+                        try {
+                            await auth.verifyEmailChangeOtp(newEmail, code);
+                            overlay.remove();
+                            resolve(true);
+                        } catch (err) {
+                            msg.style.color = '#E2503E';
+                            msg.textContent = err.message;
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Підтвердити';
+                        }
+                    }
+
+                    submitBtn.addEventListener('click', trySubmit);
+                    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') trySubmit(); });
+                    cancelBtn.addEventListener('click', function() { overlay.remove(); resolve(false); });
+                });
+            }
 
             document.getElementById('deleteBtn').addEventListener('click', async function() {
                 var confirmed = await showConfirm('Ви впевнені, що хочете видалити акаунт? Це незворотна дія!', '⚠️ Увага');

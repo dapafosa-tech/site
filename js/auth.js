@@ -310,6 +310,51 @@ async function updatePassword(newPassword) {
     return true;
 }
 
+// ============================================
+// ЗМІНА EMAIL З ПІДТВЕРДЖЕННЯМ 6-ЗНАЧНИМ КОДОМ
+// ============================================
+// У Supabase Dashboard -> Authentication -> Emails -> "Change Email Address"
+// шаблон теж має використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
+async function requestEmailChange(newEmail) {
+    var { error } = await window.sb.auth.updateUser({ email: newEmail });
+    if (error) {
+        if (error.message && error.message.toLowerCase().indexOf('already') !== -1) {
+            throw new Error('Ця пошта вже використовується іншим акаунтом');
+        }
+        throw new Error(error.message);
+    }
+    return true;
+}
+
+// Підтвердження коду зміни email. Код приходить на НОВУ пошту.
+// При успіху одразу оновлює email і в auth.users, і в public.users (щоб не розійшлись).
+async function verifyEmailChangeOtp(newEmail, code) {
+    var { data, error } = await window.sb.auth.verifyOtp({
+        email: newEmail,
+        token: code,
+        type: 'email_change'
+    });
+    if (error) {
+        if (error.message && /expired/i.test(error.message)) {
+            throw new Error('Код прострочено. Запросіть новий');
+        }
+        throw new Error('Невірний код підтвердження');
+    }
+
+    var user = getCurrentUser();
+    if (user) {
+        await supabaseQuery('users?id=eq.' + user.id, {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify({ email: newEmail })
+        });
+        user.email = newEmail;
+        localStorage.setItem('userData', JSON.stringify(user));
+        currentUser = user;
+    }
+    return true;
+}
+
 function isAdmin() {
     var user = getCurrentUser();
     return user && (user.role === 'admin' || user.role === 'owner');
@@ -332,6 +377,8 @@ window.auth = {
     requestPasswordReset: requestPasswordReset,
     verifyPasswordResetOtp: verifyPasswordResetOtp,
     updatePassword: updatePassword,
+    requestEmailChange: requestEmailChange,
+    verifyEmailChangeOtp: verifyEmailChangeOtp,
     isAdmin: isAdmin,
     isOwner: isOwner,
     checkUserBanned: checkUserBanned,
