@@ -360,6 +360,7 @@ async function loadUsers() {
                                 '<th>Email</th>' +
                                 '<th>Роль</th>' +
                                 '<th>Статус</th>' +
+                                '<th>IP</th>' +
                                 '<th>Дії</th>' +
                             '</tr>' +
                         '</thead>' +
@@ -387,6 +388,10 @@ async function loadUsers() {
                         '<td>' + (u.email || '—') + '</td>' +
                         '<td>' + (roleLabels[u.role] || roleLabels.user) + '</td>' +
                         '<td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td>' +
+                        '<td style="font-size:0.8rem;white-space:nowrap;">' +
+                            '<div title="IP реєстрації">' + (u.reg_ip || '—') + '</div>' +
+                            '<div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div>' +
+                        '</td>' +
                         '<td style="white-space:nowrap;">' +
                             ((canBanUser(user) && !isCurrentUser) ? 
                                 (isUserBanned ? 
@@ -412,7 +417,7 @@ async function loadUsers() {
                     '</tr>';
             }
         } else {
-            html += '<tr><td colspan="5" class="text-center text-muted">Немає користувачів</td></tr>';
+            html += '<tr><td colspan="6" class="text-center text-muted">Немає користувачів</td></tr>';
         }
 
         html += 
