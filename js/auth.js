@@ -33,7 +33,15 @@ function getCurrentUser() {
 // Токен сесії вже підставляється автоматично через getAccessToken() у db.js,
 // тож цей запит іде "від імені" юзера і його пропускає RLS-політика
 // "users: сам собі" (users_select_self).
-async function syncProfile() {
+//
+// allowCreate=true  - дозволяємо створити рядок профілю, якщо його ще нема
+//                      (перший вхід одразу після реєстрації/підтвердження OTP).
+// allowCreate=false - НІЧОГО не створюємо. Якщо профілю нема - вважаємо,
+//                      що акаунт видалили з public.users, і повертаємо null
+//                      (виклик з check-auth.js виб'є юзера з акаунту).
+async function syncProfile(allowCreate) {
+    if (allowCreate === undefined) allowCreate = false;
+
     var { data } = await window.sb.auth.getSession();
     var session = data && data.session;
     if (!session) {
@@ -42,10 +50,11 @@ async function syncProfile() {
         currentUser = null;
         return null;
     }
+
     var rows = await supabaseQuery('users?id=eq.' + session.user.id + '&select=*');
     var profile = rows && rows.length > 0 ? rows[0] : null;
-    if (!profile) {
-        // Перший вхід після реєстрації через Supabase Auth - профілю ще нема, створюємо.
+
+    if (!profile && allowCreate) {
         var newProfile = {
             id: session.user.id,
             auth_id: session.user.id,
@@ -56,13 +65,33 @@ async function syncProfile() {
             is_banned: false,
             created_at: new Date().toISOString()
         };
-        var created = await supabaseQuery('users', {
-            method: 'POST',
-            headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(newProfile)
-        });
-        profile = created && created[0] ? created[0] : newProfile;
+        try {
+            var created = await supabaseQuery('users', {
+                method: 'POST',
+                headers: { 'Prefer': 'return=representation' },
+                body: JSON.stringify(newProfile)
+            });
+            profile = created && created[0] ? created[0] : newProfile;
+        } catch (insertError) {
+            // 23505 = duplicate key (найчастіше users_email_key). Найімовірніша
+            // причина - гонка: профіль уже встиг створитися (тригером у БД або
+            // паралельним запитом) буквально в цю ж мить. Пробуємо ще раз
+            // прочитати профіль за id, перш ніж здатися.
+            var retryRows = await supabaseQuery('users?id=eq.' + session.user.id + '&select=*');
+            profile = retryRows && retryRows.length > 0 ? retryRows[0] : null;
+            if (!profile) {
+                throw insertError;
+            }
+        }
     }
+
+    if (!profile) {
+        localStorage.removeItem('userData');
+        localStorage.removeItem('isGuest');
+        currentUser = null;
+        return null;
+    }
+
     localStorage.setItem('userData', JSON.stringify(profile));
     localStorage.setItem('isGuest', 'false');
     currentUser = profile;
@@ -95,11 +124,19 @@ async function loginUser(email, password) {
             throw new Error(error.message);
         }
 
-        var profile = await syncProfile();
+        // allowCreate=true: якщо профілю в public.users справді ще нема
+        // (напр. акаунт заведений напряму через Supabase Auth) - створюємо його.
+        var profile = await syncProfile(true);
 
         if (profile && profile.is_banned === true) {
             window.location.href = '/banned';
             return { success: false, error: 'Акаунт заблоковано', banned: true };
+        }
+
+        // Нова сесія - скидаємо прапорці підтвердження OTP для панелей
+        // (вхід з нового пристрою/сесії має знову запитати код).
+        if (typeof clearAllPanelOtpFlags === 'function') {
+            try { clearAllPanelOtpFlags(); } catch (e) {}
         }
 
         window.location.href = '/dashboard';
@@ -109,6 +146,15 @@ async function loginUser(email, password) {
     }
 }
 
+// ============================================
+// РЕЄСТРАЦІЯ З ПІДТВЕРДЖЕННЯМ 6-ЗНАЧНИМ КОДОМ
+// ============================================
+// Крок 1: signUp() - Supabase Auth реєструє юзера і шле лист.
+// ВАЖЛИВО: щоб у листі був саме 6-значний код, а не посилання,
+// у Supabase Dashboard -> Authentication -> Emails -> "Confirm signup"
+// шаблон має використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
+// Крок 2: verifyRegistrationOtp() - юзер вводить код, ми підтверджуємо
+// його через verifyOtp(type:'signup'), що одразу створює сесію (автологін).
 async function registerUser(email, password, fullName) {
     try {
         var { data, error } = await window.sb.auth.signUp({
@@ -123,18 +169,51 @@ async function registerUser(email, password, fullName) {
             throw new Error(error.message);
         }
 
-        // Якщо в проєкті увімкнене підтвердження email, сесії ще не буде -
-        // просимо користувача перевірити пошту замість автологіну.
+        // Якщо в проєкті увімкнене підтвердження email - сесії ще не буде,
+        // просимо ввести код із листа замість автологіну.
         if (!data.session) {
-            return { success: true, needsEmailConfirm: true };
+            return { success: true, needsEmailConfirm: true, email: email };
         }
 
-        var profile = await syncProfile();
+        // Підтвердження email вимкнене на проєкті - сесія вже є одразу.
+        var profile = await syncProfile(true);
         localStorage.setItem('isGuest', 'false');
         return { success: true, user: profile };
     } catch (error) {
         return { success: false, error: error.message };
     }
+}
+
+// Підтвердження коду реєстрації. При успіху одразу створює сесію (автологін).
+async function verifyRegistrationOtp(email, code) {
+    try {
+        var { data, error } = await window.sb.auth.verifyOtp({
+            email: email,
+            token: code,
+            type: 'signup'
+        });
+        if (error) {
+            if (error.message && /expired/i.test(error.message)) {
+                throw new Error('Код прострочено. Натисніть "Надіслати код ще раз"');
+            }
+            throw new Error('Невірний код підтвердження');
+        }
+        if (!data || !data.session) {
+            throw new Error('Не вдалося підтвердити код. Спробуйте ще раз');
+        }
+        var profile = await syncProfile(true);
+        localStorage.setItem('isGuest', 'false');
+        return { success: true, user: profile };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+}
+
+// Повторна відправка коду реєстрації (якщо не прийшов / прострочився).
+async function resendRegistrationOtp(email) {
+    var { error } = await window.sb.auth.resend({ type: 'signup', email: email });
+    if (error) throw new Error(error.message);
+    return true;
 }
 
 async function checkAuth() {
@@ -143,7 +222,9 @@ async function checkAuth() {
 
     var profile = getCurrentUser();
     if (!profile || profile.id !== data.session.user.id) {
-        profile = await syncProfile();
+        // allowCreate=false: звичайна перевірка сесії нічого не створює -
+        // якщо профілю нема, вважаємо акаунт видаленим.
+        profile = await syncProfile(false);
     }
     if (!profile) return false;
 
@@ -182,15 +263,44 @@ async function logoutUser() {
     try { await window.sb.auth.signOut(); } catch (e) {}
     localStorage.removeItem('userData');
     localStorage.removeItem('isGuest');
+    if (typeof clearAllPanelOtpFlags === 'function') {
+        try { clearAllPanelOtpFlags(); } catch (e) {}
+    }
     currentUser = null;
     window.location.href = '/login';
 }
 
+// ============================================
+// СКИДАННЯ ПАРОЛЯ З ПІДТВЕРДЖЕННЯМ 6-ЗНАЧНИМ КОДОМ
+// ============================================
+// Так само як реєстрація: щоб у листі був код, а не посилання, у Supabase
+// Dashboard -> Authentication -> Emails -> "Reset Password" шаблон теж має
+// використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
 async function requestPasswordReset(email) {
     var { error } = await window.sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/forgot-password'
     });
     if (error) throw new Error(error.message);
+    return true;
+}
+
+// Підтвердження коду скидання пароля. При успіху створює тимчасову
+// recovery-сесію, після чого можна викликати updatePassword().
+async function verifyPasswordResetOtp(email, code) {
+    var { data, error } = await window.sb.auth.verifyOtp({
+        email: email,
+        token: code,
+        type: 'recovery'
+    });
+    if (error) {
+        if (error.message && /expired/i.test(error.message)) {
+            throw new Error('Код прострочено. Запросіть новий');
+        }
+        throw new Error('Невірний код підтвердження');
+    }
+    if (!data || !data.session) {
+        throw new Error('Не вдалося підтвердити код. Спробуйте ще раз');
+    }
     return true;
 }
 
@@ -217,7 +327,10 @@ window.auth = {
     logoutUser: logoutUser,
     loginUser: loginUser,
     registerUser: registerUser,
+    verifyRegistrationOtp: verifyRegistrationOtp,
+    resendRegistrationOtp: resendRegistrationOtp,
     requestPasswordReset: requestPasswordReset,
+    verifyPasswordResetOtp: verifyPasswordResetOtp,
     updatePassword: updatePassword,
     isAdmin: isAdmin,
     isOwner: isOwner,

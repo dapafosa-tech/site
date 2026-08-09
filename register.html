@@ -288,7 +288,25 @@
             </button>
         </form>
 
-        <p class="login-link">
+        <form id="otpForm" autocomplete="off" novalidate style="display:none;">
+            <p class="subtitle" style="margin-bottom:1.5rem;">
+                Ми надіслали 6-значний код на <strong id="otpEmailLabel"></strong>. Введіть його нижче, щоб підтвердити пошту.
+            </p>
+            <div class="form-group">
+                <label class="form-label" for="otpCode">Код підтвердження</label>
+                <input type="text" id="otpCode" class="form-control" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;letter-spacing:0.5em;font-size:1.3rem;font-family:'IBM Plex Mono',monospace;" required autofocus>
+            </div>
+
+            <button type="submit" class="btn btn-gold" id="otpSubmitBtn">
+                <i class="fas fa-check"></i> Підтвердити і увійти
+            </button>
+
+            <p class="login-link">
+                Не прийшов код? <a href="#" id="otpResendLink">Надіслати ще раз</a>
+            </p>
+        </form>
+
+        <p class="login-link" id="loginLinkP">
             Уже є акаунт? <a href="/login">Увійти</a>
         </p>
     </div>
@@ -408,6 +426,82 @@
             }
         }
 
+        var pendingRegistration = null; // { email, fullName, avatarFile } - поки чекаємо код
+
+        function showOtpStep(email) {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginLinkP').style.display = 'none';
+            document.getElementById('otpEmailLabel').textContent = email;
+            document.getElementById('otpForm').style.display = 'block';
+            document.getElementById('otpCode').focus();
+        }
+
+        document.getElementById('otpCode').addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        document.getElementById('otpResendLink').addEventListener('click', async function(e) {
+            e.preventDefault();
+            if (!pendingRegistration) return;
+            try {
+                await auth.resendRegistrationOtp(pendingRegistration.email);
+                showToast('Код надіслано повторно', 'success');
+            } catch (error) {
+                showToast('Помилка: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('otpForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!pendingRegistration) return;
+
+            var code = document.getElementById('otpCode').value.trim();
+            var submitBtn = document.getElementById('otpSubmitBtn');
+
+            if (code.length !== 6) {
+                showToast('Введіть 6-значний код', 'warning');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Перевірка...';
+
+            try {
+                var result = await auth.verifyRegistrationOtp(pendingRegistration.email, code);
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+
+                var user = result.user;
+
+                // Якщо під час реєстрації обрали аватарку - завантажуємо її тепер,
+                // коли вже є повноцінна сесія (потрібна для storage RLS).
+                if (pendingRegistration.avatarFile && user) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження фото...';
+                    try {
+                        var avatarUrl = await uploadAvatarToBucket(user.id, pendingRegistration.avatarFile);
+                        if (avatarUrl) {
+                            await db.updateUser(user.id, { avatar_url: avatarUrl });
+                            user.avatar_url = avatarUrl;
+                            localStorage.setItem('userData', JSON.stringify(user));
+                        }
+                    } catch (avatarError) {
+                        console.error('Avatar upload error:', avatarError);
+                    }
+                }
+
+                showToast('Email підтверджено! Ласкаво просимо.', 'success');
+                setTimeout(function() {
+                    window.location.href = '/dashboard';
+                }, 800);
+
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Підтвердити і увійти';
+                showToast('Помилка: ' + error.message, 'error');
+            }
+        });
+
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -455,25 +549,30 @@
                 }
 
                 if (result.needsEmailConfirm) {
-                    await showAlert('Акаунт створено! Перевірте пошту і підтвердіть email, щоб увійти.', 'success');
-                    window.location.href = '/login';
+                    // Замість посилання - показуємо форму введення 6-значного коду.
+                    // Аватарку (якщо обрали) завантажимо вже ПІСЛЯ підтвердження коду,
+                    // коли з'явиться справжня сесія (потрібна для storage RLS).
+                    pendingRegistration = {
+                        email: result.email || email,
+                        fullName: fullName,
+                        avatarFile: selectedAvatarFile
+                    };
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Створити акаунт';
+                    showToast('Код підтвердження надіслано на пошту', 'success');
+                    showOtpStep(pendingRegistration.email);
                     return;
                 }
 
+                // Підтвердження email вимкнене на проєкті - сесія вже є одразу.
                 var user = result.user;
 
-                // 2. Якщо є аватарка - завантажуємо
-                if (selectedAvatarFile) {
+                if (selectedAvatarFile && user) {
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження фото...';
-                    
                     try {
                         var avatarUrl = await uploadAvatarToBucket(user.id, selectedAvatarFile);
-                        
                         if (avatarUrl) {
-                            // Оновлюємо URL в БД
                             await db.updateUser(user.id, { avatar_url: avatarUrl });
-                            
-                            // Оновлюємо в localStorage
                             user.avatar_url = avatarUrl;
                             localStorage.setItem('userData', JSON.stringify(user));
                         }
@@ -484,8 +583,6 @@
                 }
 
                 showToast('Акаунт успішно створено!', 'success');
-                
-                // 3. Редірект після всього
                 setTimeout(function() {
                     window.location.href = '/dashboard';
                 }, 1500);

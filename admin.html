@@ -554,6 +554,8 @@
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
+    <script src="/js/panel-otp.js"></script>
+    <script src="/js/check-auth.js"></script>
     <script>
         function toggleMobileSidebar() {
             document.getElementById('sidebar').classList.toggle('mobile-active');
@@ -1483,6 +1485,12 @@ async function approveAppeal(appealId) {
                 document.getElementById('statsGrid').style.display = 'none';
                 return;
             }
+
+            // Одноразовий код на пошту - питаємо 1 раз за сесію (поки юзер
+            // не вийшов з акаунту чи не зайшов з іншого пристрою/сесії).
+            var otpOk = await requirePanelOtp('адмін-панелі');
+            if (!otpOk) return;
+
             await loadStats();
             await loadOverview();
         }

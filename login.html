@@ -261,6 +261,16 @@
             }
         }
 
+        (function showAccountGoneNoticeIfAny() {
+            try {
+                var msg = sessionStorage.getItem('accountGoneMsg');
+                if (msg) {
+                    sessionStorage.removeItem('accountGoneMsg');
+                    showToast(msg, 'error');
+                }
+            } catch (e) {}
+        })();
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 

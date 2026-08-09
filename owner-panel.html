@@ -560,6 +560,8 @@
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/ui.js"></script>
+    <script src="/js/panel-otp.js"></script>
+    <script src="/js/check-auth.js"></script>
     <script>
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
         function openModal(title, html) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').classList.add('active'); }
@@ -1919,6 +1921,12 @@ async function approveAppeal(appealId) {
                 window.location.href = '/login';
                 return;
             }
+
+            // Одноразовий код на пошту - питаємо 1 раз за сесію (поки юзер
+            // не вийшов з акаунту чи не зайшов з іншого пристрою/сесії).
+            var otpOk = await requirePanelOtp('панелі засновника');
+            if (!otpOk) return;
+
             await loadOverview();
         }
 
