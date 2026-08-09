@@ -14,8 +14,6 @@ if (typeof window.sb === 'undefined') {
 
 var currentUser = null;
 
-// "Ім'я Прізвище" - рівно 2 слова, кожне починається з великої літери
-// (кирилиця/латиниця), решта - малі. Використовується і в реєстрації, і в логіні.
 function isValidFullName(value) {
     var name = (value || '').trim().replace(/\s+/g, ' ');
     var parts = name.split(' ');
@@ -24,8 +22,6 @@ function isValidFullName(value) {
     return wordRe.test(parts[0]) && wordRe.test(parts[1]);
 }
 
-// currentUser тут - це РЯДОК ІЗ ТАБЛИЦІ public.users (профіль),
-// а не об'єкт сесії Supabase Auth. id профілю = auth.users.id.
 function getCurrentUser() {
     try {
         var userData = localStorage.getItem('userData');
@@ -39,16 +35,6 @@ function getCurrentUser() {
     }
 }
 
-// Підтягує/оновлює профіль з public.users для поточної сесії і кладе в localStorage.
-// Токен сесії вже підставляється автоматично через getAccessToken() у db.js,
-// тож цей запит іде "від імені" юзера і його пропускає RLS-політика
-// "users: сам собі" (users_select_self).
-//
-// allowCreate=true  - дозволяємо створити рядок профілю, якщо його ще нема
-//                      (перший вхід одразу після реєстрації/підтвердження OTP).
-// allowCreate=false - НІЧОГО не створюємо. Якщо профілю нема - вважаємо,
-//                      що акаунт видалили з public.users, і повертаємо null
-//                      (виклик з check-auth.js виб'є юзера з акаунту).
 async function syncProfile(allowCreate) {
     if (allowCreate === undefined) allowCreate = false;
 
@@ -86,10 +72,6 @@ async function syncProfile(allowCreate) {
             });
             profile = created && created[0] ? created[0] : newProfile;
         } catch (insertError) {
-            // 23505 = duplicate key (найчастіше users_email_key). Найімовірніша
-            // причина - гонка: профіль уже встиг створитися (тригером у БД або
-            // паралельним запитом) буквально в цю ж мить. Пробуємо ще раз
-            // прочитати профіль за id, перш ніж здатися.
             var retryRows = await supabaseQuery('users?id=eq.' + session.user.id + '&select=*');
             profile = retryRows && retryRows.length > 0 ? retryRows[0] : null;
             if (!profile) {
@@ -137,12 +119,8 @@ async function loginUser(email, password, fullName) {
             throw new Error(error.message);
         }
 
-        // allowCreate=true: якщо профілю в public.users справді ще нема
-        // (напр. акаунт заведений напряму через Supabase Auth) - створюємо його.
         var profile = await syncProfile(true);
 
-        // Ім'я та прізвище звіряємо з профілем (з тим, що в БД). Це додаткова
-        // перевірка "ви точно власник акаунта" поверх пароля.
         if (fullName !== undefined) {
             var enteredName = (fullName || '').trim().replace(/\s+/g, ' ');
             var storedName = ((profile && profile.full_name) || '').trim().replace(/\s+/g, ' ');
@@ -157,8 +135,6 @@ async function loginUser(email, password, fullName) {
             return { success: false, error: 'Акаунт заблоковано', banned: true };
         }
 
-        // Нова сесія - скидаємо прапорці підтвердження OTP для панелей
-        // (вхід з нового пристрою/сесії має знову запитати код).
         if (typeof clearAllPanelOtpFlags === 'function') {
             try { clearAllPanelOtpFlags(); } catch (e) {}
         }
@@ -170,15 +146,6 @@ async function loginUser(email, password, fullName) {
     }
 }
 
-// ============================================
-// РЕЄСТРАЦІЯ З ПІДТВЕРДЖЕННЯМ 6-ЗНАЧНИМ КОДОМ
-// ============================================
-// Крок 1: signUp() - Supabase Auth реєструє юзера і шле лист.
-// ВАЖЛИВО: щоб у листі був саме 6-значний код, а не посилання,
-// у Supabase Dashboard -> Authentication -> Emails -> "Confirm signup"
-// шаблон має використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
-// Крок 2: verifyRegistrationOtp() - юзер вводить код, ми підтверджуємо
-// його через verifyOtp(type:'signup'), що одразу створює сесію (автологін).
 async function registerUser(email, password, fullName, phone, companyAddress) {
     try {
         var { data, error } = await window.sb.auth.signUp({
@@ -197,13 +164,10 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
             throw new Error(error.message);
         }
 
-        // Якщо в проєкті увімкнене підтвердження email - сесії ще не буде,
-        // просимо ввести код із листа замість автологіну.
         if (!data.session) {
             return { success: true, needsEmailConfirm: true, email: email };
         }
 
-        // Підтвердження email вимкнене на проєкті - сесія вже є одразу.
         var profile = await syncProfile(true);
         localStorage.setItem('isGuest', 'false');
         return { success: true, user: profile };
@@ -212,7 +176,6 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
     }
 }
 
-// Підтвердження коду реєстрації. При успіху одразу створює сесію (автологін).
 async function verifyRegistrationOtp(email, code) {
     try {
         var { data, error } = await window.sb.auth.verifyOtp({
@@ -237,7 +200,6 @@ async function verifyRegistrationOtp(email, code) {
     }
 }
 
-// Повторна відправка коду реєстрації (якщо не прийшов / прострочився).
 async function resendRegistrationOtp(email) {
     var { error } = await window.sb.auth.resend({ type: 'signup', email: email });
     if (error) throw new Error(error.message);
@@ -250,8 +212,6 @@ async function checkAuth() {
 
     var profile = getCurrentUser();
     if (!profile || profile.id !== data.session.user.id) {
-        // allowCreate=false: звичайна перевірка сесії нічого не створює -
-        // якщо профілю нема, вважаємо акаунт видаленим.
         profile = await syncProfile(false);
     }
     if (!profile) return false;
@@ -298,12 +258,6 @@ async function logoutUser() {
     window.location.href = '/login';
 }
 
-// ============================================
-// СКИДАННЯ ПАРОЛЯ З ПІДТВЕРДЖЕННЯМ 6-ЗНАЧНИМ КОДОМ
-// ============================================
-// Так само як реєстрація: щоб у листі був код, а не посилання, у Supabase
-// Dashboard -> Authentication -> Emails -> "Reset Password" шаблон теж має
-// використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
 async function requestPasswordReset(email) {
     var { error } = await window.sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/forgot-password'
@@ -312,8 +266,6 @@ async function requestPasswordReset(email) {
     return true;
 }
 
-// Підтвердження коду скидання пароля. При успіху створює тимчасову
-// recovery-сесію, після чого можна викликати updatePassword().
 async function verifyPasswordResetOtp(email, code) {
     var { data, error } = await window.sb.auth.verifyOtp({
         email: email,
@@ -338,11 +290,6 @@ async function updatePassword(newPassword) {
     return true;
 }
 
-// ============================================
-// ЗМІНА EMAIL З ПІДТВЕРДЖЕННЯМ 6-ЗНАЧНИМ КОДОМ
-// ============================================
-// У Supabase Dashboard -> Authentication -> Emails -> "Change Email Address"
-// шаблон теж має використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
 async function requestEmailChange(newEmail) {
     var { error } = await window.sb.auth.updateUser({ email: newEmail });
     if (error) {
@@ -354,8 +301,6 @@ async function requestEmailChange(newEmail) {
     return true;
 }
 
-// Підтвердження коду зміни email. Код приходить на НОВУ пошту.
-// При успіху одразу оновлює email і в auth.users, і в public.users (щоб не розійшлись).
 async function verifyEmailChangeOtp(newEmail, code) {
     var { data, error } = await window.sb.auth.verifyOtp({
         email: newEmail,
@@ -383,22 +328,19 @@ async function verifyEmailChangeOtp(newEmail, code) {
     return true;
 }
 
-// Перевірка "чи вже зареєстрована ця пошта" ДО спроби реєстрації.
-// Потрібна окрема безпечна RPC-функція в БД (email_exists), бо сам Supabase Auth
-// з міркувань безпеки (захист від "email enumeration") мовчки не повідомляє,
-// що email вже зайнятий - просто вдає, що лист надіслано, хоча насправді ні.
 async function checkEmailExists(email) {
     try {
         var { data, error } = await window.sb.rpc('email_exists', { check_email: email });
         if (error) {
-            console.warn('checkEmailExists RPC error (можливо функція ще не створена в БД):', error.message);
-            return false; // не блокуємо реєстрацію, якщо перевірка сама недоступна
+            return false;
         }
         return data === true;
     } catch (e) {
         return false;
     }
 }
+
+function isAdmin() {
     var user = getCurrentUser();
     return user && (user.role === 'admin' || user.role === 'owner');
 }
