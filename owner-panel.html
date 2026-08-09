@@ -749,7 +749,7 @@
             var user = auth.getCurrentUser();
             try {
                 var users = await db.supabaseQuery('users?select=*');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі користувачі</h3><span class="badge badge-primary">' + (users ? users.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()"><button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()"><option value="">Всі ролі</option><option value="owner">Засновник</option><option value="admin">Адмін</option><option value="moderator">Модератор</option><option value="user">Користувач</option></select><select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()"><option value="">Всі статуси</option><option value="active">Активний</option><option value="banned">Заблокований</option></select></div><div style="overflow-x:auto;"><table class="table" id="usersTable"><thead><tr><th>Ім\'я</th><th>Email</th><th>Роль</th><th>Статус</th><th>Дії</th></tr></thead><tbody id="usersTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі користувачі</h3><span class="badge badge-primary">' + (users ? users.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()"><button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()"><option value="">Всі ролі</option><option value="owner">Засновник</option><option value="admin">Адмін</option><option value="moderator">Модератор</option><option value="user">Користувач</option></select><select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()"><option value="">Всі статуси</option><option value="active">Активний</option><option value="banned">Заблокований</option></select></div><div style="overflow-x:auto;"><table class="table" id="usersTable"><thead><tr><th>Ім\'я</th><th>Email</th><th>Телефон</th><th>Роль</th><th>Статус</th><th>Дії</th></tr></thead><tbody id="usersTableBody">';
                 if (users && users.length > 0) {
                     var roleLabels = { 'owner': '<span class="badge" style="background:#8B5CF6;color:white;">Засновник</span>', 'admin': '<span class="badge badge-danger">Адмін</span>', 'moderator': '<span class="badge badge-warning">Модератор</span>', 'user': '<span class="badge badge-primary">Користувач</span>' };
                     for (var i = 0; i < users.length; i++) {
@@ -762,10 +762,10 @@
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
                         actionsHtml += '</div>';
-                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td><td>' + actionsHtml + '</td></tr>';
+                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td><td>' + actionsHtml + '</td></tr>';
                     }
                 } else {
-                    html += '<tr><td colspan="5" class="text-center text-muted">Немає користувачів</td></tr>';
+                    html += '<tr><td colspan="6" class="text-center text-muted">Немає користувачів</td></tr>';
                 }
                 html += '</tbody></table></div></div>';
                 container.innerHTML = html;
@@ -796,55 +796,75 @@
         }
 
         async function banUser(userId) {
-            var user = auth.getCurrentUser();
-
-            var meRows = await db.supabaseQuery('users?id=eq.' + user.id + '&select=last_ban_action_at');
-            var lastBanAt = meRows && meRows[0] && meRows[0].last_ban_action_at;
-            if (lastBanAt) {
-                var cooldownMs = 60 * 1000;
-                var elapsedMs = Date.now() - new Date(lastBanAt).getTime();
-                if (elapsedMs < cooldownMs) {
-                    var secondsLeft = Math.ceil((cooldownMs - elapsedMs) / 1000);
-                    await showAlert('Зачекайте ще ' + secondsLeft + ' сек. перед наступним баном (кулдаун 1 хв між банами).', 'warning');
-                    return;
-                }
-            }
-
-            var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
-            if (reason === null) return;
-            if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
-            var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача?', 'Підтвердження');
-            if (!confirmed) return;
             try {
+                var user = auth.getCurrentUser();
+
+                try {
+                    var meRows = await db.supabaseQuery('users?id=eq.' + user.id + '&select=last_ban_action_at');
+                    var lastBanAt = meRows && meRows[0] && meRows[0].last_ban_action_at;
+                    if (lastBanAt) {
+                        var cooldownMs = 60 * 1000;
+                        var elapsedMs = Date.now() - new Date(lastBanAt).getTime();
+                        if (elapsedMs < cooldownMs) {
+                            var secondsLeft = Math.ceil((cooldownMs - elapsedMs) / 1000);
+                            await showAlert('Зачекайте ще ' + secondsLeft + ' сек. перед наступним баном (кулдаун 1 хв між банами).', 'warning');
+                            return;
+                        }
+                    }
+                } catch (cooldownError) {
+                    console.warn('Ban cooldown check failed, skipping:', cooldownError.message);
+                }
+
+                var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
+                if (reason === null) return;
+                if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
+                var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача?', 'Підтвердження');
+                if (!confirmed) return;
+
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
                 if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
                 await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), role: 'user' }) });
-                await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
+                try {
+                    await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
+                } catch (e) { console.warn('Could not update last_ban_action_at:', e.message); }
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
                 await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: userName });
                 await showToast('Користувача заблоковано!', 'success');
                 loadUsers();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+            } catch (error) {
+                console.error('banUser error:', error);
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
         }
 
         async function unbanUser(userId) {
-            var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
-            if (!confirmed) return;
             try {
+                var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
+                if (!confirmed) return;
                 await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
                 await db.addLog('Розблоковано користувача', 'user', userId, { user_name: userName });
                 await showToast('Користувача розблоковано!', 'success');
                 loadUsers();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+            } catch (error) {
+                console.error('unbanUser error:', error);
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
         }
 
         async function deleteUser(id) {
-            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача? Всі дані будуть втрачені.', 'Увага');
-            if (!confirmed) return;
-            try { await db.deleteUser(id); await showToast('Користувача видалено', 'success'); loadUsers(); } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+            try {
+                var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача? Всі дані будуть втрачені.', 'Увага');
+                if (!confirmed) return;
+                await db.deleteUser(id);
+                await showToast('Користувача видалено', 'success');
+                loadUsers();
+            } catch (error) {
+                console.error('deleteUser error:', error);
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
         }
 
         // ============= ОРГАНІЗАЦІЇ =============
