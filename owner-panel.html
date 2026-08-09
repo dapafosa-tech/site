@@ -794,6 +794,20 @@
         }
 
         async function banUser(userId) {
+            var user = auth.getCurrentUser();
+
+            var meRows = await db.supabaseQuery('users?id=eq.' + user.id + '&select=last_ban_action_at');
+            var lastBanAt = meRows && meRows[0] && meRows[0].last_ban_action_at;
+            if (lastBanAt) {
+                var cooldownMs = 60 * 1000;
+                var elapsedMs = Date.now() - new Date(lastBanAt).getTime();
+                if (elapsedMs < cooldownMs) {
+                    var secondsLeft = Math.ceil((cooldownMs - elapsedMs) / 1000);
+                    await showAlert('Зачекайте ще ' + secondsLeft + ' сек. перед наступним баном (кулдаун 1 хв між банами).', 'warning');
+                    return;
+                }
+            }
+
             var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
             if (reason === null) return;
             if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
@@ -803,6 +817,7 @@
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
                 if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
                 await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), role: 'user' }) });
+                await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
                 await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: userName });
