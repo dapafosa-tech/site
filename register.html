@@ -478,7 +478,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Перевірка...';
 
             try {
-                var result = await auth.verifyRegistrationOtp(pendingRegistration.email, code);
+                var result = await auth.verifyRegistrationOtp(pendingRegistration.email, code, pendingRegistration.phone);
                 if (!result.success) {
                     throw new Error(result.error);
                 }
