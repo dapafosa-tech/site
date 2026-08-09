@@ -383,10 +383,6 @@ async function verifyEmailChangeOtp(newEmail, code) {
     return true;
 }
 
-// Перевірка "чи вже зареєстрована ця пошта" ДО спроби реєстрації.
-// Потрібна окрема безпечна RPC-функція в БД (email_exists), бо сам Supabase Auth
-// з міркувань безпеки (захист від "email enumeration") мовчки не повідомляє,
-// що email вже зайнятий - просто вдає, що лист надіслано, хоча насправді ні.
 async function checkEmailExists(email) {
     try {
         var { data, error } = await window.sb.rpc('email_exists', { check_email: email });
@@ -399,6 +395,8 @@ async function checkEmailExists(email) {
         return false;
     }
 }
+
+function isAdmin() {
     var user = getCurrentUser();
     return user && (user.role === 'admin' || user.role === 'owner');
 }
