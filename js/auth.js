@@ -52,6 +52,7 @@ async function syncProfile(allowCreate) {
 
     if (!profile && allowCreate) {
         var meta = session.user.user_metadata || {};
+        var regIp = await getClientIp();
         var newProfile = {
             id: session.user.id,
             auth_id: session.user.id,
@@ -63,6 +64,8 @@ async function syncProfile(allowCreate) {
             is_active: true,
             is_banned: false,
             last_ban_action_at: null,
+            reg_ip: regIp,
+            last_ip: regIp,
             created_at: new Date().toISOString()
         };
         try {
@@ -87,6 +90,8 @@ async function syncProfile(allowCreate) {
         currentUser = null;
         return null;
     }
+
+    await trackVisitIp(profile);
 
     localStorage.setItem('userData', JSON.stringify(profile));
     localStorage.setItem('isGuest', 'false');
