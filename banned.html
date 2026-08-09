@@ -388,12 +388,23 @@
         document.getElementById('banReason').innerHTML =
             '<i class="fas fa-exclamation-triangle" style="color: var(--red); margin-right: 0.5rem;"></i> ' + banReason;
 
-        document.getElementById('logoutBtn').addEventListener('click', function() {
+        // ============================================
+        // КНОПКА ВИЙТИ (З SUPABASE AUTH)
+        // ============================================
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            try {
+                if (window.sb) {
+                    await window.sb.auth.signOut();
+                }
+            } catch (e) {}
             localStorage.removeItem('userData');
             localStorage.removeItem('isGuest');
             window.location.href = '/login';
         });
 
+        // ============================================
+        // КНОПКА АПЕЛЯЦІЯ - ЗАВЖДИ ВІДКРИВАЄ МОДАЛКУ
+        // ============================================
         document.getElementById('appealBtn').addEventListener('click', function() {
             openAppealModal();
         });
@@ -488,7 +499,12 @@
                 html += '<p style="font-size:0.8rem;color:var(--muted);margin-top:0.3rem;">Апеляція #' + currentAppeal.id.substring(0, 8) + '</p>';
                 html += '</div>';
                 
-                setTimeout(function() {
+                setTimeout(async function() {
+                    try {
+                        if (window.sb) {
+                            await window.sb.auth.signOut();
+                        }
+                    } catch (e) {}
                     localStorage.removeItem('userData');
                     localStorage.removeItem('isGuest');
                     window.location.href = '/login';
@@ -693,14 +709,27 @@
             sessionStorage.removeItem('onBannedPage');
         });
 
+        // ============================================
+        // ПЕРЕВІРКА НАЯВНОСТІ АПЕЛЯЦІЇ
+        // ============================================
         async function checkExistingAppeal() {
             try {
                 var appeals = await db.supabaseQuery('appeals?user_id=eq.' + userId + '&order=created_at.desc&limit=1');
                 if (appeals && appeals.length > 0) {
                     currentAppeal = appeals[0];
-                    if (currentAppeal.status === 'pending' || currentAppeal.status === 'approved') {
-                        document.getElementById('appealBtn').innerHTML = '<i class="fas fa-check-circle"></i> Апеляція подана';
-                        document.getElementById('appealBtn').style.opacity = '0.6';
+                    
+                    // ЗМІНЮЄМО ТЕКСТ КНОПКИ, АЛЕ НЕ БЛОКУЄМО ЇЇ!
+                    if (currentAppeal.status === 'pending') {
+                        document.getElementById('appealBtn').innerHTML = '<i class="fas fa-clock"></i> Апеляція в роботі';
+                        document.getElementById('appealBtn').style.opacity = '1';
+                        document.getElementById('appealBtn').style.cursor = 'pointer';
+                        document.getElementById('appealBtn').disabled = false;
+                        document.getElementById('appealBtn').onclick = function() {
+                            openAppealModal();
+                        };
+                    } else if (currentAppeal.status === 'approved') {
+                        document.getElementById('appealBtn').innerHTML = '<i class="fas fa-check-circle"></i> Розблоковано';
+                        document.getElementById('appealBtn').style.opacity = '0.7';
                         document.getElementById('appealBtn').style.cursor = 'default';
                         document.getElementById('appealBtn').disabled = true;
                     } else if (currentAppeal.status === 'rejected') {
@@ -708,7 +737,28 @@
                         document.getElementById('appealBtn').style.opacity = '1';
                         document.getElementById('appealBtn').style.cursor = 'pointer';
                         document.getElementById('appealBtn').disabled = false;
+                        document.getElementById('appealBtn').onclick = function() {
+                            openAppealModal();
+                        };
+                    } else {
+                        // closed або інший статус
+                        document.getElementById('appealBtn').innerHTML = '<i class="fas fa-gavel"></i> Апеляція';
+                        document.getElementById('appealBtn').style.opacity = '1';
+                        document.getElementById('appealBtn').style.cursor = 'pointer';
+                        document.getElementById('appealBtn').disabled = false;
+                        document.getElementById('appealBtn').onclick = function() {
+                            openAppealModal();
+                        };
                     }
+                } else {
+                    // Немає апеляції - показуємо кнопку для створення
+                    document.getElementById('appealBtn').innerHTML = '<i class="fas fa-gavel"></i> Апеляція';
+                    document.getElementById('appealBtn').style.opacity = '1';
+                    document.getElementById('appealBtn').style.cursor = 'pointer';
+                    document.getElementById('appealBtn').disabled = false;
+                    document.getElementById('appealBtn').onclick = function() {
+                        openAppealModal();
+                    };
                 }
             } catch (e) {
                 console.error('Check existing appeal error:', e);
