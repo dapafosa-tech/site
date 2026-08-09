@@ -200,8 +200,14 @@
 
         <form id="loginForm" autocomplete="off" novalidate>
             <div class="form-group">
+                <label class="form-label" for="loginFullName">Ім'я та прізвище</label>
+                <input type="text" id="loginFullName" class="form-control" placeholder="Іван Іванов" required autofocus>
+                <span class="password-hint" style="display:block;margin-top:0.3rem;font-size:0.8rem;color:var(--muted,#8B93A6);">Рівно два слова, кожне з великої літери — як в акаунті</span>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label" for="email">Електронна пошта</label>
-                <input type="email" id="email" class="form-control" placeholder="example@mail.com" required autofocus>
+                <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
             </div>
 
             <div class="form-group">
@@ -274,12 +280,18 @@
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            var fullName = document.getElementById('loginFullName').value.trim();
             var email = document.getElementById('email').value.trim();
             var password = document.getElementById('password').value;
             var submitBtn = document.getElementById('loginBtn');
 
-            if (!email || !password) {
+            if (!fullName || !email || !password) {
                 showToast('Заповніть усі поля', 'warning');
+                return;
+            }
+
+            if (!auth.isValidFullName(fullName)) {
+                showToast('Ім\'я та прізвище: рівно 2 слова, кожне з великої літери (наприклад, Іван Іванов)', 'warning');
                 return;
             }
 
@@ -287,7 +299,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вхід...';
 
             try {
-                var result = await auth.loginUser(email, password);
+                var result = await auth.loginUser(email, password, fullName);
 
                 // Якщо користувач забанений - loginUser зробить редірект на /banned
                 if (result && result.banned === true) {

@@ -243,8 +243,19 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="fullName">Повне ім'я</label>
+                <label class="form-label" for="fullName">Ім'я та прізвище</label>
                 <input type="text" id="fullName" class="form-control" placeholder="Іван Іванов" required autofocus>
+                <span class="password-hint">Рівно два слова, кожне з великої літери — так само, як в акаунті</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="phone">Номер телефону</label>
+                <input type="tel" id="phone" class="form-control" placeholder="+380 XX XXX XX XX" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="companyAddress">Юридична адреса <span style="color:var(--muted,#8B93A6);font-weight:400;">(необов'язково)</span></label>
+                <input type="text" id="companyAddress" class="form-control" placeholder="Місто, вулиця, будинок">
             </div>
 
             <div class="form-group">
@@ -506,6 +517,8 @@
             e.preventDefault();
 
             var fullName = document.getElementById('fullName').value.trim();
+            var phone = document.getElementById('phone').value.trim();
+            var companyAddress = document.getElementById('companyAddress').value.trim();
             var email = document.getElementById('email').value.trim();
             var password = document.getElementById('password').value;
             var confirmPassword = document.getElementById('confirmPassword').value;
@@ -514,6 +527,16 @@
 
             if (!fullName) {
                 showToast('Введіть ваше ім\'я', 'warning');
+                return;
+            }
+
+            if (!auth.isValidFullName(fullName)) {
+                showToast('Ім\'я та прізвище: рівно 2 слова, кожне з великої літери (наприклад, Іван Іванов)', 'warning');
+                return;
+            }
+
+            if (!phone) {
+                showToast('Введіть номер телефону', 'warning');
                 return;
             }
 
@@ -542,7 +565,7 @@
 
             try {
                 // 1. Створюємо акаунт
-                var result = await auth.registerUser(email, password, fullName);
+                var result = await auth.registerUser(email, password, fullName, phone, companyAddress);
                 
                 if (!result.success) {
                     throw new Error(result.error);

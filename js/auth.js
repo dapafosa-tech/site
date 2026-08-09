@@ -14,6 +14,16 @@ if (typeof window.sb === 'undefined') {
 
 var currentUser = null;
 
+// "Ім'я Прізвище" - рівно 2 слова, кожне починається з великої літери
+// (кирилиця/латиниця), решта - малі. Використовується і в реєстрації, і в логіні.
+function isValidFullName(value) {
+    var name = (value || '').trim().replace(/\s+/g, ' ');
+    var parts = name.split(' ');
+    if (parts.length !== 2) return false;
+    var wordRe = /^[A-ZА-ЯЁІЇЄҐ][a-zа-яёіїєґ'’-]+$/;
+    return wordRe.test(parts[0]) && wordRe.test(parts[1]);
+}
+
 // currentUser тут - це РЯДОК ІЗ ТАБЛИЦІ public.users (профіль),
 // а не об'єкт сесії Supabase Auth. id профілю = auth.users.id.
 function getCurrentUser() {
@@ -55,11 +65,14 @@ async function syncProfile(allowCreate) {
     var profile = rows && rows.length > 0 ? rows[0] : null;
 
     if (!profile && allowCreate) {
+        var meta = session.user.user_metadata || {};
         var newProfile = {
             id: session.user.id,
             auth_id: session.user.id,
             email: session.user.email,
-            full_name: (session.user.user_metadata && session.user.user_metadata.full_name) || session.user.email.split('@')[0],
+            full_name: meta.full_name || session.user.email.split('@')[0],
+            phone: meta.phone || null,
+            company_address: meta.company_address || null,
             role: 'user',
             is_active: true,
             is_banned: false,
@@ -114,7 +127,7 @@ async function checkUserBanned(userId) {
     }
 }
 
-async function loginUser(email, password) {
+async function loginUser(email, password, fullName) {
     try {
         var { data, error } = await window.sb.auth.signInWithPassword({ email: email, password: password });
         if (error) {
@@ -127,6 +140,17 @@ async function loginUser(email, password) {
         // allowCreate=true: якщо профілю в public.users справді ще нема
         // (напр. акаунт заведений напряму через Supabase Auth) - створюємо його.
         var profile = await syncProfile(true);
+
+        // Ім'я та прізвище звіряємо з профілем (з тим, що в БД). Це додаткова
+        // перевірка "ви точно власник акаунта" поверх пароля.
+        if (fullName !== undefined) {
+            var enteredName = (fullName || '').trim().replace(/\s+/g, ' ');
+            var storedName = ((profile && profile.full_name) || '').trim().replace(/\s+/g, ' ');
+            if (!enteredName || enteredName !== storedName) {
+                await window.sb.auth.signOut();
+                throw new Error('Ім\'я та прізвище не збігаються з даними акаунта');
+            }
+        }
 
         if (profile && profile.is_banned === true) {
             window.location.href = '/banned';
@@ -155,12 +179,16 @@ async function loginUser(email, password) {
 // шаблон має використовувати {{ .Token }} замість {{ .ConfirmationURL }}.
 // Крок 2: verifyRegistrationOtp() - юзер вводить код, ми підтверджуємо
 // його через verifyOtp(type:'signup'), що одразу створює сесію (автологін).
-async function registerUser(email, password, fullName) {
+async function registerUser(email, password, fullName, phone, companyAddress) {
     try {
         var { data, error } = await window.sb.auth.signUp({
             email: email,
             password: password,
-            options: { data: { full_name: fullName || email.split('@')[0] } }
+            options: { data: {
+                full_name: fullName || email.split('@')[0],
+                phone: phone || null,
+                company_address: companyAddress || null
+            } }
         });
         if (error) {
             if (error.message && error.message.toLowerCase().indexOf('already') !== -1) {
@@ -372,6 +400,7 @@ window.auth = {
     logoutUser: logoutUser,
     loginUser: loginUser,
     registerUser: registerUser,
+    isValidFullName: isValidFullName,
     verifyRegistrationOtp: verifyRegistrationOtp,
     resendRegistrationOtp: resendRegistrationOtp,
     requestPasswordReset: requestPasswordReset,
