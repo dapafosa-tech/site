@@ -582,11 +582,29 @@
         }
 
         function canBanUser(user) {
-            return user && (user.role === 'owner' || user.role === 'admin');
+            return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
         }
 
         function canDeleteUser(user) {
             return user && (user.role === 'owner' || user.role === 'admin');
+        }
+
+        var ROLE_LEVEL = { 'user': 0, 'moderator': 1, 'admin': 2, 'owner': 3 };
+        function roleLevel(role) { return ROLE_LEVEL[role] !== undefined ? ROLE_LEVEL[role] : 0; }
+
+        // moderator -> тільки user; admin -> user та moderator (не admin, не owner); owner -> всіх
+        function canBanTarget(actor, target) {
+            if (!actor || !target) return false;
+            if (!canBanUser(actor)) return false;
+            if (actor.role === 'owner') return true;
+            return roleLevel(actor.role) > roleLevel(target.role);
+        }
+
+        function canDeleteTarget(actor, target) {
+            if (!actor || !target) return false;
+            if (!canDeleteUser(actor)) return false;
+            if (actor.role === 'owner') return true;
+            return roleLevel(actor.role) > roleLevel(target.role);
         }
 
         function canChangeRoles(user) {
@@ -801,10 +819,10 @@
                         var isUserBanned = u.is_banned === true;
                         var isCurrentUser = u.id === user.id;
                         var actionsHtml = '<div class="actions-cell">';
-                        if (canBanUser(user) && !isCurrentUser) {
+                        if (canBanTarget(user, u) && !isCurrentUser) {
                             actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
                         }
-                        if (canDeleteUser(user) && !isCurrentUser) {
+                        if (canDeleteTarget(user, u) && !isCurrentUser) {
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
                         actionsHtml += '</div>';
@@ -841,7 +859,23 @@
 
         async function banUser(userId) {
             var user = auth.getCurrentUser();
-            if (!canBanUser(user)) { await showAlert('Тільки засновник або адмін може блокувати', 'error'); return; }
+
+            var targetRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=id,role,full_name,email');
+            var target = targetRows && targetRows[0];
+            if (!target || !canBanTarget(user, target)) { await showAlert('У вас немає прав блокувати цього користувача', 'error'); return; }
+
+            var meRows = await db.supabaseQuery('users?id=eq.' + user.id + '&select=last_ban_action_at');
+            var lastBanAt = meRows && meRows[0] && meRows[0].last_ban_action_at;
+            if (lastBanAt) {
+                var cooldownMs = 60 * 1000;
+                var elapsedMs = Date.now() - new Date(lastBanAt).getTime();
+                if (elapsedMs < cooldownMs) {
+                    var secondsLeft = Math.ceil((cooldownMs - elapsedMs) / 1000);
+                    await showAlert('Зачекайте ще ' + secondsLeft + ' сек. перед наступним баном (кулдаун 1 хв між банами).', 'warning');
+                    return;
+                }
+            }
+
             var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
             if (reason === null) return;
             if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
@@ -851,6 +885,7 @@
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
                 if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
                 await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), role: 'user' }) });
+                await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
                 await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: userName });
@@ -861,7 +896,11 @@
 
         async function unbanUser(userId) {
             var user = auth.getCurrentUser();
-            if (!canBanUser(user)) { await showAlert('Тільки засновник або адмін може розблоковувати', 'error'); return; }
+
+            var targetRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=id,role');
+            var target = targetRows && targetRows[0];
+            if (!target || !canBanTarget(user, target)) { await showAlert('У вас немає прав розблоковувати цього користувача', 'error'); return; }
+
             var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
             if (!confirmed) return;
             try {
@@ -876,7 +915,11 @@
 
         async function deleteUser(id) {
             var user = auth.getCurrentUser();
-            if (!canDeleteUser(user)) { await showAlert('Тільки засновник або адмін може видаляти', 'error'); return; }
+
+            var targetRows = await db.supabaseQuery('users?id=eq.' + id + '&select=id,role');
+            var target = targetRows && targetRows[0];
+            if (!target || !canDeleteTarget(user, target)) { await showAlert('У вас немає прав видаляти цього користувача', 'error'); return; }
+
             var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача?', 'Підтвердження');
             if (!confirmed) return;
             try { await db.deleteUser(id); await showToast('Користувача видалено', 'success'); loadUsers(); } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
