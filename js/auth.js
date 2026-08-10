@@ -193,6 +193,23 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
     }
 }
 
+async function recordUserSession(userId, token, ip, userAgent) {
+    try {
+        await db.supabaseQuery('user_sessions', {
+            method: 'POST',
+            body: JSON.stringify({
+                user_id: userId,
+                session_token: token,
+                ip: ip || null,
+                user_agent: userAgent || null,
+                last_activity: new Date().toISOString()
+            })
+        });
+    } catch (e) {
+        console.warn('Не вдалося записати сесію:', e);
+    }
+}
+
 async function verifyRegistrationOtp(email, code, phone, companyAddress) {
     try {
         var { data, error } = await window.sb.auth.verifyOtp({
