@@ -1,15 +1,12 @@
+// ============================================
+// TYPEBIZ - DATABASE LAYER (ПОВНА ВЕРСІЯ)
+// ============================================
+
 if (typeof SUPABASE_URL === 'undefined') {
     var SUPABASE_URL = 'https://iazzgxacdwhaxujoxtaz.supabase.co';
     var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhenpneGFjZHdoYXh1am94dGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3OTY3MDIsImV4cCI6MjEwMTM3MjcwMn0.quXjQ6575ACSjxnfa-hKkD6u3KMYE_5ZLdtqS4JKXI0';
 }
 
-// ============================================
-// SUPABASE AUTH CLIENT
-// Один спільний клієнт supabase-js для всього сайту.
-// Використовується для авторизації (auth.js) та для
-// підстановки токена залогіненого юзера в усі REST-запити,
-// щоб працювали RLS-політики (auth.uid() в SQL).
-// ============================================
 if (typeof window.sb === 'undefined') {
     window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
@@ -20,7 +17,6 @@ if (typeof window.sb === 'undefined') {
     });
 }
 
-// Повертає access_token поточної сесії Supabase Auth, або null якщо гість.
 async function getAccessToken() {
     try {
         var { data } = await window.sb.auth.getSession();
@@ -50,11 +46,6 @@ function generateUUID() {
     });
 }
 
-// ============================================
-// IP КОРИСТУВАЧА (reg_ip / last_ip)
-// Визначаємо публічний IP клієнта через ipify і кешуємо на час
-// життя вкладки, щоб не смикати зовнішній сервіс на кожен виклик.
-// ============================================
 var _clientIpCache = null;
 
 async function getClientIp() {
@@ -70,10 +61,6 @@ async function getClientIp() {
     }
 }
 
-// Пишемо last_ip не частіше одного разу за сесію вкладки (sessionStorage
-// переживає переходи між сторінками багатосторінкового сайту, а не тільки
-// один page load, як було раніше - інакше кожен клік по меню = новий
-// запит до ipify).
 async function trackVisitIp(profile) {
     if (!profile || !profile.id) return;
     try {
@@ -83,17 +70,10 @@ async function trackVisitIp(profile) {
         var ip = await getClientIp();
         if (!ip) return;
         try { sessionStorage.setItem('ipTrackedFor', profile.id); } catch (e) {}
-
         var patch = {};
         if (profile.last_ip !== ip) patch.last_ip = ip;
-        // reg_ip може бути порожнім у старих/щойно створених тригером профілів
-        // (тригер у базі не знає публічний IP клієнта) - підставляємо поточний
-        // IP як реєстраційний, якщо його ще нема, щоб кнопка "Забанити IP"
-        // з'явилась і для таких юзерів.
         if (!profile.reg_ip) patch.reg_ip = ip;
-
         if (Object.keys(patch).length === 0) return;
-
         await supabaseQuery('users?id=eq.' + profile.id, {
             method: 'PATCH',
             body: JSON.stringify(patch)
@@ -121,9 +101,6 @@ function generateJoinCode() {
 async function supabaseQuery(endpoint, options) {
     if (options === undefined) options = {};
     var url = SUPABASE_URL + '/rest/v1/' + endpoint;
-    // Якщо юзер залогінений через Supabase Auth - шлемо його особистий JWT,
-    // щоб RLS-політики бачили auth.uid(). Якщо гість - анонімний ключ
-    // (працює тільки там, де RLS дозволяє читання для anon).
     var token = await getAccessToken();
     var headers = {
         'apikey': SUPABASE_ANON_KEY,
@@ -785,15 +762,10 @@ async function sendChatMessage(organizationId, userId, message, mentions) {
 
 async function getChatMessages(organizationId, limit) {
     if (limit === undefined) limit = 50;
-    // Учасникам показуємо лише неприховані повідомлення.
-    // Видалені повідомлення залишаються в БД (is_deleted=true) і доступні в панелі засновника/адміністратора.
     return supabaseQuery('org_chat_messages?organization_id=eq.' + organizationId + '&is_deleted=eq.false&order=created_at.desc&limit=' + limit);
 }
 
 async function deleteChatMessage(messageId, deletedByUserId) {
-    // М'яке видалення: повідомлення не зникає з БД, а позначається як видалене.
-    // Для всіх учасників воно перестає відображатись, але лишається в історії
-    // й видно в панелі засновника та адміністратора.
     var result = await supabaseQuery('org_chat_messages?id=eq.' + messageId, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -1461,6 +1433,63 @@ async function getUserReports(userId) {
     return supabaseQuery('reports?from_user_id=eq.' + userId + '&order=created_at.desc');
 }
 
+// ============================================
+// ШІ МОДЕРАЦІЯ - ДОДАТКОВІ ФУНКЦІЇ
+// ============================================
+
+async function isAiEnabled() {
+    try {
+        var settings = await getSystemSettings();
+        return settings['ai_moderation_enabled'] !== 'false';
+    } catch {
+        return false;
+    }
+}
+
+async function getAiGraceMinutes() {
+    try {
+        var settings = await getSystemSettings();
+        return parseInt(settings['ai_support_grace_minutes'] || '10', 10);
+    } catch {
+        return 10;
+    }
+}
+
+async function canAiReplyToTicket(ticketId) {
+    try {
+        var ticket = await getSupportTicket(ticketId);
+        if (!ticket) return false;
+        if (ticket.status === 'closed') return false;
+        
+        var messages = await getSupportMessages(ticketId);
+        for (var i = 0; i < messages.length; i++) {
+            if (isStaffRole(messages[i].sender_type)) {
+                return false;
+            }
+            if (messages[i].sender_type === 'ai') {
+                return false;
+            }
+        }
+        
+        var graceMinutes = await getAiGraceMinutes();
+        var created = new Date(ticket.created_at);
+        var now = new Date();
+        var diffMinutes = (now - created) / 60000;
+        
+        return diffMinutes >= graceMinutes;
+    } catch {
+        return false;
+    }
+}
+
+function isStaffRole(role) {
+    return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot';
+}
+
+// ============================================
+// ЕКСПОРТ ВСІХ ФУНКЦІЙ
+// ============================================
+
 window.db = {
     supabaseQuery: supabaseQuery,
     addLog: addLog,
@@ -1598,5 +1627,9 @@ window.db = {
     getAppeals: getAppeals,
     getAppealMessages: getAppealMessages,
     updateAppealStatus: updateAppealStatus,
-    sendAppealMessage: sendAppealMessage
+    sendAppealMessage: sendAppealMessage,
+    isAiEnabled: isAiEnabled,
+    getAiGraceMinutes: getAiGraceMinutes,
+    canAiReplyToTicket: canAiReplyToTicket,
+    isStaffRole: isStaffRole
 };
