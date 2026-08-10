@@ -1700,6 +1700,209 @@ async function checkAppealStatus(appealId) {
 }
 
 // ============================================
+// НОВІ ФУНКЦІЇ ДЛЯ АДМІН-ФОРМ (ЗАПИТИ ТА ПЕРЕДАЧІ)
+// ============================================
+
+/**
+ * СТВОРИТИ АДМІН-ФОРМУ (ЗАПИТ АБО ПЕРЕДАЧА)
+ */
+async function createAdminForm(data) {
+    try {
+        var user = getCurrentUser();
+        if (!user) throw new Error('Не авторизовано');
+        
+        // ВАЛІДАЦІЯ
+        var validTypes = ['transfer', 'request', 'punishment'];
+        if (validTypes.indexOf(data.form_type) === -1) {
+            throw new Error('Невірний тип форми. Доступні: transfer, request, punishment');
+        }
+        
+        var formData = {
+            id: generateUUID(),
+            form_type: data.form_type,
+            created_by: user.id,
+            created_by_role: user.role,
+            recipient_text: data.recipient_text || 'admin_team',
+            subject: data.subject || 'Без теми',
+            body: data.body || '',
+            status: 'pending',
+            created_at: new Date().toISOString()
+        };
+        
+        // ДОДАТКОВІ ПОЛЯ ДЛЯ punishment
+        if (data.form_type === 'punishment') {
+            if (data.target_user_id) formData.target_user_id = data.target_user_id;
+            if (data.ban_days) formData.ban_days = parseInt(data.ban_days, 10) || 0;
+        }
+        
+        // ЯКЩО ЦЕ ПЕРЕДАЧА - ДОДАЄМО ДАНІ
+        if (data.form_type === 'transfer') {
+            formData.transfer_data = data.transfer_data || {};
+        }
+        
+        var result = await supabaseQuery('admin_forms', {
+            method: 'POST',
+            body: JSON.stringify(formData),
+            headers: { 'Prefer': 'return=representation' }
+        });
+        
+        await addLog('Створено адмін-форму', 'admin_form', null, {
+            type: data.form_type,
+            subject: data.subject
+        });
+        
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка створення адмін-форми:', error);
+        throw error;
+    }
+}
+
+/**
+ * ОТРИМАТИ ВСІ АДМІН-ФОРМИ
+ */
+async function getAdminForms(filters) {
+    if (filters === undefined) filters = {};
+    var query = 'admin_forms?order=created_at.desc';
+    if (filters.type) query += '&form_type=eq.' + filters.type;
+    if (filters.status) query += '&status=eq.' + filters.status;
+    return supabaseQuery(query);
+}
+
+/**
+ * ОНОВИТИ АДМІН-ФОРМУ (ВІДПОВІСТИ)
+ */
+async function respondAdminForm(formId, data) {
+    try {
+        var user = getCurrentUser();
+        if (!user) throw new Error('Не авторизовано');
+        
+        var updateData = {
+            status: data.status || 'answered',
+            response: data.response || '',
+            answered_by: user.id,
+            answered_at: new Date().toISOString()
+        };
+        
+        // ЯКЩО СХВАЛЮЄМО ПОКАРАННЯ - ВИКОНУЄМО БАН
+        var form = await getAdminForm(formId);
+        if (form && form.form_type === 'punishment' && data.status === 'approved' && form.target_user_id) {
+            var days = form.ban_days || 5;
+            var until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            await supabaseQuery('users?id=eq.' + form.target_user_id, {
+                method: 'PATCH',
+                body: JSON.stringify({ 
+                    is_banned: true, 
+                    ban_reason: '[Форма #' + formId.substring(0,8) + '] ' + (form.subject || ''), 
+                    banned_until: until 
+                })
+            });
+            await addLog('Бан виконано за схваленою формою', 'user', form.target_user_id, { form_id: formId, days: days });
+        }
+        
+        var result = await supabaseQuery('admin_forms?id=eq.' + formId, {
+            method: 'PATCH',
+            body: JSON.stringify(updateData)
+        });
+        
+        await addLog('Відповідь на адмін-форму', 'admin_form', formId, data);
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка відповіді на форму:', error);
+        throw error;
+    }
+}
+
+/**
+ * ОТРИМАТИ ОДНУ АДМІН-ФОРМУ
+ */
+async function getAdminForm(formId) {
+    var result = await supabaseQuery('admin_forms?id=eq.' + formId);
+    return result && result.length > 0 ? result[0] : null;
+}
+
+/**
+ * ВИДАЛИТИ АДМІН-ФОРМУ
+ */
+async function deleteAdminForm(formId) {
+    try {
+        var result = await supabaseQuery('admin_forms?id=eq.' + formId, {
+            method: 'DELETE'
+        });
+        await addLog('Видалено адмін-форму', 'admin_form', formId, {});
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка видалення форми:', error);
+        throw error;
+    }
+}
+
+// ============================================
+// ФУНКЦІЇ ДЛЯ ЗАПИТІВ ДО ШІ (AI OWNER REQUESTS)
+// ============================================
+
+/**
+ * СТВОРИТИ ЗАПИТ ДО ШІ
+ */
+async function createAiOwnerRequest(prompt) {
+    try {
+        var user = getCurrentUser();
+        if (!user) throw new Error('Не авторизовано');
+        if (!prompt || prompt.trim() === '') throw new Error('Введіть текст запиту');
+        
+        var result = await supabaseQuery('ai_owner_requests', {
+            method: 'POST',
+            body: JSON.stringify({
+                id: generateUUID(),
+                requested_by: user.id,
+                prompt: prompt.trim(),
+                status: 'queued',
+                created_at: new Date().toISOString()
+            }),
+            headers: { 'Prefer': 'return=representation' }
+        });
+        
+        await addLog('Створено запит до ШІ', 'ai_owner_request', null, { prompt: prompt });
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка створення запиту:', error);
+        throw error;
+    }
+}
+
+/**
+ * ОТРИМАТИ ВСІ ЗАПИТИ ДО ШІ
+ */
+async function getAiOwnerRequests(filters) {
+    if (filters === undefined) filters = {};
+    var query = 'ai_owner_requests?order=created_at.desc';
+    if (filters.status) query += '&status=eq.' + filters.status;
+    if (filters.userId) query += '&requested_by=eq.' + filters.userId;
+    return supabaseQuery(query);
+}
+
+/**
+ * ОНОВИТИ СТАТУС ЗАПИТУ ДО ШІ
+ */
+async function updateAiOwnerRequest(requestId, data) {
+    try {
+        var result = await supabaseQuery('ai_owner_requests?id=eq.' + requestId, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                status: data.status || 'done',
+                greeting: data.greeting || null,
+                response: data.response || null,
+                updated_at: new Date().toISOString()
+            })
+        });
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка оновлення запиту:', error);
+        throw error;
+    }
+}
+
+// ============================================
 // ЕКСПОРТ ВСІХ ФУНКЦІЙ
 // ============================================
 
@@ -1902,5 +2105,17 @@ window.db = {
     isAiEnabled: isAiEnabled,
     getAiGraceMinutes: getAiGraceMinutes,
     canAiReplyToTicket: canAiReplyToTicket,
-    isStaffRole: isStaffRole
+    isStaffRole: isStaffRole,
+    
+    // НОВІ ФУНКЦІЇ ДЛЯ АДМІН-ФОРМ
+    createAdminForm: createAdminForm,
+    getAdminForms: getAdminForms,
+    getAdminForm: getAdminForm,
+    respondAdminForm: respondAdminForm,
+    deleteAdminForm: deleteAdminForm,
+    
+    // НОВІ ФУНКЦІЇ ДЛЯ ЗАПИТІВ ДО ШІ
+    createAiOwnerRequest: createAiOwnerRequest,
+    getAiOwnerRequests: getAiOwnerRequests,
+    updateAiOwnerRequest: updateAiOwnerRequest
 };
