@@ -8,6 +8,7 @@ var ROLE_INFO = {
     owner: { label: 'Засновник', emoji: '👑', color: '#8B5CF6' },
     admin: { label: 'Адміністратор', emoji: '⭐', color: '#E2503E' },
     moderator: { label: 'Модератор', emoji: '🛡️', color: '#F59E0B' },
+    bot: { label: 'Typebiz Bot', emoji: '🤖', color: '#46C9B8' },
     user: { label: 'Користувач', emoji: '👤', color: '#46C9B8' }
 };
 
@@ -16,7 +17,7 @@ function getRoleInfo(role) {
 }
 
 function isStaffRole(role) {
-    return role === 'owner' || role === 'admin' || role === 'moderator';
+    return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot';
 }
 
 function getRoleBadgeHtml(role) {
