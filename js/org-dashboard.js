@@ -1283,15 +1283,17 @@ function renderChatBubble(msg, userName, currentUserId, isLeader) {
     var isOwn = msg.user_id === currentUserId;
     var hasMention = msg.mentions && msg.mentions.indexOf(currentUserId) !== -1;
     var canDelete = isOwn || isLeader;
+    var isCensored = msg.is_censored === true;
+    var bodyText = isCensored ? 'Повідомлення приховане модерацією' : escapeHtml(msg.message);
     return (
         '<div class="chat-row ' + (isOwn ? 'chat-row-own' : '') + '" data-msg-id="' + msg.id + '">' +
-            '<div class="chat-bubble ' + (isOwn ? 'chat-bubble-own' : '') + (hasMention ? ' chat-bubble-mention' : '') + '">' +
+            '<div class="chat-bubble ' + (isOwn ? 'chat-bubble-own' : '') + (hasMention ? ' chat-bubble-mention' : '') + (isCensored ? ' chat-bubble-censored' : '') + '">' +
                 '<div class="chat-bubble-meta">' +
                     escapeHtml(userName) + ' · ' + formatTimeKyiv(msg.created_at) +
                     (hasMention ? ' (згадування)' : '') +
                 '</div>' +
-                '<div class="chat-bubble-text">' + escapeHtml(msg.message) + '</div>' +
-                (canDelete ?
+                '<div class="chat-bubble-text"' + (isCensored ? ' style="font-style:italic;opacity:0.85;"' : '') + '>' + bodyText + '</div>' +
+                (canDelete && !isCensored ?
                     '<button class="btn btn-sm btn-danger chat-bubble-delete" onclick="deleteChatMessage(\'' + msg.id + '\')" title="' + (isOwn ? 'Видалити повідомлення' : 'Видалити як керівник організації') + '">' +
                         '<i class="fas fa-trash"></i>' +
                     '</button>' : '') +

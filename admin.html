@@ -639,14 +639,6 @@
             document.getElementById('genericModal').classList.add('active');
         }
 
-        function formatDateKyiv(d) {
-            try { return new Date(d).toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
-        }
-
-        function formatDateTimeKyiv(d) {
-            try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
-        }
-
         function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator'; }
 
         function getRoleBadgeHtml(role) {

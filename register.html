@@ -545,8 +545,17 @@
                 return;
             }
 
-            if (password.length < 6) {
-                showToast('Пароль має бути мінімум 6 символів', 'warning');
+            var minPwdLen = 6;
+            try {
+                var secSettings = await db.supabaseQuery('security_settings?key=eq.min_password_length');
+                if (secSettings && secSettings[0] && secSettings[0].value) {
+                    var parsed = parseInt(secSettings[0].value, 10);
+                    if (!isNaN(parsed) && parsed > 0) minPwdLen = parsed;
+                }
+            } catch (e) { /* налаштування безпеки недоступні - лишаємо дефолт 6 */ }
+
+            if (password.length < minPwdLen) {
+                showToast('Пароль має бути мінімум ' + minPwdLen + ' символів', 'warning');
                 return;
             }
 

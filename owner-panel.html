@@ -565,8 +565,6 @@
     <script>
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
         function openModal(title, html) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').classList.add('active'); }
-        function formatDateKyiv(d) { try { return new Date(d).toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; } }
-        function formatDateTimeKyiv(d) { try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; } }
         function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator'; }
         function getRoleBadgeHtml(role) { var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'user': '👤 Користувач' }; return labels[role] || '👤 Користувач'; }
 
@@ -1347,16 +1345,57 @@
                     for (var i = 0; i < messages.length; i++) {
                         var msg = messages[i];
                         var isDeleted = msg.is_deleted === true;
+                        var isCensored = msg.is_censored === true;
                         var statusBadge = isDeleted
                             ? '<span class="badge badge-danger" title="' + (msg.deleted_at ? 'Видалено ' + formatDateTimeKyiv(msg.deleted_at) : 'Видалено користувачем') + '">Видалено</span>'
-                            : '<span class="badge badge-success">Активне</span>';
-                        html += '<tr' + (isDeleted ? ' style="opacity:0.6;"' : '') + '><td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td><td>' + (orgMap[msg.organization_id] || '—') + '</td><td style="max-width:300px;word-wrap:break-word;">' + (msg.message || '') + '</td><td>' + statusBadge + '</td><td>' + formatDateTimeKyiv(msg.created_at) + '</td><td>' + (isDeleted ? '<button class="btn btn-sm btn-danger" onclick="purgeMessage(\'' + msg.id + '\')" title="Видалити назавжди"><i class="fas fa-trash-alt"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="deleteMessage(\'' + msg.id + '\')" title="Приховати повідомлення"><i class="fas fa-trash"></i></button>') + '</td></tr>';
+                            : (isCensored
+                                ? '<span class="badge badge-warning" title="' + (msg.censored_at ? 'Зацензуровано ' + formatDateTimeKyiv(msg.censored_at) : '') + '">Зацензуровано</span>'
+                                : '<span class="badge badge-success">Активне</span>');
+                        var rowStyle = isDeleted ? ' style="opacity:0.6;"' : (isCensored ? ' style="background:linear-gradient(90deg, rgba(226,80,62,0.16), rgba(242,169,59,0.16));"' : '');
+                        var messageCell = isCensored
+                            ? '<em style="opacity:0.8;">Повідомлення приховане модерацією</em>'
+                            : (msg.message || '');
+                        var actionsHtml = '';
+                        if (isDeleted) {
+                            actionsHtml = '<button class="btn btn-sm btn-danger" onclick="purgeMessage(\'' + msg.id + '\')" title="Видалити назавжди"><i class="fas fa-trash-alt"></i></button>';
+                        } else {
+                            actionsHtml = isCensored
+                                ? '<button class="btn btn-sm btn-teal" onclick="uncensorMessage(\'' + msg.id + '\')" title="Розцензурити"><i class="fas fa-eye"></i> Розцензурити</button>'
+                                : '<button class="btn btn-sm btn-warning" onclick="censorMessage(\'' + msg.id + '\')" title="Зацензурити"><i class="fas fa-eye-slash"></i> Зацензурити</button>';
+                            actionsHtml += ' <button class="btn btn-sm btn-danger" onclick="deleteMessage(\'' + msg.id + '\')" title="Приховати повідомлення"><i class="fas fa-trash"></i></button>';
+                        }
+                        html += '<tr' + rowStyle + '><td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td><td>' + (orgMap[msg.organization_id] || '—') + '</td><td style="max-width:300px;word-wrap:break-word;">' + messageCell + '</td><td>' + statusBadge + '</td><td>' + formatDateTimeKyiv(msg.created_at) + '</td><td>' + actionsHtml + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="6" class="text-center text-muted">Немає повідомлень</td></tr>';
                 }
                 html += '</tbody></table></div>';
                 openModal('Модерація повідомлень', html);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function censorMessage(messageId) {
+            try {
+                var user = auth.getCurrentUser();
+                await db.supabaseQuery('org_chat_messages?id=eq.' + messageId, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_censored: true, censored_at: new Date().toISOString(), censored_by: user ? user.id : null })
+                });
+                await db.addLog('Зацензуровано повідомлення', 'message', messageId, {});
+                await showToast('Повідомлення зацензуровано', 'success');
+                moderateMessages();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function uncensorMessage(messageId) {
+            try {
+                await db.supabaseQuery('org_chat_messages?id=eq.' + messageId, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_censored: false, censored_at: null, censored_by: null })
+                });
+                await db.addLog('Розцензуровано повідомлення', 'message', messageId, {});
+                await showToast('Повідомлення розцензуровано', 'success');
+                moderateMessages();
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 

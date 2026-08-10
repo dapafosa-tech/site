@@ -154,6 +154,11 @@ async function loginUser(email, password, fullName) {
 
 async function registerUser(email, password, fullName, phone, companyAddress) {
     try {
+        var sysSettings = await db.getSystemSettings();
+        if (sysSettings && sysSettings['allow_registration'] === 'false') {
+            throw new Error('Реєстрацію нових користувачів тимчасово вимкнено адміністрацією');
+        }
+
         var { data, error } = await window.sb.auth.signUp({
             email: email,
             password: password,
