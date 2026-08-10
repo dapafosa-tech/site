@@ -134,6 +134,7 @@
             font-weight:500;
             font-size:0.87rem;
             cursor:pointer;
+            position:relative;
         }
         .sidebar .nav-menu a:hover{background:var(--ink-raised);color:var(--text);}
         .sidebar .nav-menu a.active{background:var(--ink-raised);border-left-color:var(--gold);color:var(--text);font-weight:600;}
@@ -149,6 +150,20 @@
         .sidebar .nav-menu .logout-btn a:hover{background:rgba(226,80,62,0.1);}
         .sidebar .nav-menu .owner-link a{color:var(--gold);}
         .sidebar .nav-menu .owner-link a:hover{background:var(--gold-glow);}
+        .sidebar .nav-menu a .badge-notif{
+            position:absolute;
+            right:8px;
+            top:6px;
+            background:#E2503E;
+            color:white;
+            border-radius:50%;
+            padding:1px 5px;
+            font-size:0.6rem;
+            font-weight:700;
+            min-width:18px;
+            text-align:center;
+            display:none;
+        }
         .sidebar-spacer{flex:1;}
 
         .main-content{
@@ -453,6 +468,28 @@
         .mobile-topbar{display:none;}
         .sidebar-backdrop{display:none;}
 
+        /* Стилі для сповіщень */
+        .notification-item {
+            padding:0.75rem;
+            border-bottom:1px solid var(--ink-line);
+            cursor:pointer;
+            transition:background 0.2s;
+        }
+        .notification-item:hover{background:rgba(255,255,255,0.02);}
+        .notification-item.unread{
+            background:rgba(242,169,59,0.06);
+            border-left:3px solid var(--gold);
+        }
+        .notification-item .notif-title{font-weight:600;font-size:0.95rem;}
+        .notification-item .notif-message{font-size:0.85rem;color:var(--muted);margin-top:0.2rem;}
+        .notification-item .notif-time{font-size:0.7rem;color:var(--muted-dim);}
+        .notification-item .notif-badge{
+            display:inline-block;
+            font-size:0.6rem;
+            color:var(--gold);
+            margin-top:0.2rem;
+        }
+
         @media(max-width:768px){
             .mobile-topbar{
                 display:flex; align-items:center; justify-content:space-between;
@@ -463,7 +500,7 @@
             .mobile-topbar .logo{display:flex;align-items:center;gap:8px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.05rem;}
             .mobile-topbar .tab{width:24px;height:24px;border-radius:5px;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono';font-size:0.6rem;font-weight:600;transform:rotate(-6deg);}
             .mobile-menu-btn{
-                background:var(--ink-raised); border:1px solid var(--ink-line); color:var(--text-onink);
+                background:var(--ink-raised); border:1px solid var(--ink-line); color:var(--text);
                 width:38px;height:38px;border-radius:8px;font-size:1rem;cursor:pointer;
             }
             .sidebar{
@@ -487,7 +524,6 @@
             .page-header h1{font-size:1.5rem;}
             .page-header{flex-direction:column;align-items:stretch;}
         }
-    /* ==================== Загальні мобільні виправлення ==================== */
         @media (max-width: 768px) {
             table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
             .modal-content { max-height: 85dvh; overflow-y: auto; }
@@ -519,13 +555,14 @@
 
         <div class="nav-label">Робочий простір</div>
         <ul class="nav-menu">
-            <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Мої організації</a></li>
+            <li><a href="#" onclick="loadDashboardView()" id="dashboardLink" class="active"><i class="fas fa-th-large"></i> Мої організації</a></li>
             <li><a href="#" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Приєднатися за кодом</a></li>
             <li id="adminLink" style="display:none;"><a href="/admin"><i class="fas fa-shield-halved"></i> Адмін-панель</a></li>
             <li id="ownerLink" style="display:none;" class="owner-link">
                 <a href="/owner-panel"><i class="fas fa-crown"></i> <span>Панель засновника</span></a>
             </li>
             <li><a href="#" onclick="openSupport()"><i class="fas fa-headset"></i> Підтримка</a></li>
+            <li><a href="#" onclick="loadNotifications()"><i class="fas fa-bell"></i> Сповіщення <span id="notificationBadge" class="badge-notif">0</span></a></li>
             <li><a href="/settings"><i class="fas fa-cog"></i> Налаштування</a></li>
         </ul>
 
@@ -538,11 +575,11 @@
         <div id="globalAnnouncements"></div>
         <div class="page-header">
             <div>
-                <div class="eyebrow">Картотека організацій</div>
-                <h1>Мої організації</h1>
-                <p>Керуйте своїми організаціями та створюйте нові</p>
+                <div class="eyebrow" id="pageEyebrow">Картотека організацій</div>
+                <h1 id="pageTitle">Мої організації</h1>
+                <p id="pageSubtitle">Керуйте своїми організаціями та створюйте нові</p>
             </div>
-            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;" id="pageActions">
                 <button class="btn btn-teal" onclick="openJoinOrg()">
                     <i class="fas fa-sign-in-alt"></i> Приєднатися за кодом
                 </button>
@@ -778,6 +815,9 @@
     <script src="/js/ui.js"></script>
     <script src="/js/check-auth.js"></script>
     <script>
+        // ============================================================
+        // БАЗОВІ ФУНКЦІЇ
+        // ============================================================
         function toggleMobileSidebar() {
             document.getElementById('sidebar').classList.toggle('mobile-active');
             document.getElementById('sidebarBackdrop').classList.toggle('active');
@@ -832,6 +872,9 @@
             document.getElementById(id).classList.remove('active');
         }
 
+        // ============================================================
+        // ПІДТРИМКА
+        // ============================================================
         var myTicketStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
         var myTicketStatusLabels = { open: 'Відкрито', in_progress: 'В роботі', closed: 'Закрито' };
         var myTicketStatusClasses = { open: 'badge-success', in_progress: 'badge-warning', closed: 'badge-secondary' };
@@ -960,6 +1003,9 @@
             }
         }
 
+        // ============================================================
+        // ФОРМИ
+        // ============================================================
         var typeLabels = {
             'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
             'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
@@ -1013,6 +1059,9 @@
             'web3': 'fa-globe', 'other': 'fa-cubes'
         };
 
+        // ============================================================
+        // ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ
+        // ============================================================
         async function loadDashboard() {
             var user = auth.getCurrentUser();
             if (!user) {
@@ -1043,7 +1092,23 @@
                 adminLink.style.display = 'none';
                 ownerLink.style.display = 'none';
             }
+            
+            document.querySelectorAll('.nav-menu a').forEach(function(a) {
+                a.classList.remove('active');
+            });
+            var dashLink = document.getElementById('dashboardLink');
+            if (dashLink) dashLink.classList.add('active');
+
+            document.getElementById('pageEyebrow').textContent = 'Картотека організацій';
+            document.getElementById('pageTitle').textContent = 'Мої організації';
+            document.getElementById('pageSubtitle').textContent = 'Керуйте своїми організаціями та створюйте нові';
+            document.getElementById('pageActions').style.display = 'flex';
+
             await loadOrganizations();
+        }
+
+        function loadDashboardView() {
+            loadDashboard();
         }
 
         async function loadOrganizations() {
@@ -1077,7 +1142,7 @@
                     return;
                 }
                 emptyState.style.display = 'none';
-                var accentPalette = ['#F2A93B', '#46C9B8', '#E2503E', '#8B93A6'];
+                var accentPalette = ['#F2A93B', '#46C9B8', '#E2503E', '#8B93A6', '#8B5CF6', '#F59E0B'];
                 orgs.forEach(function(org) {
                     var iconClass = iconMap[org.type] || 'fa-cubes';
                     var hash = 0;
@@ -1235,6 +1300,91 @@
             });
         });
 
+        // ============================================================
+        // СПОВІЩЕННЯ
+        // ============================================================
+        async function loadNotifications() {
+            var container = document.getElementById('orgsContainer');
+            if (!container) return;
+            
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            document.querySelectorAll('.nav-menu a').forEach(function(a) {
+                a.classList.remove('active');
+            });
+            var notifLink = document.querySelector('.nav-menu a[onclick*="loadNotifications()"]');
+            if (notifLink) notifLink.classList.add('active');
+
+            document.getElementById('pageEyebrow').textContent = 'Сповіщення';
+            document.getElementById('pageTitle').textContent = '📬 Сповіщення';
+            document.getElementById('pageSubtitle').textContent = 'Всі ваші сповіщення';
+            document.getElementById('pageActions').style.display = 'none';
+            
+            try {
+                var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
+                var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
+                
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
+                if (unread.length > 0) {
+                    html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead();loadNotifications();"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+                }
+                html += '</div>';
+                
+                if (!notifications || notifications.length === 0) {
+                    html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
+                } else {
+                    html += '<div style="max-height:500px;overflow-y:auto;">';
+                    for (var i = 0; i < notifications.length; i++) {
+                        var n = notifications[i];
+                        var isUnread = !n.is_read;
+                        var iconMap = {
+                            'chat_mention': 'fa-at',
+                            'admin_form': 'fa-file-signature',
+                            'support_reply': 'fa-reply',
+                            'support_escalation': 'fa-flag',
+                            'system_alert': 'fa-shield-alt',
+                            'appeal_result': 'fa-gavel',
+                            'default': 'fa-bell'
+                        };
+                        var icon = iconMap[n.type] || iconMap.default;
+                        var link = n.link || '#';
+                        
+                        if (n.type === 'chat_mention') {
+                            if (n.organization_id) {
+                                link = '/org?id=' + n.organization_id;
+                            }
+                        }
+                        
+                        html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';window.location.href=\'' + link + '\'">';
+                        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
+                        html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
+                        html += '</div>';
+                        html += '<div class="notif-message">' + n.message + '</div>';
+                        if (isUnread) {
+                            html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+                
+                container.innerHTML = html;
+                
+                if (window.updateNotificationBadge) {
+                    updateNotificationBadge();
+                }
+                
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
+            }
+        }
+
+        // ============================================================
+        // ІНІЦІАЛІЗАЦІЯ
+        // ============================================================
         (async function init() {
             try {
                 var isAuth = await auth.requireAuth();
@@ -1248,6 +1398,12 @@
                 loadCustomOrgTypes();
                 if (window.renderGlobalAnnouncements) {
                     renderGlobalAnnouncements();
+                }
+                if (window.setupNotificationsRealtime) {
+                    setupNotificationsRealtime();
+                }
+                if (window.updateNotificationBadge) {
+                    updateNotificationBadge();
                 }
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
