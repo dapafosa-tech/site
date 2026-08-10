@@ -1931,40 +1931,47 @@
             container.innerHTML = html;
         }
 
-        async function toggleRegistration() {
-            try {
-                var settings = await db.getSystemSettings();
-                var current = settings['allow_registration'] !== 'false';
-                var html = '<div style="display:flex;flex-direction:column;gap:1rem;">';
-                html += '<p>Статус реєстрації: <strong>' + (current ? '✅ Дозволена' : '❌ Заборонена') + '</strong></p>';
-                html += '<button class="btn ' + (current ? 'btn-danger' : 'btn-gold') + '" onclick="setRegistrationStatus(' + (!current) + ')">';
-                html += (current ? '❌ Заборонити реєстрацію' : '✅ Дозволити реєстрацію');
-                html += '</button></div>';
-                openModal('Управління реєстрацією', html);
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
-        }
+async function toggleRegistration() {
+    try {
+        var settings = await db.getSystemSettings();
+        var current = settings['allow_registration'] !== 'false';
+        
+        var html = '<div style="display:flex;flex-direction:column;gap:1rem;">';
+        html += '<p>Статус реєстрації: <strong>' + (current ? '✅ Дозволена' : '❌ Заборонена') + '</strong></p>';
+        html += '<p style="color:var(--muted);font-size:0.85rem;">Заборона реєстрації зупинить створення нових акаунтів. Існуючі користувачі зможуть входити.</p>';
+        html += '<button class="btn ' + (current ? 'btn-danger' : 'btn-gold') + '" onclick="setRegistrationStatus(' + (!current) + ')">';
+        html += (current ? '❌ Заборонити реєстрацію' : '✅ Дозволити реєстрацію');
+        html += '</button></div>';
+        
+        openModal('Управління реєстрацією', html);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
 
-        async function setRegistrationStatus(enabled) {
-            try {
-                var existing = await db.supabaseQuery('system_settings?key=eq.allow_registration');
-                if (existing && existing.length > 0) {
-                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
-                    });
-                } else {
-                    await db.supabaseQuery('system_settings', {
-                        method: 'POST',
-                        body: JSON.stringify({ key: 'allow_registration', value: enabled ? 'true' : 'false' })
-                    });
-                }
-                await db.addLog('Змінено налаштування реєстрації', 'system', null, { enabled: enabled });
-                db.clearSystemSettingsCache();
-                await showToast('Налаштування збережено!', 'success');
-                closeModal();
-                loadSecurityManagement();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+async function setRegistrationStatus(enabled) {
+    try {
+        var existing = await db.supabaseQuery('system_settings?key=eq.allow_registration');
+        if (existing && existing.length > 0) {
+            await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
+                method: 'PATCH',
+                body: JSON.stringify({ value: enabled ? 'true' : 'false' })
+            });
+        } else {
+            await db.supabaseQuery('system_settings', {
+                method: 'POST',
+                body: JSON.stringify({ key: 'allow_registration', value: enabled ? 'true' : 'false' })
+            });
         }
+        await db.addLog('Змінено налаштування реєстрації', 'system', null, { enabled: enabled });
+        db.clearSystemSettingsCache();
+        await showToast('Налаштування збережено!', 'success');
+        closeModal();
+        loadSecurityManagement();
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
 
         async function securitySettings() {
             try {
