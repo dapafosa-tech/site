@@ -77,8 +77,19 @@ async function checkAuthAndBan() {
         }
 
         if (user.is_banned === true) {
-            window.location.href = '/banned';
-            return;
+            var stillBanned = !user.banned_until || new Date(user.banned_until) > new Date();
+            if (!stillBanned) {
+                // Строк бану вийшов - автоматично знімаємо
+                try {
+                    await db.supabaseQuery('users?id=eq.' + user.id, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ is_banned: false, ban_reason: null, banned_until: null })
+                    });
+                } catch (e) { console.warn('Auto-unban failed:', e); }
+            } else {
+                window.location.href = '/banned';
+                return;
+            }
         }
 
         if (PUBLIC_PAGES.indexOf(currentPath) !== -1) {

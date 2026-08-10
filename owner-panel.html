@@ -306,6 +306,9 @@
             box-shadow:0 30px 70px rgba(0,0,0,0.5);
             animation:modalIn .2s ease;
         }
+        .modal-content.modal-content-wide{
+            max-width:1200px;
+        }
         @keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(0.98);}to{opacity:1;transform:none;}}
         .modal-header{
             display:flex;
@@ -564,7 +567,13 @@
     <script src="/js/check-auth.js"></script>
     <script>
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
-        function openModal(title, html) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = html; document.getElementById('modal').classList.add('active'); }
+        function openModal(title, html, wide) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = html;
+            var mc = document.querySelector('#modal .modal-content');
+            if (mc) mc.classList.toggle('modal-content-wide', !!wide);
+            document.getElementById('modal').classList.add('active');
+        }
         function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator'; }
         function getRoleBadgeHtml(role) { var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'user': '👤 Користувач' }; return labels[role] || '👤 Користувач'; }
 
@@ -752,15 +761,19 @@
                     var roleLabels = { 'owner': '<span class="badge" style="background:#8B5CF6;color:white;">Засновник</span>', 'admin': '<span class="badge badge-danger">Адмін</span>', 'moderator': '<span class="badge badge-warning">Модератор</span>', 'user': '<span class="badge badge-primary">Користувач</span>' };
                     for (var i = 0; i < users.length; i++) {
                         var u = users[i];
-                        var isUserBanned = u.is_banned === true;
+                        var isUserBanned = u.is_banned === true && (!u.banned_until || new Date(u.banned_until) > new Date());
                         var isCurrentUser = u.id === user.id;
                         var actionsHtml = '<div class="actions-cell">';
                         if (!isCurrentUser) {
                             actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
+                            if (u.reg_ip) {
+                                actionsHtml += '<button class="btn btn-sm btn-warning" onclick="banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP: ' + u.reg_ip + '"><i class="fas fa-network-wired"></i></button>';
+                            }
                         }
                         actionsHtml += '</div>';
-                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td>' + actionsHtml + '</td></tr>';
+                        var banStatusLabel = isUserBanned ? (u.banned_until ? 'До ' + formatDateKyiv(u.banned_until) : 'Назавжди') : 'Активний';
+                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '" title="' + banStatusLabel + '">' + banStatusLabel + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td>' + actionsHtml + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="7" class="text-center text-muted">Немає користувачів</td></tr>';
@@ -816,12 +829,23 @@
                 var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
                 if (reason === null) return;
                 if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
-                var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача?', 'Підтвердження');
+
+                var daysInput = await showPrompt('На скільки днів заблокувати? (макс. 2000, залиште порожнім для безстрокового бану):', '', 'Строк блокування');
+                if (daysInput === null) return;
+                var banUntil = null;
+                if (daysInput && daysInput.trim() !== '') {
+                    var days = parseInt(daysInput.trim(), 10);
+                    if (isNaN(days) || days <= 0) { await showAlert('Строк має бути додатним числом днів', 'warning'); return; }
+                    if (days > 2000) { await showAlert('Максимальний строк - 2000 днів', 'warning'); return; }
+                    banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+                }
+
+                var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача' + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' безстроково') + '?', 'Підтвердження');
                 if (!confirmed) return;
 
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
                 if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
-                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), role: 'user' }) });
+                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), banned_until: banUntil, role: 'user' }) });
                 try {
                     await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
                 } catch (e) { console.warn('Could not update last_ban_action_at:', e.message); }
@@ -836,11 +860,70 @@
             }
         }
 
+        async function banUserIp(ip) {
+            var user = auth.getCurrentUser();
+            if (!user || user.role !== 'owner') { await showAlert('Тільки засновник може банити по IP', 'error'); return; }
+
+            var daysInput = await showPrompt('На скільки днів заблокувати IP ' + ip + '? (макс. 2000, порожньо = назавжди):', '', 'Блокування IP');
+            if (daysInput === null) return;
+            var banUntil = null;
+            if (daysInput && daysInput.trim() !== '') {
+                var days = parseInt(daysInput.trim(), 10);
+                if (isNaN(days) || days <= 0) { await showAlert('Строк має бути додатним числом днів', 'warning'); return; }
+                if (days > 2000) { await showAlert('Максимальний строк - 2000 днів', 'warning'); return; }
+                banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            }
+            var reason = await showPrompt('Причина блокування IP:', 'Порушення правил', 'Блокування IP');
+            if (reason === null) return;
+
+            var confirmed = await showConfirm('Заблокувати реєстрацію з IP ' + ip + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' назавжди') + '?', 'Підтвердження');
+            if (!confirmed) return;
+
+            try {
+                await db.supabaseQuery('banned_ips', {
+                    method: 'POST',
+                    body: JSON.stringify({ ip: ip, reason: (reason || '').trim() || null, banned_by: user.id, banned_until: banUntil })
+                });
+                await db.addLog('Заблоковано IP', 'ip', ip, { reason: reason, banned_until: banUntil });
+                await showToast('IP заблоковано', 'success');
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function manageBannedIps() {
+            var user = auth.getCurrentUser();
+            if (!user || user.role !== 'owner') { await showAlert('Тільки засновник має доступ', 'error'); return; }
+            try {
+                var bans = await db.supabaseQuery('banned_ips?order=created_at.desc');
+                var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>IP</th><th>Причина</th><th>До</th><th>Додано</th><th>Дії</th></tr></thead><tbody>';
+                if (bans && bans.length > 0) {
+                    for (var i = 0; i < bans.length; i++) {
+                        var b = bans[i];
+                        var expired = b.banned_until && new Date(b.banned_until) < new Date();
+                        html += '<tr' + (expired ? ' style="opacity:0.5;"' : '') + '><td><strong>' + b.ip + '</strong></td><td>' + (b.reason || '—') + '</td><td>' + (b.banned_until ? formatDateKyiv(b.banned_until) + (expired ? ' (вийшов)' : '') : 'Назавжди') + '</td><td>' + formatDateKyiv(b.created_at) + '</td><td><button class="btn btn-sm btn-teal" onclick="unbanIp(\'' + b.id + '\')" title="Розблокувати"><i class="fas fa-unlock"></i></button></td></tr>';
+                    }
+                } else {
+                    html += '<tr><td colspan="5" class="text-center text-muted">Немає заблокованих IP</td></tr>';
+                }
+                html += '</tbody></table></div>';
+                openModal('Заблоковані IP-адреси', html, true);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function unbanIp(banId) {
+            var confirmed = await showConfirm('Розблокувати цей IP?', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                await db.supabaseQuery('banned_ips?id=eq.' + banId, { method: 'DELETE' });
+                await showToast('IP розблоковано', 'success');
+                manageBannedIps();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
         async function unbanUser(userId) {
             try {
                 var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
                 if (!confirmed) return;
-                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
+                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null, banned_until: null }) });
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
                 await db.addLog('Розблоковано користувача', 'user', userId, { user_name: userName });
@@ -1282,6 +1365,7 @@
             html += '<div class="card"><div class="card-header"><h3 class="card-title">📋 Скарги користувачів</h3></div><button class="btn btn-warning" onclick="loadReports()"><i class="fas fa-flag"></i> Переглянути скарги</button></div>';
             html += '<div class="card"><div class="card-header"><h3 class="card-title">💬 Модерація повідомлень</h3></div><button class="btn btn-primary" onclick="moderateMessages()"><i class="fas fa-comment-dots"></i> Переглянути повідомлення</button></div>';
             html += '<div class="card"><div class="card-header"><h3 class="card-title">🚫 Заблоковані слова</h3></div><button class="btn btn-danger" onclick="manageBannedWords()"><i class="fas fa-ban"></i> Керувати словами</button></div>';
+            html += '<div class="card"><div class="card-header"><h3 class="card-title">🌐 Заблоковані IP (тільки засновник)</h3></div><button class="btn btn-warning" onclick="manageBannedIps()"><i class="fas fa-network-wired"></i> Переглянути заблоковані IP</button></div>';
             container.innerHTML = html;
         }
 
@@ -1299,14 +1383,38 @@
                         var targetUser = userMap[r.target_user_id] || 'Невідомо';
                         var statusClass = r.status === 'pending' ? 'badge-warning' : r.status === 'resolved' ? 'badge-success' : 'badge-secondary';
                         var statusLabel = r.status === 'pending' ? 'Очікує' : r.status === 'resolved' ? 'Вирішено' : 'Відхилено';
-                        html += '<tr><td><strong>' + fromUser + '</strong></td><td>' + targetUser + '</td><td>' + (r.reason || '—') + '</td><td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td><td>' + formatDateKyiv(r.created_at) + '</td><td style="white-space:nowrap;">' + (r.status === 'pending' ? '<button class="btn btn-sm btn-success" onclick="resolveReport(\'' + r.id + '\')"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-danger" onclick="rejectReport(\'' + r.id + '\')"><i class="fas fa-times"></i></button>' : '') + '</td></tr>';
+                        var aiBtn = '<button class="btn btn-sm btn-teal" onclick="analyzeReportWithAi(\'' + r.id + '\')" title="AI аналіз"><i class="fas fa-robot"></i></button>';
+                        var aiResultHtml = '';
+                        if (r.ai_analysis) {
+                            var a = r.ai_analysis;
+                            var riskColor = a.risk_level === 'high' ? 'badge-danger' : (a.risk_level === 'medium' ? 'badge-warning' : 'badge-success');
+                            aiResultHtml = '<div style="margin-top:0.4rem;padding:0.5rem;background:var(--ink);border-radius:6px;font-size:0.78rem;"><span class="badge ' + riskColor + '">' + (a.risk_level || '—') + '</span> ' + (a.summary || '') + (a.recommendation ? '<br><strong>Рекомендація:</strong> ' + a.recommendation : '') + '</div>';
+                        }
+                        html += '<tr><td><strong>' + fromUser + '</strong></td><td>' + targetUser + '</td><td>' + (r.reason || '—') + aiResultHtml + '</td><td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td><td>' + formatDateKyiv(r.created_at) + '</td><td style="white-space:nowrap;">' + aiBtn + (r.status === 'pending' ? '<button class="btn btn-sm btn-success" onclick="resolveReport(\'' + r.id + '\')"><i class="fas fa-check"></i></button><button class="btn btn-sm btn-danger" onclick="rejectReport(\'' + r.id + '\')"><i class="fas fa-times"></i></button>' : '') + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="6" class="text-center text-muted">Немає скарг</td></tr>';
                 }
                 html += '</tbody></table></div>';
-                openModal('Скарги користувачів', html);
+                openModal('Скарги користувачів', html, true);
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function analyzeReportWithAi(reportId) {
+            try {
+                await showToast('AI аналізує скаргу, зачекайте...', 'info');
+                var { data: sessionData } = await window.sb.auth.getSession();
+                var token = sessionData && sessionData.session ? sessionData.session.access_token : null;
+                var { data, error } = await window.sb.functions.invoke('analyze-report', {
+                    body: { reportId: reportId }
+                });
+                if (error) throw new Error(error.message || 'Помилка виклику AI-функції');
+                if (data && data.error) throw new Error(data.error);
+                await showToast('AI аналіз готовий', 'success');
+                loadReports();
+            } catch (error) {
+                await showAlert('Помилка AI-аналізу: ' + error.message, 'error');
+            }
         }
 
         async function resolveReport(reportId) {
@@ -1364,13 +1472,13 @@
                                 : '<button class="btn btn-sm btn-warning" onclick="censorMessage(\'' + msg.id + '\')" title="Зацензурити"><i class="fas fa-eye-slash"></i> Зацензурити</button>';
                             actionsHtml += ' <button class="btn btn-sm btn-danger" onclick="deleteMessage(\'' + msg.id + '\')" title="Приховати повідомлення"><i class="fas fa-trash"></i></button>';
                         }
-                        html += '<tr' + rowStyle + '><td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td><td>' + (orgMap[msg.organization_id] || '—') + '</td><td style="max-width:300px;word-wrap:break-word;">' + messageCell + '</td><td>' + statusBadge + '</td><td>' + formatDateTimeKyiv(msg.created_at) + '</td><td>' + actionsHtml + '</td></tr>';
+                        html += '<tr' + rowStyle + '><td><strong>' + (userMap[msg.user_id] || 'Невідомо') + '</strong></td><td>' + (orgMap[msg.organization_id] || '—') + '</td><td style="max-width:300px;word-wrap:break-word;">' + messageCell + '</td><td>' + statusBadge + '</td><td>' + formatDateTimeKyiv(msg.created_at) + '</td><td style="white-space:nowrap;">' + actionsHtml + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="6" class="text-center text-muted">Немає повідомлень</td></tr>';
                 }
                 html += '</tbody></table></div>';
-                openModal('Модерація повідомлень', html);
+                openModal('Модерація повідомлень', html, true);
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 

@@ -803,11 +803,11 @@
 
         .chat-row {
             display: flex;
-            justify-content: flex-end;
+            justify-content: flex-start;
         }
 
         .chat-row-own {
-            justify-content: flex-start;
+            justify-content: flex-end;
         }
 
         .chat-bubble {
@@ -816,7 +816,7 @@
             color: var(--text-onink);
             padding: 0.5rem 0.85rem;
             border-radius: 12px;
-            border-bottom-right-radius: 4px;
+            border-bottom-left-radius: 4px;
             border: 1px solid var(--ink-line);
             word-break: break-word;
         }
@@ -825,8 +825,8 @@
             background: var(--gold);
             color: var(--ink);
             border: none;
-            border-bottom-right-radius: 12px;
-            border-bottom-left-radius: 4px;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 4px;
         }
 
         .chat-bubble-mention {

@@ -273,6 +273,9 @@
             max-height:90vh;
             overflow-y:auto;
         }
+        .modal-content.modal-content-wide{
+            max-width:1200px;
+        }
         .modal-header{
             display:flex;
             justify-content:space-between;
@@ -515,7 +518,7 @@
     </main>
 
     <div class="modal" id="chatModal">
-        <div class="modal-content">
+        <div class="modal-content modal-content-wide">
             <div class="modal-header">
                 <h2 id="chatModalTitle">Чат</h2>
                 <button class="modal-close" onclick="closeModal('chatModal')">&times;</button>
@@ -633,9 +636,11 @@
             document.getElementById(id).classList.remove('active');
         }
 
-        function openModal(title, html) {
+        function openModal(title, html, wide) {
             document.getElementById('genericModalTitle').textContent = title;
             document.getElementById('genericModalBody').innerHTML = html;
+            var modalContent = document.querySelector('#genericModal .modal-content');
+            if (modalContent) modalContent.style.maxWidth = wide ? '1200px' : '640px';
             document.getElementById('genericModal').classList.add('active');
         }
 
@@ -810,7 +815,7 @@
                     var roleLabels = { 'owner': '<span class="badge" style="background:#8B5CF6;color:white;">Засновник</span>', 'admin': '<span class="badge badge-danger">Адмін</span>', 'moderator': '<span class="badge badge-warning">Модератор</span>', 'user': '<span class="badge badge-primary">Користувач</span>' };
                     for (var i = 0; i < users.length; i++) {
                         var u = users[i];
-                        var isUserBanned = u.is_banned === true;
+                        var isUserBanned = u.is_banned === true && (!u.banned_until || new Date(u.banned_until) > new Date());
                         var isCurrentUser = u.id === user.id;
                         var actionsHtml = '<div class="actions-cell">';
                         if (canBanTarget(user, u) && !isCurrentUser) {
@@ -819,8 +824,12 @@
                         if (canDeleteTarget(user, u) && !isCurrentUser) {
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
+                        if (user.role === 'owner' && !isCurrentUser && u.reg_ip) {
+                            actionsHtml += '<button class="btn btn-sm btn-warning" onclick="banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP: ' + u.reg_ip + '"><i class="fas fa-network-wired"></i></button>';
+                        }
                         actionsHtml += '</div>';
-                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '">' + (isUserBanned ? 'Заблоковано' : 'Активний') + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td>' + actionsHtml + '</td></tr>';
+                        var banStatusLabel = isUserBanned ? (u.banned_until ? 'До ' + formatDateKyiv(u.banned_until) : 'Назавжди') : 'Активний';
+                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '" title="' + banStatusLabel + '">' + banStatusLabel + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td>' + actionsHtml + '</td></tr>';
                     }
                 } else {
                     html += '<tr><td colspan="7" class="text-center text-muted">Немає користувачів</td></tr>';
@@ -849,6 +858,35 @@
                 var matchStatus = !status || rowStatus === status;
                 row.style.display = (matchSearch && matchRole && matchStatus) ? '' : 'none';
             });
+        }
+
+        async function banUserIp(ip) {
+            var user = auth.getCurrentUser();
+            if (!user || user.role !== 'owner') { await showAlert('Тільки засновник може банити по IP', 'error'); return; }
+
+            var daysInput = await showPrompt('На скільки днів заблокувати IP ' + ip + '? (макс. 2000, порожньо = назавжди):', '', 'Блокування IP');
+            if (daysInput === null) return;
+            var banUntil = null;
+            if (daysInput && daysInput.trim() !== '') {
+                var days = parseInt(daysInput.trim(), 10);
+                if (isNaN(days) || days <= 0) { await showAlert('Строк має бути додатним числом днів', 'warning'); return; }
+                if (days > 2000) { await showAlert('Максимальний строк - 2000 днів', 'warning'); return; }
+                banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            }
+            var reason = await showPrompt('Причина блокування IP:', 'Порушення правил', 'Блокування IP');
+            if (reason === null) return;
+
+            var confirmed = await showConfirm('Заблокувати реєстрацію з IP ' + ip + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' назавжди') + '?', 'Підтвердження');
+            if (!confirmed) return;
+
+            try {
+                await db.supabaseQuery('banned_ips', {
+                    method: 'POST',
+                    body: JSON.stringify({ ip: ip, reason: (reason || '').trim() || null, banned_by: user.id, banned_until: banUntil })
+                });
+                await db.addLog('Заблоковано IP', 'ip', ip, { reason: reason, banned_until: banUntil });
+                await showToast('IP заблоковано', 'success');
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         async function banUser(userId) {
@@ -881,12 +919,23 @@
                 var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
                 if (reason === null) return;
                 if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
-                var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача?', 'Підтвердження');
+
+                var daysInput = await showPrompt('На скільки днів заблокувати? (макс. 2000, залиште порожнім для безстрокового бану):', '', 'Строк блокування');
+                if (daysInput === null) return;
+                var banUntil = null;
+                if (daysInput && daysInput.trim() !== '') {
+                    var days = parseInt(daysInput.trim(), 10);
+                    if (isNaN(days) || days <= 0) { await showAlert('Строк має бути додатним числом днів', 'warning'); return; }
+                    if (days > 2000) { await showAlert('Максимальний строк - 2000 днів', 'warning'); return; }
+                    banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+                }
+
+                var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача' + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' безстроково') + '?', 'Підтвердження');
                 if (!confirmed) return;
 
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
                 if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
-                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), role: 'user' }) });
+                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), banned_until: banUntil, role: 'user' }) });
                 try {
                     await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
                 } catch (e) { console.warn('Could not update last_ban_action_at:', e.message); }
@@ -910,7 +959,7 @@
                 var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
                 if (!confirmed) return;
 
-                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
+                await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null, banned_until: null }) });
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
                 await db.addLog('Розблоковано користувача', 'user', userId, { user_name: userName });
@@ -1080,15 +1129,78 @@
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
                 if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач'; } }
+                var currentUser = auth.getCurrentUser();
+                var canModerate = currentUser && (currentUser.role === 'owner' || currentUser.role === 'admin' || currentUser.role === 'moderator');
                 var html = '';
                 for (var i = 0; i < messages.length; i++) {
                     var msg = messages[i];
                     var userName = userMap[msg.user_id] || 'Невідомий користувач';
                     var isDeleted = msg.is_deleted === true;
-                    html += '<div style="padding:0.75rem;border-bottom:1px solid var(--ink-line);' + (isDeleted ? 'opacity:0.55;' : '') + '"><div style="font-size:0.8rem;color:var(--gold);display:flex;justify-content:space-between;"><span><i class="fas fa-user"></i> ' + userName + (isDeleted ? ' <span class="badge badge-danger" style="margin-left:0.4rem;">Видалено</span>' : '') + '</span><span style="color:var(--muted);font-size:0.7rem;">' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;font-size:0.95rem;">' + (msg.message || '') + '</div></div>';
+                    var isCensored = msg.is_censored === true;
+                    var bodyText = isCensored ? '<em style="opacity:0.8;">Повідомлення приховане модерацією</em>' : escapeAdminHtml(msg.message || '');
+                    var badges = (isDeleted ? ' <span class="badge badge-danger" style="margin-left:0.4rem;">Видалено</span>' : '') + (isCensored ? ' <span class="badge badge-warning" style="margin-left:0.4rem;">Зацензуровано</span>' : '');
+                    var actionsHtml = '';
+                    if (canModerate) {
+                        if (isDeleted) {
+                            actionsHtml = '<button class="btn btn-sm btn-danger" onclick="purgeChatMessage(\'' + msg.id + '\', \'' + orgId + '\', \'' + orgName.replace(/'/g, "\\'") + '\')" title="Видалити назавжди"><i class="fas fa-trash-alt"></i> Видалити назавжди</button>';
+                        } else {
+                            actionsHtml = (isCensored
+                                ? '<button class="btn btn-sm btn-teal" onclick="uncensorChatMessage(\'' + msg.id + '\', \'' + orgId + '\', \'' + orgName.replace(/'/g, "\\'") + '\')" title="Розцензурити"><i class="fas fa-eye"></i> Розцензурити</button>'
+                                : '<button class="btn btn-sm btn-warning" onclick="censorChatMessage(\'' + msg.id + '\', \'' + orgId + '\', \'' + orgName.replace(/'/g, "\\'") + '\')" title="Зацензурити"><i class="fas fa-eye-slash"></i> Зацензурити</button>') +
+                                ' <button class="btn btn-sm btn-danger" onclick="hideChatMessage(\'' + msg.id + '\', \'' + orgId + '\', \'' + orgName.replace(/'/g, "\\'") + '\')" title="Приховати повідомлення"><i class="fas fa-trash"></i> Приховати</button>';
+                        }
+                    }
+                    html += '<div style="padding:0.75rem;border-bottom:1px solid var(--ink-line);' + (isDeleted ? 'opacity:0.55;' : '') + '"><div style="font-size:0.8rem;color:var(--gold);display:flex;justify-content:space-between;"><span><i class="fas fa-user"></i> ' + userName + badges + '</span><span style="color:var(--muted);font-size:0.7rem;">' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;font-size:0.95rem;">' + bodyText + '</div>' + (actionsHtml ? '<div style="margin-top:0.5rem;display:flex;gap:0.4rem;flex-wrap:wrap;">' + actionsHtml + '</div>' : '') + '</div>';
                 }
                 container.innerHTML = html;
             } catch (error) { console.error('View chat error:', error); document.getElementById('chatMessagesContainer').innerHTML = '<p class="text-danger">Помилка завантаження повідомлень</p>'; }
+        }
+
+        function escapeAdminHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        async function censorChatMessage(messageId, orgId, orgName) {
+            try {
+                var user = auth.getCurrentUser();
+                await db.supabaseQuery('org_chat_messages?id=eq.' + messageId, { method: 'PATCH', body: JSON.stringify({ is_censored: true, censored_at: new Date().toISOString(), censored_by: user ? user.id : null }) });
+                await db.addLog('Зацензуровано повідомлення', 'message', messageId, {});
+                await showToast('Повідомлення зацензуровано', 'success');
+                viewChat(orgId, orgName);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function uncensorChatMessage(messageId, orgId, orgName) {
+            try {
+                await db.supabaseQuery('org_chat_messages?id=eq.' + messageId, { method: 'PATCH', body: JSON.stringify({ is_censored: false, censored_at: null, censored_by: null }) });
+                await db.addLog('Розцензуровано повідомлення', 'message', messageId, {});
+                await showToast('Повідомлення розцензуровано', 'success');
+                viewChat(orgId, orgName);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function hideChatMessage(messageId, orgId, orgName) {
+            var confirmed = await showConfirm('Приховати повідомлення від учасників? Запис лишиться в історії.', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                var user = auth.getCurrentUser();
+                await db.deleteChatMessage(messageId, user ? user.id : null);
+                await db.addLog('Приховано повідомлення (модерація)', 'message', messageId, {});
+                await showToast('Повідомлення приховано від учасників', 'success');
+                viewChat(orgId, orgName);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function purgeChatMessage(messageId, orgId, orgName) {
+            var confirmed = await showConfirm('Видалити повідомлення НАЗАВЖДИ? Цю дію не можна скасувати.', 'Остаточне видалення');
+            if (!confirmed) return;
+            try {
+                await db.supabaseQuery('org_chat_messages?id=eq.' + messageId, { method: 'DELETE' });
+                await db.addLog('Остаточно видалено повідомлення', 'message', messageId, {});
+                await showToast('Повідомлення видалено назавжди', 'success');
+                viewChat(orgId, orgName);
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         async function loadVacations() {

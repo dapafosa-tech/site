@@ -573,6 +573,24 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Перевірка пошти...';
 
             try {
+                // -1. Перевіряємо, чи цей IP не заблокований засновником
+                var clientIp = await db.getClientIp();
+
+                if (clientIp) {
+                    try {
+                        var ipBans = await db.supabaseQuery('banned_ips?ip=eq.' + encodeURIComponent(clientIp));
+                        var activeBan = ipBans && ipBans.find(function(b) {
+                            return !b.banned_until || new Date(b.banned_until) > new Date();
+                        });
+                        if (activeBan) {
+                            throw new Error('Ваш IP заблоковано. Реєстрація неможлива.');
+                        }
+                    } catch (checkErr) {
+                        if (checkErr.message === 'Ваш IP заблоковано. Реєстрація неможлива.') throw checkErr;
+                        // Якщо перевірка сама впала (мережа/RLS) - не блокуємо чесних юзерів через це
+                    }
+                }
+
                 // 0. Перевіряємо, чи ця пошта вже зареєстрована - ДО спроби реєстрації,
                 // бо сам Supabase мовчки "прикидається успіхом" на існуючий email
                 // (захист від enumeration), і код тоді просто не приходить.
@@ -583,7 +601,7 @@
 
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Створення...';
 
-                // 1. Створюємо акаунт
+                // 1. Створюємо акаунт (reg_ip проставиться автоматично в syncProfile через getClientIp())
                 var result = await auth.registerUser(email, password, fullName, phone, companyAddress);
                 
                 if (!result.success) {
