@@ -1744,159 +1744,172 @@
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
-        // ============================================================
-        // РОЗДІЛ: ТЕХПІДТРИМКА (ПОВНА ВЕРСІЯ)
-        // ============================================================
-        var supportTicketsCache = [];
-        var supportUserMapCache = {};
-        var statusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
+// ============================================================
+// РОЗДІЛ: ТЕХПІДТРИМКА (admin.html)
+// ============================================================
+var supportTicketsCache = [];
+var supportUserMapCache = {};
+var statusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
 
-        async function loadSupportManagement() {
-            var user = auth.getCurrentUser();
-            var container = document.getElementById('adminContent');
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-            container.innerHTML = '<div class="card"><p class="text-muted">Завантаження заявок...</p></div>';
-            try {
-                var tickets = await db.getSupportTickets();
-                var users = await db.getUsersWithRoles();
-                var userMap = {};
-                if (users) {
-                    for (var i = 0; i < users.length; i++) {
-                        userMap[users[i].id] = users[i];
-                    }
-                }
-                supportTicketsCache = tickets || [];
-                supportUserMapCache = userMap;
-                renderSupportTicketsTable();
-            } catch (error) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>';
+async function loadSupportManagement() {
+    var user = auth.getCurrentUser();
+    var container = document.getElementById('adminContent');
+    if (!canViewData(user)) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
+        return;
+    }
+    container.innerHTML = '<div class="card"><p class="text-muted">Завантаження заявок...</p></div>';
+    try {
+        var tickets = await db.getSupportTickets();
+        var users = await db.getUsersWithRoles();
+        var userMap = {};
+        if (users) {
+            for (var i = 0; i < users.length; i++) {
+                userMap[users[i].id] = users[i];
             }
         }
+        supportTicketsCache = tickets || [];
+        supportUserMapCache = userMap;
+        renderSupportTicketsTable();
+    } catch (error) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>';
+    }
+}
 
-        function renderSupportTicketsTable() {
-            var container = document.getElementById('adminContent');
-            var userMap = supportUserMapCache;
-            var sorted = supportTicketsCache.slice().sort(function(a, b) {
-                var wa = statusWeight[a.status] !== undefined ? statusWeight[a.status] : 1;
-                var wb = statusWeight[b.status] !== undefined ? statusWeight[b.status] : 1;
-                if (wa !== wb) return wa - wb;
-                return new Date(b.created_at) - new Date(a.created_at);
-            });
+function renderSupportTicketsTable() {
+    var container = document.getElementById('adminContent');
+    var userMap = supportUserMapCache;
+    var sorted = supportTicketsCache.slice().sort(function(a, b) {
+        var wa = statusWeight[a.status] !== undefined ? statusWeight[a.status] : 1;
+        var wb = statusWeight[b.status] !== undefined ? statusWeight[b.status] : 1;
+        if (wa !== wb) return wa - wb;
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
+    
+    var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
+    html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+    html += '<select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div>';
+    html += '<div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>ID</th><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
+    
+    if (sorted.length > 0) {
+        for (var i = 0; i < sorted.length; i++) {
+            var t = sorted[i];
+            var shortId = getShortTicketId(t.id);
+            var u = userMap[t.user_id];
+            var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+            var userEmail = u ? (u.email || '') : '';
+            var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
+            var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+            var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
             
-            var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
-            html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
-            html += '<select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div>';
-            html += '<div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
-            
-            if (sorted.length > 0) {
-                for (var i = 0; i < sorted.length; i++) {
-                    var t = sorted[i];
-                    var u = userMap[t.user_id];
-                    var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
-                    var userEmail = u ? (u.email || '') : '';
-                    var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
-                    var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
-                    var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
-                    
-                    html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '"><td><strong>' + userName + '</strong></td><td>' + (t.subject || '—') + '</td><td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td><td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td><td>' + formatDateKyiv(t.created_at) + '</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' + (t.status !== 'closed' ? '<button class="btn btn-sm btn-success" onclick="closeSupportTicket(\'' + t.id + '\')"><i class="fas fa-check"></i></button>' : '') + '</td></tr>';
-                }
-            } else {
-                html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
-            }
-            
-            html += '</tbody></table></div></div>';
-            container.innerHTML = html;
+            html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '">';
+            html += '<td><span style="font-family:monospace;font-size:0.8rem;color:var(--muted);">' + shortId + '</span></td>';
+            html += '<td><strong>' + userName + '</strong></td>';
+            html += '<td>' + (t.subject || '—') + '</td>';
+            html += '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>';
+            html += '<td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td>';
+            html += '<td>' + formatDateKyiv(t.created_at) + '</td>';
+            html += '<td style="white-space:nowrap;"><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' + (t.status !== 'closed' ? '<button class="btn btn-sm btn-success" onclick="closeSupportTicket(\'' + t.id + '\')"><i class="fas fa-check"></i></button>' : '') + '</td></tr>';
         }
+    } else {
+        html += '<tr><td colspan="7" class="text-center text-muted">Немає заявок</td></tr>';
+    }
+    
+    html += '</tbody></table></div></div>';
+    container.innerHTML = html;
+}
 
-        function filterSupportTickets() {
-            var search = (document.getElementById('supportSearchInput').value || '').toLowerCase().trim();
-            var status = document.getElementById('supportStatusFilter').value;
-            var rows = document.querySelectorAll('#supportTicketsBody tr');
-            rows.forEach(function(row) {
-                var matchUser = !search || (row.getAttribute('data-user') || '').indexOf(search) !== -1;
-                var matchStatus = !status || row.getAttribute('data-status') === status;
-                row.style.display = (matchUser && matchStatus) ? '' : 'none';
-            });
-        }
+function filterSupportTickets() {
+    var search = (document.getElementById('supportSearchInput').value || '').toLowerCase().trim();
+    var status = document.getElementById('supportStatusFilter').value;
+    var rows = document.querySelectorAll('#supportTicketsBody tr');
+    rows.forEach(function(row) {
+        var matchUser = !search || (row.getAttribute('data-user') || '').indexOf(search) !== -1;
+        var matchStatus = !status || row.getAttribute('data-status') === status;
+        row.style.display = (matchUser && matchStatus) ? '' : 'none';
+    });
+}
 
-        async function viewSupportTicket(ticketId) {
-            try {
-                var t = await db.getSupportTicket(ticketId);
-                if (!t) {
-                    await showAlert('Заявку не знайдено', 'error');
-                    return;
-                }
-                var messages = await db.getSupportMessages(ticketId);
-                var u = supportUserMapCache[t.user_id];
-                var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
-                var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
-                
-                var html = '<div><p><strong>Тема:</strong> ' + t.subject + '</p><p><strong>Від:</strong> ' + userName + '</p><p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p><div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div><hr style="border-color:var(--ink-line);">';
-                
-                if (messages && messages.length > 0) {
-                    for (var i = 0; i < messages.length; i++) {
-                        var msg = messages[i];
-                        var isStaff = isStaffRole(msg.sender_type);
-                        var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
-                        if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
-                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : (msg.sender_type === 'ai' ? '#8B5CF6' : 'var(--teal)')) + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
-                    }
-                }
-                
-                if (t.status !== 'closed') {
-                    html += '<hr style="border-color:var(--ink-line);"><div style="display:flex;gap:0.5rem;flex-direction:column;"><textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button><button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button></div></div>';
-                } else {
-                    html += '<p class="text-muted">✅ Заявку закрито</p>';
-                }
-                html += '</div>';
-                openModal('Заявка #' + ticketId.substring(0, 8), html);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
+async function viewSupportTicket(ticketId) {
+    try {
+        var t = await db.getSupportTicket(ticketId);
+        if (!t) {
+            await showAlert('Заявку не знайдено', 'error');
+            return;
+        }
+        var shortId = getShortTicketId(ticketId);
+        var messages = await db.getSupportMessages(ticketId);
+        var u = supportUserMapCache[t.user_id];
+        var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+        var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+        
+        var html = '<div><p><strong>ID:</strong> <span style="font-family:monospace;">' + shortId + '</span></p>';
+        html += '<p><strong>Тема:</strong> ' + t.subject + '</p>';
+        html += '<p><strong>Від:</strong> ' + userName + '</p>';
+        html += '<p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p>';
+        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div><hr style="border-color:var(--ink-line);">';
+        
+        if (messages && messages.length > 0) {
+            for (var i = 0; i < messages.length; i++) {
+                var msg = messages[i];
+                var isStaff = isStaffRole(msg.sender_type);
+                var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
+                if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
+                html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : (msg.sender_type === 'ai' ? '#8B5CF6' : 'var(--teal)')) + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
             }
         }
+        
+        if (t.status !== 'closed') {
+            html += '<hr style="border-color:var(--ink-line);"><div style="display:flex;gap:0.5rem;flex-direction:column;"><textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button><button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button></div></div>';
+        } else {
+            html += '<p class="text-muted">✅ Заявку закрито</p>';
+        }
+        html += '</div>';
+        openModal('Заявка ' + shortId, html);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
 
-        async function sendSupportReply(ticketId) {
-            var textarea = document.getElementById('supportReply');
-            if (!textarea) return;
-            var message = textarea.value.trim();
-            if (!message) {
-                await showAlert('Введіть повідомлення', 'warning');
-                return;
-            }
-            var user = auth.getCurrentUser();
-            try {
-                await db.sendSupportMessage({
-                    ticket_id: ticketId,
-                    sender_id: user.id,
-                    sender_type: user.role,
-                    message: message
-                });
-                await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
-                await db.addLog('Відповідь в підтримку', 'support', ticketId, {});
-                await showToast('Відповідь відправлено!', 'success');
-                await loadSupportManagement();
-                await viewSupportTicket(ticketId);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
+async function sendSupportReply(ticketId) {
+    var textarea = document.getElementById('supportReply');
+    if (!textarea) return;
+    var message = textarea.value.trim();
+    if (!message) {
+        await showAlert('Введіть повідомлення', 'warning');
+        return;
+    }
+    var user = auth.getCurrentUser();
+    try {
+        await db.sendSupportMessage({
+            ticket_id: ticketId,
+            sender_id: user.id,
+            sender_type: user.role,
+            message: message
+        });
+        await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
+        await db.addLog('Відповідь в підтримку', 'support', ticketId, {});
+        await showToast('Відповідь відправлено!', 'success');
+        await loadSupportManagement();
+        await viewSupportTicket(ticketId);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
 
-        async function closeSupportTicket(ticketId) {
-            var confirmed = await showConfirm('Закрити заявку?', 'Підтвердження');
-            if (!confirmed) return;
-            try {
-                await db.updateSupportTicket(ticketId, { status: 'closed' });
-                await db.addLog('Закрито заявку в підтримку', 'support', ticketId, {});
-                await showToast('Заявку закрито!', 'success');
-                await loadSupportManagement();
-                await viewSupportTicket(ticketId);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
+async function closeSupportTicket(ticketId) {
+    var confirmed = await showConfirm('Закрити заявку?', 'Підтвердження');
+    if (!confirmed) return;
+    try {
+        await db.updateSupportTicket(ticketId, { status: 'closed' });
+        await db.addLog('Закрито заявку в підтримку', 'support', ticketId, {});
+        await showToast('Заявку закрито!', 'success');
+        await loadSupportManagement();
+        await viewSupportTicket(ticketId);
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
 
         // ============================================================
         // РОЗДІЛ: АДМІН-ФОРМИ
