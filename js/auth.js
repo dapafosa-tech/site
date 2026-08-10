@@ -159,13 +159,19 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
             throw new Error('Реєстрацію нових користувачів тимчасово вимкнено адміністрацією');
         }
 
+        // Ловимо IP ДО signUp() і кладемо в metadata - якщо в базі є тригер,
+        // що створює профіль одразу на auth.users insert, він зможе прочитати
+        // reg_ip з raw_user_meta_data (сам тригер не знає публічний IP клієнта).
+        var regIp = await db.getClientIp();
+
         var { data, error } = await window.sb.auth.signUp({
             email: email,
             password: password,
             options: { data: {
                 full_name: fullName || email.split('@')[0],
                 phone: phone || null,
-                company_address: companyAddress || null
+                company_address: companyAddress || null,
+                reg_ip: regIp || null
             } }
         });
         if (error) {
@@ -176,7 +182,7 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
         }
 
         if (!data.session) {
-            return { success: true, needsEmailConfirm: true, email: email, phone: phone };
+            return { success: true, needsEmailConfirm: true, email: email, phone: phone, companyAddress: companyAddress };
         }
 
         var profile = await syncProfile(true);
@@ -187,7 +193,7 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
     }
 }
 
-async function verifyRegistrationOtp(email, code, phone) {
+async function verifyRegistrationOtp(email, code, phone, companyAddress) {
     try {
         var { data, error } = await window.sb.auth.verifyOtp({
             email: email,
@@ -206,18 +212,37 @@ async function verifyRegistrationOtp(email, code, phone) {
 
         var profile = await syncProfile(true);
 
-        if (phone && profile) {
-            try {
-                await supabaseQuery('users?id=eq.' + profile.id, {
-                    method: 'PATCH',
-                    headers: { 'Prefer': 'return=representation' },
-                    body: JSON.stringify({ phone: phone })
-                });
-                profile.phone = phone;
-                localStorage.setItem('userData', JSON.stringify(profile));
-                currentUser = profile;
-            } catch (e) {
-                console.warn('Failed to update phone:', e);
+        // Якщо профіль у БД уже створив тригер (одразу на auth.users insert) -
+        // client-side insert в syncProfile() міг конфліктнути і не записати
+        // phone/company_address/reg_ip. Дописуємо тут все, чого бракує,
+        // щоб ці дані НЕ губились незалежно від того, є тригер чи нема.
+        if (profile) {
+            var patch = {};
+            if (phone && !profile.phone) patch.phone = phone;
+            if (companyAddress && !profile.company_address) patch.company_address = companyAddress;
+            if (!profile.reg_ip || !profile.last_ip) {
+                try {
+                    var regIp = await db.getClientIp();
+                    if (regIp) {
+                        if (!profile.reg_ip) patch.reg_ip = regIp;
+                        if (!profile.last_ip) patch.last_ip = regIp;
+                    }
+                } catch (e) {}
+            }
+
+            if (Object.keys(patch).length > 0) {
+                try {
+                    await supabaseQuery('users?id=eq.' + profile.id, {
+                        method: 'PATCH',
+                        headers: { 'Prefer': 'return=representation' },
+                        body: JSON.stringify(patch)
+                    });
+                    Object.assign(profile, patch);
+                    localStorage.setItem('userData', JSON.stringify(profile));
+                    currentUser = profile;
+                } catch (e) {
+                    console.warn('Failed to backfill profile extras:', e);
+                }
             }
         }
 

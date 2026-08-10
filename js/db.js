@@ -77,18 +77,29 @@ async function getClientIp() {
 async function trackVisitIp(profile) {
     if (!profile || !profile.id) return;
     try {
-        if (sessionStorage.getItem('ipTrackedFor') === profile.id) return;
+        if (sessionStorage.getItem('ipTrackedFor') === profile.id && profile.reg_ip) return;
     } catch (e) {}
     try {
         var ip = await getClientIp();
         if (!ip) return;
         try { sessionStorage.setItem('ipTrackedFor', profile.id); } catch (e) {}
-        if (profile.last_ip === ip) return;
+
+        var patch = {};
+        if (profile.last_ip !== ip) patch.last_ip = ip;
+        // reg_ip може бути порожнім у старих/щойно створених тригером профілів
+        // (тригер у базі не знає публічний IP клієнта) - підставляємо поточний
+        // IP як реєстраційний, якщо його ще нема, щоб кнопка "Забанити IP"
+        // з'явилась і для таких юзерів.
+        if (!profile.reg_ip) patch.reg_ip = ip;
+
+        if (Object.keys(patch).length === 0) return;
+
         await supabaseQuery('users?id=eq.' + profile.id, {
             method: 'PATCH',
-            body: JSON.stringify({ last_ip: ip })
+            body: JSON.stringify(patch)
         });
-        profile.last_ip = ip;
+        if (patch.last_ip) profile.last_ip = patch.last_ip;
+        if (patch.reg_ip) profile.reg_ip = patch.reg_ip;
     } catch (e) {
         console.warn('trackVisitIp error:', e);
     }

@@ -478,7 +478,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Перевірка...';
 
             try {
-                var result = await auth.verifyRegistrationOtp(pendingRegistration.email, code, pendingRegistration.phone);
+                var result = await auth.verifyRegistrationOtp(pendingRegistration.email, code, pendingRegistration.phone, pendingRegistration.companyAddress);
                 if (!result.success) {
                     throw new Error(result.error);
                 }
@@ -616,6 +616,7 @@
                         email: result.email || email,
                         fullName: fullName,
                         phone: phone,
+                        companyAddress: companyAddress,
                         avatarFile: selectedAvatarFile
                     };
                     submitBtn.disabled = false;
