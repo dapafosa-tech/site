@@ -9,6 +9,10 @@ var ROLE_INFO = {
     admin: { label: 'Адміністратор', emoji: '⭐', color: '#E2503E' },
     moderator: { label: 'Модератор', emoji: '🛡️', color: '#F59E0B' },
     bot: { label: 'Typebiz Bot', emoji: '🤖', color: '#46C9B8' },
+    // 'ai' - реальне значення sender_type, яке пише ai-support-agent
+    // (edge function) у support_messages. Без цього запису повідомлення
+    // бота помилково рендерились як повідомлення поточного користувача ("Ви").
+    ai: { label: 'Typebiz Bot', emoji: '🤖', color: '#8B5CF6' },
     user: { label: 'Користувач', emoji: '👤', color: '#46C9B8' }
 };
 
@@ -17,7 +21,7 @@ function getRoleInfo(role) {
 }
 
 function isStaffRole(role) {
-    return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot';
+    return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot' || role === 'ai';
 }
 
 function getRoleBadgeHtml(role) {
