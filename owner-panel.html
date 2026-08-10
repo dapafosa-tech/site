@@ -574,8 +574,8 @@
             if (mc) mc.classList.toggle('modal-content-wide', !!wide);
             document.getElementById('modal').classList.add('active');
         }
-        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator'; }
-        function getRoleBadgeHtml(role) { var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'user': '👤 Користувач' }; return labels[role] || '👤 Користувач'; }
+        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot'; }
+        function getRoleBadgeHtml(role) { var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'bot': '🤖 Typebiz Bot', 'user': '👤 Користувач' }; return labels[role] || '👤 Користувач'; }
 
         function showToast(message, type) {
             var container = document.getElementById('toastContainer');
