@@ -1319,6 +1319,7 @@
                             }
                         }
                         await db.addLog('Змінено налаштування системи', 'system', null, data);
+                        db.clearSystemSettingsCache();
                         await showToast('Налаштування збережено!', 'success');
                         closeModal();
                         loadSystemManagement();
@@ -1958,6 +1959,7 @@
                     });
                 }
                 await db.addLog('Змінено налаштування реєстрації', 'system', null, { enabled: enabled });
+                db.clearSystemSettingsCache();
                 await showToast('Налаштування збережено!', 'success');
                 closeModal();
                 loadSecurityManagement();
