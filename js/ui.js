@@ -9,9 +9,6 @@ var ROLE_INFO = {
     admin: { label: 'Адміністратор', emoji: '⭐', color: '#E2503E' },
     moderator: { label: 'Модератор', emoji: '🛡️', color: '#F59E0B' },
     bot: { label: 'Typebiz Bot', emoji: '🤖', color: '#46C9B8' },
-    // 'ai' - реальне значення sender_type, яке пише ai-support-agent
-    // (edge function) у support_messages. Без цього запису повідомлення
-    // бота помилково рендерились як повідомлення поточного користувача ("Ви").
     ai: { label: 'Typebiz Bot', emoji: '🤖', color: '#8B5CF6' },
     user: { label: 'Користувач', emoji: '👤', color: '#46C9B8' }
 };
@@ -26,8 +23,64 @@ function isStaffRole(role) {
 
 function getRoleBadgeHtml(role) {
     var info = getRoleInfo(role);
+    if (role === 'ai' || role === 'bot') {
+        return '<span class="badge" style="background:#8B5CF620;color:#8B5CF6;">🤖 Typebiz Bot</span>';
+    }
     return '<span class="badge" style="background:' + info.color + '20;color:' + info.color + ';">' + info.emoji + ' ' + info.label + '</span>';
 }
+
+// ============================================================
+// ФОРМАТУВАННЯ ДАТИ/ЧАСУ ЗА КИЇВСЬКИМ ЧАСОМ
+// ============================================================
+
+var TYPEBIZ_TIMEZONE = 'Europe/Kyiv';
+
+function normalizeTimestampToUTC(dateValue) {
+    if (typeof dateValue !== 'string') return dateValue;
+    var hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(dateValue);
+    var looksLikeIsoDateTime = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(dateValue);
+    if (looksLikeIsoDateTime && !hasTimezone) {
+        return dateValue.replace(' ', 'T') + 'Z';
+    }
+    return dateValue;
+}
+
+function formatDateTimeKyiv(dateValue, options) {
+    try {
+        var normalized = (dateValue instanceof Date) ? dateValue : normalizeTimestampToUTC(dateValue);
+        var d = (normalized instanceof Date) ? normalized : new Date(normalized);
+        if (isNaN(d.getTime())) return '';
+        var opts = { timeZone: TYPEBIZ_TIMEZONE };
+        if (options) {
+            for (var key in options) opts[key] = options[key];
+        }
+        return d.toLocaleString('uk-UA', opts);
+    } catch (e) {
+        return '';
+    }
+}
+
+function formatDateKyiv(dateValue) {
+    return formatDateTimeKyiv(dateValue, { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+function formatTimeKyiv(dateValue) {
+    return formatDateTimeKyiv(dateValue, { hour: '2-digit', minute: '2-digit' });
+}
+
+// ============================================================
+// SHORT ID ДЛЯ ТІКЕТІВ (як #00ee47a3)
+// ============================================================
+
+function getShortTicketId(fullId) {
+    if (!fullId) return '???????';
+    var short = fullId.replace(/-/g, '').slice(0, 8);
+    return '#' + short;
+}
+
+// ============================================================
+// TOAST / ALERT / CONFIRM / PROMPT
+// ============================================================
 
 function showToast(message, type, duration) {
     if (type === undefined) type = 'info';
@@ -269,63 +322,9 @@ style.textContent =
     '@keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
 document.head.appendChild(style);
 
-// ============================================
-// ФОРМАТУВАННЯ ДАТИ/ЧАСУ ЗА КИЇВСЬКИМ ЧАСОМ
-// (IANA "Europe/Kyiv" сам враховує перехід на літній/зимовий час)
-// ============================================
-
-var TYPEBIZ_TIMEZONE = 'Europe/Kyiv';
-
-// --- ФІКС: деякі таблиці (напр. org_chat_messages, support_messages) можуть
-// повертати з Supabase/PostgREST рядок часу БЕЗ вказівки часового поясу,
-// наприклад "2026-08-08T14:30:00" замість "2026-08-08T14:30:00.000Z".
-// Без "Z"/офсету JS трактує такий рядок як ЛОКАЛЬНИЙ час браузера,
-// а не UTC — через це подальша конвертація в Europe/Kyiv "з'їжджає"
-// і час у чаті/тікетах показується як +0 замість київського.
-// Ця функція нормалізує такі рядки, добудовуючи "Z" (вважаючи, що
-// значення в БД зберігається як UTC — так само, як інші timestamptz-поля).
-function normalizeTimestampToUTC(dateValue) {
-    if (typeof dateValue !== 'string') return dateValue;
-    var hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(dateValue);
-    var looksLikeIsoDateTime = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(dateValue);
-    if (looksLikeIsoDateTime && !hasTimezone) {
-        return dateValue.replace(' ', 'T') + 'Z';
-    }
-    return dateValue;
-}
-
-function formatDateTimeKyiv(dateValue, options) {
-    try {
-        var normalized = (dateValue instanceof Date) ? dateValue : normalizeTimestampToUTC(dateValue);
-        var d = (normalized instanceof Date) ? normalized : new Date(normalized);
-        if (isNaN(d.getTime())) return '';
-        var opts = { timeZone: TYPEBIZ_TIMEZONE };
-        if (options) {
-            for (var key in options) opts[key] = options[key];
-        }
-        return d.toLocaleString('uk-UA', opts);
-    } catch (e) {
-        return '';
-    }
-}
-
-function formatDateKyiv(dateValue) {
-    return formatDateTimeKyiv(dateValue, { year: 'numeric', month: '2-digit', day: '2-digit' });
-}
-
-function formatTimeKyiv(dateValue) {
-    return formatDateTimeKyiv(dateValue, { hour: '2-digit', minute: '2-digit' });
-}
-
-window.normalizeTimestampToUTC = normalizeTimestampToUTC;
-window.formatDateTimeKyiv = formatDateTimeKyiv;
-window.formatDateKyiv = formatDateKyiv;
-window.formatTimeKyiv = formatTimeKyiv;
-
-// ============================================
+// ============================================================
 // СИСТЕМНІ НАЛАШТУВАННЯ: НАЗВА САЙТУ + ОГОЛОШЕННЯ
-// (реальне застосування налаштувань з панелі засновника)
-// ============================================
+// ============================================================
 
 async function applySiteBranding() {
     try {
@@ -340,9 +339,7 @@ async function applySiteBranding() {
         document.querySelectorAll('.brand-name').forEach(function (el) {
             el.textContent = siteName;
         });
-    } catch (e) {
-        // тихо ігноруємо — стандартна назва залишиться
-    }
+    } catch (e) {}
 }
 
 async function renderGlobalAnnouncements(containerId) {
@@ -368,7 +365,7 @@ async function renderGlobalAnnouncements(containerId) {
             if (dismissed.indexOf(a.id) !== -1) continue;
 
             html +=
-                '<div class="global-announcement" data-announcement-id="' + a.id + '" style="background:var(--gold-glow,rgba(242,169,59,0.16));border:1px solid var(--gold,#F2A93B);border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:0.75rem;">' +
+                '<div class="global-announcement" data-announcement-id="' + a.id + '" style="background:rgba(242,169,59,0.16);border:1px solid var(--gold,#F2A93B);border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:0.75rem;">' +
                     '<i class="fas fa-bullhorn" style="color:var(--gold,#F2A93B);flex-shrink:0;"></i>' +
                     '<span style="flex:1;font-size:0.92rem;">' + a.message + '</span>' +
                     '<button onclick="dismissGlobalAnnouncement(\'' + a.id + '\', \'' + containerId + '\')" style="background:none;border:none;color:inherit;cursor:pointer;opacity:0.6;font-size:0.9rem;" title="Приховати">' +
@@ -401,17 +398,158 @@ window.renderGlobalAnnouncements = renderGlobalAnnouncements;
 window.dismissGlobalAnnouncement = dismissGlobalAnnouncement;
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Назва сайту застосовується всюди, де підключено ui.js + db.js
     if (window.db) applySiteBranding();
 });
 
 // ============================================================
-// REALTIME HELPER (Supabase Realtime) - для "живих" списків/чатів
+// СИСТЕМА СПОВІЩЕНЬ
 // ============================================================
-// Підписка на зміни (INSERT/UPDATE/DELETE) в одній таблиці, опційно
-// відфільтровані (напр. "ticket_id=eq.xxx" або "organization_id=eq.xxx").
-// Повертає канал, який ОБОВ'ЯЗКОВО треба закрити через unsubscribeRealtime()
-// коли модалка/секція закривається - інакше канали накопичуватимуться.
+
+async function fetchUnreadNotifications() {
+    if (!window.db) return [];
+    var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
+    if (!user) return [];
+    try {
+        var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&is_read=eq.false&order=created_at.desc&limit=50');
+        return notifications || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+async function updateNotificationBadge() {
+    var notifications = await fetchUnreadNotifications();
+    var count = notifications ? notifications.length : 0;
+    var badge = document.getElementById('notificationBadge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    return count;
+}
+
+async function markNotificationRead(notificationId) {
+    if (!window.db) return;
+    try {
+        await db.supabaseQuery('notifications?id=eq.' + notificationId, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_read: true })
+        });
+        updateNotificationBadge();
+    } catch (e) {}
+}
+
+async function markAllNotificationsRead() {
+    if (!window.db) return;
+    var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
+    if (!user) return;
+    try {
+        await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&is_read=eq.false', {
+            method: 'PATCH',
+            body: JSON.stringify({ is_read: true })
+        });
+        updateNotificationBadge();
+    } catch (e) {}
+}
+
+function setupNotificationsRealtime() {
+    var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
+    if (!user || !window.sb) return;
+    
+    if (window._notifChannel) {
+        try { window.sb.removeChannel(window._notifChannel); } catch(e) {}
+    }
+    
+    window._notifChannel = window.sb
+        .channel('notifications-realtime')
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: 'user_id=eq.' + user.id
+        }, function(payload) {
+            updateNotificationBadge();
+            var n = payload.new;
+            var iconMap = {
+                'chat_mention': '💬',
+                'admin_form': '📋',
+                'support_reply': '💬',
+                'support_escalation': '🔺',
+                'system_alert': '⚠️',
+                'appeal_result': '⚖️',
+                'default': '📬'
+            };
+            showToast((iconMap[n.type] || iconMap.default) + ' ' + n.title + ': ' + n.message, 'info');
+        })
+        .subscribe();
+}
+
+async function loadNotificationsPage(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    
+    var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
+    if (!user) return;
+    
+    try {
+        var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
+        var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
+        
+        var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
+        if (unread.length > 0) {
+            html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead();loadNotificationsPage(\'' + containerId + '\')"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+        }
+        html += '</div>';
+        
+        if (!notifications || notifications.length === 0) {
+            html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
+        } else {
+            html += '<div style="max-height:500px;overflow-y:auto;">';
+            for (var i = 0; i < notifications.length; i++) {
+                var n = notifications[i];
+                var isUnread = !n.is_read;
+                var iconMap = {
+                    'chat_mention': 'fa-at',
+                    'admin_form': 'fa-file-signature',
+                    'support_reply': 'fa-reply',
+                    'support_escalation': 'fa-flag',
+                    'system_alert': 'fa-shield-alt',
+                    'appeal_result': 'fa-gavel',
+                    'default': 'fa-bell'
+                };
+                var icon = iconMap[n.type] || iconMap.default;
+                var link = n.link || '#';
+                
+                html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';' + (n.link ? 'window.location.href=\'' + n.link + '\'' : '') + '">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
+                html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
+                html += '</div>';
+                html += '<div class="notif-message">' + n.message + '</div>';
+                if (isUnread) {
+                    html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень</p></div>';
+    }
+}
+
+// ============================================================
+// REALTIME HELPER (Supabase Realtime)
+// ============================================================
+
 function subscribeRealtime(table, filter, onChange) {
     if (!window.sb || typeof window.sb.channel !== 'function') return null;
     try {
@@ -433,13 +571,31 @@ function unsubscribeRealtime(channel) {
     try { window.sb.removeChannel(channel); } catch (e) {}
 }
 
-window.subscribeRealtime = subscribeRealtime;
-window.unsubscribeRealtime = unsubscribeRealtime;
+// ============================================================
+// ЕКСПОРТ
+// ============================================================
+
+window.normalizeTimestampToUTC = normalizeTimestampToUTC;
+window.formatDateTimeKyiv = formatDateTimeKyiv;
+window.formatDateKyiv = formatDateKyiv;
+window.formatTimeKyiv = formatTimeKyiv;
+window.getShortTicketId = getShortTicketId;
 
 window.showToast = showToast;
 window.showAlert = showAlert;
 window.showConfirm = showConfirm;
 window.showPrompt = showPrompt;
+
 window.getRoleInfo = getRoleInfo;
 window.isStaffRole = isStaffRole;
 window.getRoleBadgeHtml = getRoleBadgeHtml;
+
+window.fetchUnreadNotifications = fetchUnreadNotifications;
+window.updateNotificationBadge = updateNotificationBadge;
+window.markNotificationRead = markNotificationRead;
+window.markAllNotificationsRead = markAllNotificationsRead;
+window.setupNotificationsRealtime = setupNotificationsRealtime;
+window.loadNotificationsPage = loadNotificationsPage;
+
+window.subscribeRealtime = subscribeRealtime;
+window.unsubscribeRealtime = unsubscribeRealtime;
