@@ -1625,28 +1625,33 @@ async function refreshBanStatus(userId) {
 }
 
 /**
- * СТВОРИТИ АПЕЛЯЦІЮ (ТРИГЕР ЗРОБИТЬ ВСЕ САМ)
+ * СТВОРИТИ АПЕЛЯЦІЮ (ВИКОРИСТОВУЄМО ТІЛЬКИ ТІ ПОЛЯ, ЩО Є!)
  */
 async function createAppeal(data) {
     try {
+        // ВИКОРИСТОВУЄМО ТІЛЬКИ ТІ ПОЛЯ, ЯКІ ТОЧНО Є В ТАБЛИЦІ
+        var appealData = {
+            id: generateUUID(),
+            user_id: data.user_id,
+            ban_reason: data.ban_reason || 'Порушення правил',
+            status: 'pending',
+            created_at: new Date().toISOString()
+        };
+        
+        // ЯКЩО Є ДОДАТКОВІ ПОЛЯ - ДОДАЄМО
+        if (data.target_user_id) appealData.target_user_id = data.target_user_id;
+        if (data.reason) appealData.reason = data.reason;
+        if (data.description) appealData.description = data.description;
         
         const result = await supabaseQuery('appeals', {
             method: 'POST',
-            body: JSON.stringify({
-                id: generateUUID(),
-                user_id: data.user_id,
-                target_user_id: data.target_user_id || data.user_id,
-                reason: data.reason || 'Апеляція на блокування',
-                description: data.description || '',
-                status: 'pending',
-                created_at: new Date().toISOString()
-            }),
+            body: JSON.stringify(appealData),
             headers: { 'Prefer': 'return=representation' }
         });
         
         await addLog('Створено апеляцію', 'appeal', null, {
-            reason: data.reason,
-            user_id: data.user_id
+            user_id: data.user_id,
+            ban_reason: data.ban_reason
         });
         
         return result;
