@@ -126,6 +126,7 @@
             font-weight:500;
             font-size:0.87rem;
             cursor:pointer;
+            position:relative;
         }
         .sidebar .nav-menu a:hover{background:var(--ink-raised);color:var(--text-onink);}
         .sidebar .nav-menu a.active{background:var(--ink-raised);border-left-color:var(--gold);color:var(--text-onink);font-weight:600;}
@@ -139,6 +140,20 @@
         .sidebar .nav-menu .logout-btn a{color:var(--danger);}
         .sidebar .nav-menu .logout-btn a i{color:var(--danger);}
         .sidebar .nav-menu .logout-btn a:hover{background:rgba(226,80,62,0.1);}
+        .sidebar .nav-menu a .badge-notif{
+            position:absolute;
+            right:8px;
+            top:6px;
+            background:#E2503E;
+            color:white;
+            border-radius:50%;
+            padding:1px 5px;
+            font-size:0.6rem;
+            font-weight:700;
+            min-width:18px;
+            text-align:center;
+            display:none;
+        }
         .main-content{
             margin-left:268px;
             padding:2.4rem 2.8rem;
@@ -447,6 +462,13 @@
         .form-type-card{background:var(--ink);border:1px solid var(--ink-line);border-radius:var(--radius-sm);padding:1rem;margin-bottom:0.8rem;}
         .form-type-card.answered{opacity:0.65;}
         .form-type-badge{font-family:'IBM Plex Mono';font-size:0.65rem;padding:0.15rem 0.55rem;border-radius:6px;text-transform:uppercase;letter-spacing:0.04em;}
+        .notification-item{padding:0.75rem;border-bottom:1px solid var(--ink-line);cursor:pointer;transition:background 0.2s;}
+        .notification-item:hover{background:rgba(255,255,255,0.02);}
+        .notification-item.unread{background:rgba(242,169,59,0.06);border-left:3px solid var(--gold);}
+        .notification-item .notif-title{font-weight:600;font-size:0.95rem;}
+        .notification-item .notif-message{font-size:0.85rem;color:var(--muted);margin-top:0.2rem;}
+        .notification-item .notif-time{font-size:0.7rem;color:var(--muted-dim);}
+        .notification-item .notif-badge{display:inline-block;font-size:0.6rem;color:var(--gold);margin-top:0.2rem;}
 
         @media(max-width:768px){
             .mobile-topbar{
@@ -537,11 +559,13 @@
             <li><a onclick="loadSection('adminforms')"><i class="fas fa-file-signature"></i> Адмін-Форми</a></li>
             <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
             <li><a onclick="loadSection('ai')"><i class="fas fa-robot"></i> ШІ Модерація</a></li>
+            <li><a onclick="loadSection('notifications')"><i class="fas fa-bell"></i> Сповіщення <span id="notificationBadge" class="badge-notif">0</span></a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
     </aside>
 
     <main class="main-content">
+        <div id="globalAnnouncements"></div>
         <div class="page-header">
             <div>
                 <h1 id="pageTitle">Панель засновника</h1>
@@ -719,6 +743,141 @@
         });
 
         // ============================================================
+        // СИСТЕМА СПОВІЩЕНЬ
+        // ============================================================
+        async function fetchUnreadNotifications() {
+            if (!db) return [];
+            var user = auth.getCurrentUser();
+            if (!user) return [];
+            try {
+                var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&is_read=eq.false&order=created_at.desc&limit=50');
+                return notifications || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async function updateNotificationBadge() {
+            var notifications = await fetchUnreadNotifications();
+            var count = notifications ? notifications.length : 0;
+            var badge = document.getElementById('notificationBadge');
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        async function markNotificationRead(notificationId) {
+            if (!db) return;
+            try {
+                await db.supabaseQuery('notifications?id=eq.' + notificationId, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_read: true })
+                });
+                updateNotificationBadge();
+            } catch (e) {}
+        }
+
+        async function markAllNotificationsRead() {
+            if (!db) return;
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            try {
+                await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&is_read=eq.false', {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_read: true })
+                });
+                updateNotificationBadge();
+                loadNotifications();
+            } catch (e) {}
+        }
+
+        function setupNotificationsRealtime() {
+            var user = auth.getCurrentUser();
+            if (!user || !window.sb) return;
+            
+            if (window._notifChannel) {
+                try { window.sb.removeChannel(window._notifChannel); } catch(e) {}
+            }
+            
+            window._notifChannel = window.sb
+                .channel('notifications-realtime')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: 'user_id=eq.' + user.id
+                }, function(payload) {
+                    updateNotificationBadge();
+                    var n = payload.new;
+                    showToast('📬 ' + n.title + ': ' + n.message, 'info');
+                })
+                .subscribe();
+        }
+
+        async function loadNotifications() {
+            var container = document.getElementById('ownerContent');
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            try {
+                var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
+                var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
+                
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
+                if (unread.length > 0) {
+                    html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead()"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+                }
+                html += '</div>';
+                
+                if (!notifications || notifications.length === 0) {
+                    html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
+                } else {
+                    html += '<div style="max-height:500px;overflow-y:auto;">';
+                    for (var i = 0; i < notifications.length; i++) {
+                        var n = notifications[i];
+                        var isUnread = !n.is_read;
+                        var iconMap = {
+                            'chat_mention': 'fa-at',
+                            'admin_form': 'fa-file-signature',
+                            'support_reply': 'fa-reply',
+                            'support_escalation': 'fa-flag',
+                            'system_alert': 'fa-shield-alt',
+                            'appeal_result': 'fa-gavel',
+                            'default': 'fa-bell'
+                        };
+                        var icon = iconMap[n.type] || iconMap.default;
+                        var link = n.link || '#';
+                        
+                        html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';' + (n.link ? 'window.location.href=\'' + n.link + '\'' : '') + '">';
+                        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
+                        html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
+                        html += '</div>';
+                        html += '<div class="notif-message">' + n.message + '</div>';
+                        if (isUnread) {
+                            html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+                
+                container.innerHTML = html;
+                document.getElementById('pageTitle').textContent = 'Сповіщення';
+                document.getElementById('pageSubtitle').textContent = 'Всі ваші сповіщення';
+                
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень</p></div>';
+            }
+        }
+
+        // ============================================================
         // ПЕРЕВІРКА ДОСТУПУ
         // ============================================================
         function checkOwnerAccess() {
@@ -755,11 +914,17 @@
                 'support': 'Техпідтримка',
                 'adminforms': '📄 Адмін-Форми',
                 'logs': 'Логи',
-                'ai': '🤖 ШІ Модерація'
+                'ai': '🤖 ШІ Модерація',
+                'notifications': 'Сповіщення'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Панель засновника';
             document.getElementById('pageSubtitle').textContent = 'Повне управління системою';
             currentSection = section;
+            
+            if (section !== 'notifications') {
+                updateNotificationBadge();
+            }
+            
             switch(section) {
                 case 'overview': loadOverview(); break;
                 case 'users': loadUsers(); break;
@@ -774,6 +939,7 @@
                 case 'adminforms': loadAdminForms(); break;
                 case 'logs': loadLogs(); break;
                 case 'ai': loadAiModeration(); break;
+                case 'notifications': loadNotifications(); break;
                 default: loadOverview();
             }
         }
@@ -1012,7 +1178,6 @@
                 var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача' + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' безстроково') + '?', 'Підтвердження');
                 if (!confirmed) return;
 
-                // СТВОРЮЄМО АДМІН-ФОРМУ ЯКЩО БАН > 5 ДНІВ
                 var banDays = daysInput ? parseInt(daysInput.trim(), 10) : 0;
                 if (banDays >= 5 || !banUntil) {
                     try {
@@ -1931,47 +2096,47 @@
             container.innerHTML = html;
         }
 
-async function toggleRegistration() {
-    try {
-        var settings = await db.getSystemSettings();
-        var current = settings['allow_registration'] !== 'false';
-        
-        var html = '<div style="display:flex;flex-direction:column;gap:1rem;">';
-        html += '<p>Статус реєстрації: <strong>' + (current ? '✅ Дозволена' : '❌ Заборонена') + '</strong></p>';
-        html += '<p style="color:var(--muted);font-size:0.85rem;">Заборона реєстрації зупинить створення нових акаунтів. Існуючі користувачі зможуть входити.</p>';
-        html += '<button class="btn ' + (current ? 'btn-danger' : 'btn-gold') + '" onclick="setRegistrationStatus(' + (!current) + ')">';
-        html += (current ? '❌ Заборонити реєстрацію' : '✅ Дозволити реєстрацію');
-        html += '</button></div>';
-        
-        openModal('Управління реєстрацією', html);
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function setRegistrationStatus(enabled) {
-    try {
-        var existing = await db.supabaseQuery('system_settings?key=eq.allow_registration');
-        if (existing && existing.length > 0) {
-            await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
-                method: 'PATCH',
-                body: JSON.stringify({ value: enabled ? 'true' : 'false' })
-            });
-        } else {
-            await db.supabaseQuery('system_settings', {
-                method: 'POST',
-                body: JSON.stringify({ key: 'allow_registration', value: enabled ? 'true' : 'false' })
-            });
+        async function toggleRegistration() {
+            try {
+                var settings = await db.getSystemSettings();
+                var current = settings['allow_registration'] !== 'false';
+                
+                var html = '<div style="display:flex;flex-direction:column;gap:1rem;">';
+                html += '<p>Статус реєстрації: <strong>' + (current ? '✅ Дозволена' : '❌ Заборонена') + '</strong></p>';
+                html += '<p style="color:var(--muted);font-size:0.85rem;">Заборона реєстрації зупинить створення нових акаунтів. Існуючі користувачі зможуть входити.</p>';
+                html += '<button class="btn ' + (current ? 'btn-danger' : 'btn-gold') + '" onclick="setRegistrationStatus(' + (!current) + ')">';
+                html += (current ? '❌ Заборонити реєстрацію' : '✅ Дозволити реєстрацію');
+                html += '</button></div>';
+                
+                openModal('Управління реєстрацією', html);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
         }
-        await db.addLog('Змінено налаштування реєстрації', 'system', null, { enabled: enabled });
-        db.clearSystemSettingsCache();
-        await showToast('Налаштування збережено!', 'success');
-        closeModal();
-        loadSecurityManagement();
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
+
+        async function setRegistrationStatus(enabled) {
+            try {
+                var existing = await db.supabaseQuery('system_settings?key=eq.allow_registration');
+                if (existing && existing.length > 0) {
+                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
+                    });
+                } else {
+                    await db.supabaseQuery('system_settings', {
+                        method: 'POST',
+                        body: JSON.stringify({ key: 'allow_registration', value: enabled ? 'true' : 'false' })
+                    });
+                }
+                await db.addLog('Змінено налаштування реєстрації', 'system', null, { enabled: enabled });
+                db.clearSystemSettingsCache();
+                await showToast('Налаштування збережено!', 'success');
+                closeModal();
+                loadSecurityManagement();
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
 
         async function securitySettings() {
             try {
@@ -2048,152 +2213,152 @@ async function setRegistrationStatus(enabled) {
         // ============================================================
         // РОЗДІЛ: ТЕХПІДТРИМКА
         // ============================================================
-var ownerSupportTicketsCache = [];
-var ownerSupportUserMapCache = {};
-var ownerSupportStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
+        var ownerSupportTicketsCache = [];
+        var ownerSupportUserMapCache = {};
+        var ownerSupportStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
 
-async function loadSupportManagement() {
-    if (!checkOwnerAccess()) return;
-    var container = document.getElementById('ownerContent');
-    container.innerHTML = '<div class="card"><p class="text-muted">Завантаження...</p></div>';
-    try {
-        var tickets = await db.getSupportTickets();
-        var users = await db.getUsersWithRoles();
-        var userMap = {};
-        if (users) {
-            for (var i = 0; i < users.length; i++) {
-                userMap[users[i].id] = users[i];
+        async function loadSupportManagement() {
+            if (!checkOwnerAccess()) return;
+            var container = document.getElementById('ownerContent');
+            container.innerHTML = '<div class="card"><p class="text-muted">Завантаження...</p></div>';
+            try {
+                var tickets = await db.getSupportTickets();
+                var users = await db.getUsersWithRoles();
+                var userMap = {};
+                if (users) {
+                    for (var i = 0; i < users.length; i++) {
+                        userMap[users[i].id] = users[i];
+                    }
+                }
+                ownerSupportTicketsCache = tickets || [];
+                ownerSupportUserMapCache = userMap;
+                renderOwnerSupportTicketsTable();
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>';
             }
         }
-        ownerSupportTicketsCache = tickets || [];
-        ownerSupportUserMapCache = userMap;
-        renderOwnerSupportTicketsTable();
-    } catch (error) {
-        container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '</p></div>';
-    }
-}
 
-function renderOwnerSupportTicketsTable() {
-    var container = document.getElementById('ownerContent');
-    var userMap = ownerSupportUserMapCache;
-    var sorted = ownerSupportTicketsCache.slice().sort(function(a, b) {
-        var wa = ownerSupportStatusWeight[a.status] !== undefined ? ownerSupportStatusWeight[a.status] : 1;
-        var wb = ownerSupportStatusWeight[b.status] !== undefined ? ownerSupportStatusWeight[b.status] : 1;
-        if (wa !== wb) return wa - wb;
-        return new Date(b.created_at) - new Date(a.created_at);
-    });
-    
-    var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
-    html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="ownerSupportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterOwnerSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'ownerSupportSearchInput\').value=\'\';filterOwnerSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
-    html += '<select class="filter-select" id="ownerSupportStatusFilter" onchange="filterOwnerSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div>';
-    html += '<div style="overflow-x:auto;"><table class="table" id="ownerSupportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="ownerSupportTicketsBody">';
-    
-    if (sorted.length > 0) {
-        for (var i = 0; i < sorted.length; i++) {
-            var t = sorted[i];
-            var u = userMap[t.user_id];
-            var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
-            var userEmail = u ? (u.email || '') : '';
-            var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
-            var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
-            var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
+        function renderOwnerSupportTicketsTable() {
+            var container = document.getElementById('ownerContent');
+            var userMap = ownerSupportUserMapCache;
+            var sorted = ownerSupportTicketsCache.slice().sort(function(a, b) {
+                var wa = ownerSupportStatusWeight[a.status] !== undefined ? ownerSupportStatusWeight[a.status] : 1;
+                var wb = ownerSupportStatusWeight[b.status] !== undefined ? ownerSupportStatusWeight[b.status] : 1;
+                if (wa !== wb) return wa - wb;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
             
-            html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '"><td><strong>' + userName + '</strong></td><td>' + (t.subject || '—') + '</td><td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td><td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td><td>' + formatDateKyiv(t.created_at) + '</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' + (t.status !== 'closed' ? '<button class="btn btn-sm btn-success" onclick="closeSupportTicket(\'' + t.id + '\')"><i class="fas fa-check"></i></button>' : '') + '</td></tr>';
+            var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
+            html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="ownerSupportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterOwnerSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'ownerSupportSearchInput\').value=\'\';filterOwnerSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+            html += '<select class="filter-select" id="ownerSupportStatusFilter" onchange="filterOwnerSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div>';
+            html += '<div style="overflow-x:auto;"><table class="table" id="ownerSupportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="ownerSupportTicketsBody">';
+            
+            if (sorted.length > 0) {
+                for (var i = 0; i < sorted.length; i++) {
+                    var t = sorted[i];
+                    var u = userMap[t.user_id];
+                    var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+                    var userEmail = u ? (u.email || '') : '';
+                    var statusClass = t.status === 'open' ? 'badge-success' : t.status === 'in_progress' ? 'badge-warning' : 'badge-secondary';
+                    var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+                    var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
+                    
+                    html += '<tr data-user="' + (userName + ' ' + userEmail).toLowerCase() + '" data-status="' + t.status + '"><td><strong>' + userName + '</strong></td><td>' + (t.subject || '—') + '</td><td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td><td><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></td><td>' + formatDateKyiv(t.created_at) + '</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-primary" onclick="viewSupportTicket(\'' + t.id + '\')"><i class="fas fa-eye"></i></button>' + (t.status !== 'closed' ? '<button class="btn btn-sm btn-success" onclick="closeSupportTicket(\'' + t.id + '\')"><i class="fas fa-check"></i></button>' : '') + '</td></tr>';
+                }
+            } else {
+                html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
+            }
+            
+            html += '</tbody></table></div></div>';
+            container.innerHTML = html;
         }
-    } else {
-        html += '<tr><td colspan="6" class="text-center text-muted">Немає заявок</td></tr>';
-    }
-    
-    html += '</tbody></table></div></div>';
-    container.innerHTML = html;
-}
 
-function filterOwnerSupportTickets() {
-    var search = (document.getElementById('ownerSupportSearchInput').value || '').toLowerCase().trim();
-    var status = document.getElementById('ownerSupportStatusFilter').value;
-    var rows = document.querySelectorAll('#ownerSupportTicketsBody tr');
-    rows.forEach(function(row) {
-        var matchUser = !search || (row.getAttribute('data-user') || '').indexOf(search) !== -1;
-        var matchStatus = !status || row.getAttribute('data-status') === status;
-        row.style.display = (matchUser && matchStatus) ? '' : 'none';
-    });
-}
-
-async function viewSupportTicket(ticketId) {
-    try {
-        var t = await db.getSupportTicket(ticketId);
-        if (!t) {
-            await showAlert('Заявку не знайдено', 'error');
-            return;
+        function filterOwnerSupportTickets() {
+            var search = (document.getElementById('ownerSupportSearchInput').value || '').toLowerCase().trim();
+            var status = document.getElementById('ownerSupportStatusFilter').value;
+            var rows = document.querySelectorAll('#ownerSupportTicketsBody tr');
+            rows.forEach(function(row) {
+                var matchUser = !search || (row.getAttribute('data-user') || '').indexOf(search) !== -1;
+                var matchStatus = !status || row.getAttribute('data-status') === status;
+                row.style.display = (matchUser && matchStatus) ? '' : 'none';
+            });
         }
-        var messages = await db.getSupportMessages(ticketId);
-        var u = ownerSupportUserMapCache[t.user_id];
-        var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
-        var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
-        
-        var html = '<div><p><strong>Тема:</strong> ' + t.subject + '</p><p><strong>Від:</strong> ' + userName + '</p><p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p><div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div><hr style="border-color:var(--ink-line);">';
-        
-        if (messages && messages.length > 0) {
-            for (var i = 0; i < messages.length; i++) {
-                var msg = messages[i];
-                var isStaff = isStaffRole(msg.sender_type);
-                var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
-                if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
-                html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : (msg.sender_type === 'ai' ? '#8B5CF6' : 'var(--teal)')) + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
+
+        async function viewSupportTicket(ticketId) {
+            try {
+                var t = await db.getSupportTicket(ticketId);
+                if (!t) {
+                    await showAlert('Заявку не знайдено', 'error');
+                    return;
+                }
+                var messages = await db.getSupportMessages(ticketId);
+                var u = ownerSupportUserMapCache[t.user_id];
+                var userName = u ? (u.full_name || u.email || 'Невідомо') : 'Невідомо';
+                var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
+                
+                var html = '<div><p><strong>Тема:</strong> ' + t.subject + '</p><p><strong>Від:</strong> ' + userName + '</p><p><strong>Статус:</strong> ' + statusLabel + ' &nbsp; <strong>Пріоритет:</strong> ' + (t.priority || '—') + '</p><div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink-soft);border-left:3px solid var(--teal);">' + (t.message || '') + '</div><hr style="border-color:var(--ink-line);">';
+                
+                if (messages && messages.length > 0) {
+                    for (var i = 0; i < messages.length; i++) {
+                        var msg = messages[i];
+                        var isStaff = isStaffRole(msg.sender_type);
+                        var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
+                        if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
+                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : (msg.sender_type === 'ai' ? '#8B5CF6' : 'var(--teal)')) + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
+                    }
+                }
+                
+                if (t.status !== 'closed') {
+                    html += '<hr style="border-color:var(--ink-line);"><div style="display:flex;gap:0.5rem;flex-direction:column;"><textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button><button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button></div></div>';
+                } else {
+                    html += '<p class="text-muted">✅ Заявку закрито</p>';
+                }
+                html += '</div>';
+                openModal('Заявка #' + ticketId.substring(0, 8), html);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
             }
         }
-        
-        if (t.status !== 'closed') {
-            html += '<hr style="border-color:var(--ink-line);"><div style="display:flex;gap:0.5rem;flex-direction:column;"><textarea class="form-control" id="supportReply" placeholder="Відповідь..." rows="3"></textarea><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><button class="btn btn-gold" onclick="sendSupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Відповісти</button><button class="btn btn-success" onclick="closeSupportTicket(\'' + ticketId + '\')"><i class="fas fa-check"></i> Закрити</button></div></div>';
-        } else {
-            html += '<p class="text-muted">✅ Заявку закрито</p>';
+
+        async function sendSupportReply(ticketId) {
+            var textarea = document.getElementById('supportReply');
+            if (!textarea) return;
+            var message = textarea.value.trim();
+            if (!message) {
+                await showAlert('Введіть повідомлення', 'warning');
+                return;
+            }
+            var user = auth.getCurrentUser();
+            try {
+                await db.sendSupportMessage({
+                    ticket_id: ticketId,
+                    sender_id: user.id,
+                    sender_type: user.role,
+                    message: message
+                });
+                await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
+                await db.addLog('Відповідь в підтримку', 'support', ticketId, {});
+                await showToast('Відповідь відправлено!', 'success');
+                await loadSupportManagement();
+                await viewSupportTicket(ticketId);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
         }
-        html += '</div>';
-        openModal('Заявка #' + ticketId.substring(0, 8), html);
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
 
-async function sendSupportReply(ticketId) {
-    var textarea = document.getElementById('supportReply');
-    if (!textarea) return;
-    var message = textarea.value.trim();
-    if (!message) {
-        await showAlert('Введіть повідомлення', 'warning');
-        return;
-    }
-    var user = auth.getCurrentUser();
-    try {
-        await db.sendSupportMessage({
-            ticket_id: ticketId,
-            sender_id: user.id,
-            sender_type: user.role,
-            message: message
-        });
-        await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
-        await db.addLog('Відповідь в підтримку', 'support', ticketId, {});
-        await showToast('Відповідь відправлено!', 'success');
-        await loadSupportManagement();
-        await viewSupportTicket(ticketId);
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
-
-async function closeSupportTicket(ticketId) {
-    var confirmed = await showConfirm('Закрити заявку?', 'Підтвердження');
-    if (!confirmed) return;
-    try {
-        await db.updateSupportTicket(ticketId, { status: 'closed' });
-        await db.addLog('Закрито заявку в підтримку', 'support', ticketId, {});
-        await showToast('Заявку закрито!', 'success');
-        await loadSupportManagement();
-        await viewSupportTicket(ticketId);
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
+        async function closeSupportTicket(ticketId) {
+            var confirmed = await showConfirm('Закрити заявку?', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                await db.updateSupportTicket(ticketId, { status: 'closed' });
+                await db.addLog('Закрито заявку в підтримку', 'support', ticketId, {});
+                await showToast('Заявку закрито!', 'success');
+                await loadSupportManagement();
+                await viewSupportTicket(ticketId);
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
 
         async function supportStats() {
             try {
@@ -2399,7 +2564,7 @@ async function closeSupportTicket(ticketId) {
         }
 
         // ============================================================
-        // РОЗДІЛ: ШІ МОДЕРАЦІЯ (2 ВКЛАДКИ: УПРАВЛІННЯ+ЛОГИ / ЗАПИТИ)
+        // РОЗДІЛ: ШІ МОДЕРАЦІЯ
         // ============================================================
         var aiOwnerRequestsCache = [];
         var aiModerationActiveTab = 'manage';
@@ -2433,7 +2598,6 @@ async function closeSupportTicket(ticketId) {
             if (contentRequests) contentRequests.classList.toggle('active', tab === 'requests');
         }
 
-        // ------- ВКЛАДКА 1: УПРАВЛІННЯ + ЛОГИ ШІ -------
         async function loadAiModerationManageTab() {
             var container = document.getElementById('aiTabContent_manage');
             if (!container) return;
@@ -2492,7 +2656,6 @@ async function closeSupportTicket(ticketId) {
             }
         }
 
-        // ------- ВКЛАДКА 2: ЗАПИТИ ДО ШІ (ДІЇ) -------
         async function loadAiModerationRequestsTab() {
             var container = document.getElementById('aiTabContent_requests');
             if (!container) return;
@@ -2548,12 +2711,6 @@ async function closeSupportTicket(ticketId) {
             }
         }
 
-        // Зворотна сумісність зі старими викликами
-        async function loadAiModerationLegacy() { await loadAiModeration(); }
-
-        // ============================================================
-        // ДІЇ З ШІ
-        // ============================================================
         async function sendOwnerAiRequest() {
             var input = document.getElementById('ownerAiPrompt');
             var prompt = input ? input.value.trim() : '';
@@ -2575,9 +2732,6 @@ async function closeSupportTicket(ticketId) {
                     var requestId = result[0].id;
                     await showToast('Запит надіслано ШІ, ID: ' + requestId.substring(0, 8), 'success');
                     
-                    // ВИКЛИКАЄМО ШІ ДЛЯ ОБРОБКИ (edge function ai-owner-request:
-                    // саме вона повинна вміти виконувати дії — бан/розбан/зміну ролей —
-                    // на основі тексту запиту і писати результат у ai_actions_log)
                     try {
                         var response = await fetch(
                             'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/ai-owner-request',
@@ -2702,6 +2856,9 @@ async function closeSupportTicket(ticketId) {
             } else {
                 avatarEl.textContent = (user.full_name || 'O')[0].toUpperCase();
             }
+            
+            setupNotificationsRealtime();
+            updateNotificationBadge();
         })();
 
         async function init() {
