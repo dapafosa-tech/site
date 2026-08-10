@@ -405,6 +405,37 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.db) applySiteBranding();
 });
 
+// ============================================================
+// REALTIME HELPER (Supabase Realtime) - для "живих" списків/чатів
+// ============================================================
+// Підписка на зміни (INSERT/UPDATE/DELETE) в одній таблиці, опційно
+// відфільтровані (напр. "ticket_id=eq.xxx" або "organization_id=eq.xxx").
+// Повертає канал, який ОБОВ'ЯЗКОВО треба закрити через unsubscribeRealtime()
+// коли модалка/секція закривається - інакше канали накопичуватимуться.
+function subscribeRealtime(table, filter, onChange) {
+    if (!window.sb || typeof window.sb.channel !== 'function') return null;
+    try {
+        var channelName = 'rt_' + table + '_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        var config = { event: '*', schema: 'public', table: table };
+        if (filter) config.filter = filter;
+        var channel = window.sb.channel(channelName).on('postgres_changes', config, function (payload) {
+            try { onChange(payload); } catch (e) { console.warn('realtime handler error:', e); }
+        }).subscribe();
+        return channel;
+    } catch (e) {
+        console.warn('subscribeRealtime error:', e);
+        return null;
+    }
+}
+
+function unsubscribeRealtime(channel) {
+    if (!channel || !window.sb) return;
+    try { window.sb.removeChannel(channel); } catch (e) {}
+}
+
+window.subscribeRealtime = subscribeRealtime;
+window.unsubscribeRealtime = unsubscribeRealtime;
+
 window.showToast = showToast;
 window.showAlert = showAlert;
 window.showConfirm = showConfirm;
