@@ -141,6 +141,14 @@ async function loginUser(email, password, fullName) {
             return { success: false, error: 'Акаунт заблоковано', banned: true };
         }
 
+        // Записуємо сесію
+        try {
+            var ip = await getClientIp();
+            await recordUserSession(profile.id, data.session.access_token, ip, navigator.userAgent);
+        } catch (e) {
+            console.warn('Failed to record session:', e);
+        }
+
         if (typeof clearAllPanelOtpFlags === 'function') {
             try { clearAllPanelOtpFlags(); } catch (e) {}
         }
@@ -159,9 +167,6 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
             throw new Error('Реєстрацію нових користувачів тимчасово вимкнено адміністрацією');
         }
 
-        // Ловимо IP ДО signUp() і кладемо в metadata - якщо в базі є тригер,
-        // що створює профіль одразу на auth.users insert, він зможе прочитати
-        // reg_ip з raw_user_meta_data (сам тригер не знає публічний IP клієнта).
         var regIp = await db.getClientIp();
 
         var { data, error } = await window.sb.auth.signUp({
@@ -187,6 +192,14 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
 
         var profile = await syncProfile(true);
         localStorage.setItem('isGuest', 'false');
+        
+        // Записуємо сесію
+        try {
+            await recordUserSession(profile.id, data.session.access_token, regIp, navigator.userAgent);
+        } catch (e) {
+            console.warn('Failed to record session:', e);
+        }
+        
         return { success: true, user: profile };
     } catch (error) {
         return { success: false, error: error.message };
@@ -195,18 +208,87 @@ async function registerUser(email, password, fullName, phone, companyAddress) {
 
 async function recordUserSession(userId, token, ip, userAgent) {
     try {
-        await db.supabaseQuery('user_sessions', {
+        // Перевіряємо чи існує вже сесія з таким токеном
+        var existing = await supabaseQuery('user_sessions?session_token=eq.' + token);
+        if (existing && existing.length > 0) {
+            // Оновлюємо час активності
+            await supabaseQuery('user_sessions?id=eq.' + existing[0].id, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    last_activity: new Date().toISOString(),
+                    ip: ip || existing[0].ip,
+                    user_agent: userAgent || existing[0].user_agent
+                })
+            });
+            return;
+        }
+        
+        await supabaseQuery('user_sessions', {
             method: 'POST',
             body: JSON.stringify({
                 user_id: userId,
                 session_token: token,
                 ip: ip || null,
                 user_agent: userAgent || null,
-                last_activity: new Date().toISOString()
+                last_activity: new Date().toISOString(),
+                is_active: true
             })
         });
     } catch (e) {
         console.warn('Не вдалося записати сесію:', e);
+    }
+}
+
+async function updateSessionActivity(userId) {
+    try {
+        var { data } = await window.sb.auth.getSession();
+        var session = data && data.session;
+        if (!session) return;
+        
+        await supabaseQuery('user_sessions?user_id=eq.' + userId + '&session_token=eq.' + session.access_token, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                last_activity: new Date().toISOString()
+            })
+        });
+    } catch (e) {
+        // Ігноруємо помилки оновлення активності
+    }
+}
+
+async function terminateSession(sessionId) {
+    try {
+        await supabaseQuery('user_sessions?id=eq.' + sessionId, {
+            method: 'DELETE'
+        });
+        return true;
+    } catch (e) {
+        console.error('Failed to terminate session:', e);
+        return false;
+    }
+}
+
+async function terminateAllSessions(userId, excludeCurrentToken) {
+    try {
+        var query = 'user_sessions?user_id=eq.' + userId;
+        if (excludeCurrentToken) {
+            query += '&session_token=neq.' + excludeCurrentToken;
+        }
+        await supabaseQuery(query, { method: 'DELETE' });
+        return true;
+    } catch (e) {
+        console.error('Failed to terminate all sessions:', e);
+        return false;
+    }
+}
+
+async function getActiveSessions(userId) {
+    try {
+        var sessions = await supabaseQuery('user_sessions?user_id=eq.' + userId + '&is_active=eq.true&order=last_activity.desc');
+        return sessions || [];
+    } catch (e) {
+        console.error('Failed to get sessions:', e);
+        return [];
     }
 }
 
@@ -229,10 +311,6 @@ async function verifyRegistrationOtp(email, code, phone, companyAddress) {
 
         var profile = await syncProfile(true);
 
-        // Якщо профіль у БД уже створив тригер (одразу на auth.users insert) -
-        // client-side insert в syncProfile() міг конфліктнути і не записати
-        // phone/company_address/reg_ip. Дописуємо тут все, чого бракує,
-        // щоб ці дані НЕ губились незалежно від того, є тригер чи нема.
         if (profile) {
             var patch = {};
             if (phone && !profile.phone) patch.phone = phone;
@@ -261,6 +339,13 @@ async function verifyRegistrationOtp(email, code, phone, companyAddress) {
                     console.warn('Failed to backfill profile extras:', e);
                 }
             }
+            
+            // Записуємо сесію
+            try {
+                await recordUserSession(profile.id, data.session.access_token, profile.reg_ip, navigator.userAgent);
+            } catch (e) {
+                console.warn('Failed to record session:', e);
+            }
         }
 
         localStorage.setItem('isGuest', 'false');
@@ -287,6 +372,11 @@ async function checkAuth() {
     if (!profile) return false;
 
     if (profile.is_banned === true) return false;
+
+    // Оновлюємо активність сесії
+    try {
+        await updateSessionActivity(profile.id);
+    } catch (e) {}
 
     try {
         var banInfo = await checkUserBanned(profile.id);
@@ -318,6 +408,21 @@ async function requireAuth() {
 }
 
 async function logoutUser() {
+    var user = getCurrentUser();
+    if (user) {
+        try {
+            var { data } = await window.sb.auth.getSession();
+            var session = data && data.session;
+            if (session) {
+                // Деактивуємо сесію
+                await supabaseQuery('user_sessions?user_id=eq.' + user.id + '&session_token=eq.' + session.access_token, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_active: false })
+                });
+            }
+        } catch (e) {}
+    }
+    
     try { await window.sb.auth.signOut(); } catch (e) {}
     localStorage.removeItem('userData');
     localStorage.removeItem('isGuest');
@@ -439,5 +544,11 @@ window.auth = {
     isAdmin: isAdmin,
     isOwner: isOwner,
     checkUserBanned: checkUserBanned,
-    syncProfile: syncProfile
+    syncProfile: syncProfile,
+    // Нові функції для сесій
+    recordUserSession: recordUserSession,
+    updateSessionActivity: updateSessionActivity,
+    terminateSession: terminateSession,
+    terminateAllSessions: terminateAllSessions,
+    getActiveSessions: getActiveSessions
 };
