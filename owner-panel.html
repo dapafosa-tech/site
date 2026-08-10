@@ -139,8 +139,6 @@
         .sidebar .nav-menu .logout-btn a{color:var(--danger);}
         .sidebar .nav-menu .logout-btn a i{color:var(--danger);}
         .sidebar .nav-menu .logout-btn a:hover{background:rgba(226,80,62,0.1);}
-        .sidebar .nav-menu .owner-link a{color:var(--gold);}
-        .sidebar .nav-menu .owner-link a:hover{background:var(--gold-glow);}
         .main-content{
             margin-left:268px;
             padding:2.4rem 2.8rem;
@@ -186,7 +184,6 @@
         .btn-purple:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(139,92,246,0.3);}
         .btn-success{background:var(--success);color:white;}
         .btn-success:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(34,197,94,0.3);}
-        .btn:disabled{opacity:0.55;cursor:not-allowed;transform:none !important;}
         .btn-sm{padding:0.3rem 0.6rem;font-size:0.7rem;border-radius:6px;border:none;cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;}
         .btn-sm:hover{transform:translateY(-1px);}
         .btn-sm.btn-teal{background:rgba(70,201,184,0.14);color:var(--teal);}
@@ -522,7 +519,6 @@
             <li><a onclick="loadSection('security')"><i class="fas fa-shield-alt"></i> Безпека</a></li>
             <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
             <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
-            <!-- НОВА ВКЛАДКА: ШІ МОДЕРАЦІЯ -->
             <li><a onclick="loadSection('ai')"><i class="fas fa-robot"></i> ШІ Модерація</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
@@ -992,6 +988,14 @@
                 console.error('deleteUser error:', error);
                 await showAlert('Помилка: ' + error.message, 'error');
             }
+        }
+
+        function formatDateKyiv(d) {
+            try { return new Date(d).toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
+
+        function formatDateTimeKyiv(d) {
+            try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
         }
 
         // ============= ОРГАНІЗАЦІЇ =============
@@ -1961,7 +1965,7 @@
         var ownerSupportTicketsCache = [];
         var ownerSupportUserMapCache = {};
         var ownerSupportStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
-        var SUPPORT_AI_GRACE_MIN = 10; // 10 хвилин чекаємо перед відповіддю ШІ
+        var SUPPORT_AI_GRACE_MIN = 10;
 
         async function loadSupportManagement() {
             if (!checkOwnerAccess()) return;
@@ -2003,7 +2007,6 @@
                     var statusLabel = t.status === 'open' ? 'Відкрито' : t.status === 'in_progress' ? 'В роботі' : 'Закрито';
                     var priorityClass = t.priority === 'high' ? 'badge-danger' : t.priority === 'medium' ? 'badge-warning' : 'badge-primary';
                     
-                    // Перевіряємо чи ШІ вже відповідав
                     var aiReplied = false;
                     var messages = t.messages || [];
                     for (var m = 0; m < messages.length; m++) {
@@ -2158,24 +2161,19 @@
             });
         }
 
-        // =============================================
         // ============= ШІ МОДЕРАЦІЯ =============
-        // =============================================
 
         async function loadAiModeration() {
             if (!checkOwnerAccess()) return;
             var container = document.getElementById('ownerContent');
             
             try {
-                // Отримуємо налаштування ШІ
                 var settings = await db.getSystemSettings();
                 var aiEnabled = settings['ai_moderation_enabled'] !== 'false';
                 var aiSupportEnabled = settings['ai_support_enabled'] !== 'false';
                 
-                // Отримуємо логи ШІ
                 var aiLogs = await db.supabaseQuery('ai_actions_log?order=created_at.desc&limit=50');
                 
-                // Отримуємо статистику
                 var aiStats = {
                     total: aiLogs ? aiLogs.length : 0,
                     censored: 0,
@@ -2196,7 +2194,6 @@
                 
                 var html = '';
                 
-                // Статистика ШІ
                 html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
                 html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + aiStats.total + '</div><div class="stat-label">Всього дій ШІ</div></div>';
                 html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + aiStats.censored + '</div><div class="stat-label">Зацензуровано</div></div>';
@@ -2204,7 +2201,6 @@
                 html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + aiStats.support + '</div><div class="stat-label">Відповідей в підтримку</div></div>';
                 html += '</div>';
                 
-                // Налаштування ШІ
                 html += '<div class="card"><div class="card-header"><h3 class="card-title">⚙️ Налаштування ШІ</h3></div>';
                 html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
@@ -2221,7 +2217,6 @@
                 html += '</div>';
                 html += '</div></div>';
                 
-                // Останні дії ШІ
                 html += '<div class="card"><div class="card-header"><h3 class="card-title">📋 Останні дії ШІ</h3></div>';
                 if (aiLogs && aiLogs.length > 0) {
                     html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Тип</th><th>Дія</th><th>Ціль</th></tr></thead><tbody>';
@@ -2234,7 +2229,8 @@
                             'support_reply': '💬 Відповідь в підтримку',
                             'multi_account_detected': '🔍 Виявлено мультиакаунтинг',
                             'multi_account_ban': '🚫 Бан мультиакаунтів',
-                            'report_review': '📋 Аналіз скарги'
+                            'report_review': '📋 Аналіз скарги',
+                            'appeal_review': '⚖️ Розгляд апеляції'
                         };
                         var label = actionLabels[log.action_type] || log.action_type;
                         var target = log.target_user_id || log.target_ip || '—';
