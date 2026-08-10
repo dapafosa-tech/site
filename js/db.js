@@ -1486,6 +1486,66 @@ function isStaffRole(role) {
     return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot';
 }
 
+/**
+ * ОТРИМАТИ ЛОГИ ДІЙ ШІ (ai_actions_log)
+ */
+async function getAiActionsLog(filters) {
+    if (filters === undefined) filters = {};
+    var query = 'ai_actions_log?order=created_at.desc';
+    if (filters.limit) query += '&limit=' + filters.limit;
+    if (filters.targetUserId) query += '&target_user_id=eq.' + filters.targetUserId;
+    if (filters.actionType) query += '&action_type=eq.' + filters.actionType;
+    return supabaseQuery(query);
+}
+
+/**
+ * ЗАПАСНИЙ (клієнтський) СПОСІБ ОБ'ЄДНАТИ activity_logs + ai_actions_log.
+ * Потрібен тільки якщо НЕ застосовано SQL-тригер mirror_ai_action_to_activity_log.
+ * Якщо тригер застосовано — activity_logs вже міститиме записи ШІ,
+ * і можна просто й далі викликати supabaseQuery('activity_logs?...').
+ */
+async function getCombinedLogs(limit) {
+    if (limit === undefined) limit = 200;
+    var adminLogs = await supabaseQuery('activity_logs?order=created_at.desc&limit=' + limit);
+    var aiLogs = await getAiActionsLog({ limit: limit });
+    var actionLabels = {
+        'censor_and_ban': '🚫 ШІ: Цензура + Бан',
+        'censor_only': '✏️ ШІ: Цензура',
+        'ban': '⛔ ШІ: Бан',
+        'unban': '✅ ШІ: Розбан',
+        'role_change': '🔧 ШІ: Зміна ролі',
+        'support_reply': '💬 ШІ: Відповідь в підтримку',
+        'multi_account_detected': '🔍 ШІ: Виявлено мультиакаунтинг',
+        'multi_account_ban': '🚫 ШІ: Бан мультиакаунтів',
+        'report_review': '📋 ШІ: Аналіз скарги',
+        'appeal_review': '⚖️ ШІ: Розгляд апеляції',
+        'support_ticket': '🎫 ШІ: Тикет підтримки',
+        'owner_request': '👑 ШІ: Виконано запит засновника',
+        'freeze_org': '🧊 ШІ: Заморозка організації',
+        'unfreeze_org': '▶️ ШІ: Розморозка організації'
+    };
+    var combined = (adminLogs || []).map(function (l) {
+        return {
+            created_at: l.created_at,
+            user_name: l.user_name || 'Система',
+            action: l.action || '—',
+            entity_type: l.entity_type || '—',
+            source: 'admin'
+        };
+    });
+    (aiLogs || []).forEach(function (l) {
+        combined.push({
+            created_at: l.created_at,
+            user_name: '🤖 Typebiz Bot',
+            action: actionLabels[l.action_type] || ('ШІ: ' + l.action_type),
+            entity_type: l.target_user_id ? 'user' : 'ai',
+            source: 'ai'
+        });
+    });
+    combined.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+    return combined.slice(0, limit);
+}
+
 // ============================================
 // НОВІ ФУНКЦІЇ ДЛЯ ПОВНИХ ДАНИХ
 // ============================================
@@ -2106,6 +2166,8 @@ window.db = {
     getAiGraceMinutes: getAiGraceMinutes,
     canAiReplyToTicket: canAiReplyToTicket,
     isStaffRole: isStaffRole,
+    getAiActionsLog: getAiActionsLog,
+    getCombinedLogs: getCombinedLogs,
     
     // НОВІ ФУНКЦІЇ ДЛЯ АДМІН-ФОРМ
     createAdminForm: createAdminForm,
