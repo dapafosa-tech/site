@@ -1,13 +1,6 @@
 // supabase/functions/ai-review-report/index.ts
 //
-// Запускається по розкладу (pg_cron). Дивись DEPLOYMENT_GUIDE.md.
-//
-// Бере скарги (reports), за які ще ніхто зі staff не взявся
-// (assigned_to IS NULL), яким уже мінімум GRACE_PERIOD_MIN хвилин
-// (даємо живим людям шанс встигнути першими), дивиться на профіль цілі,
-// її останні повідомлення, організації/лідерство, IP та кількість
-// попередніх скарг на неї - і виносить рішення: warn / ban / dismiss.
-
+// Запускається по розкладу (pg_cron / зовнішній cron).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(
@@ -16,7 +9,7 @@ const supabase = createClient(
 );
 
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
-const GRACE_PERIOD_MIN = 15; // хвилин з моменту створення скарги, перш ніж ШІ візьметься
+const GRACE_PERIOD_MIN = 15;
 
 function isAuthorized(req: Request): boolean {
   if (!CRON_SECRET) return false;
@@ -59,7 +52,6 @@ Deno.serve(async (req) => {
 
   for (const report of reports ?? []) {
     if (!report.target_user_id) {
-      // Немає конкретної цілі - ШІ не може винести рішення, лишаємо людям.
       continue;
     }
 
@@ -73,7 +65,7 @@ Deno.serve(async (req) => {
           .eq("target_user_id", report.target_user_id),
       ]);
 
-    if (!target) continue; // ціль видалена - пропускаємо, хай людина розбереться
+    if (!target) continue;
 
     const context = `
 Скарга: ${report.reason} — ${report.description ?? ""}
@@ -86,7 +78,7 @@ IP (reg/last): ${target.reg_ip ?? "?"} / ${target.last_ip ?? "?"}
 
     const decision = await callGroq(
       "Ти модератор Typebiz, що розглядає скарги. Проаналізуй контекст і вирішуй: скарга обґрунтована чи ні. " +
-        "Якщо обґрунтована - запропонуй дію: warn (попередження, без бану), ban (бан на 1-3 дні), dismiss (відхилити скаргу). " +
+        "Якщо обґрунтована - запропонуй дію: warn, ban, dismiss. " +
         "Якщо роль цілі admin, moderator або owner - завжди dismiss і рекомендуй ручний розгляд людиною.",
       context,
       {
@@ -106,7 +98,6 @@ IP (reg/last): ${target.reg_ip ?? "?"} / ${target.last_ip ?? "?"}
     );
     if (!decision) continue;
 
-    // Захист: ШІ ніколи не банить staff, навіть якщо сам це запропонував.
     const targetIsStaff = ["admin", "moderator", "owner"].includes(target.role);
 
     if (decision.action === "ban" && !targetIsStaff) {
