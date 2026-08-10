@@ -792,61 +792,63 @@
         // ============================================
         // СТВОРЕННЯ АПЕЛЯЦІЇ
         // ============================================
-        async function createAppeal() {
-            var message = document.getElementById('appealMessage').value.trim();
-            if (!message) {
-                showToast('Введіть пояснення', 'warning');
-                return;
-            }
+    async function createAppeal() {
+    var message = document.getElementById('appealMessage').value.trim();
+    if (!message) {
+        showToast('Введіть пояснення', 'warning');
+        return;
+    }
 
-            var submitBtn = document.getElementById('submitAppealBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
+    var submitBtn = document.getElementById('submitAppealBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
 
-            try {
-                var existingAppeals = await db.supabaseQuery('appeals?user_id=eq.' + userId + '&status=eq.pending');
-                if (existingAppeals && existingAppeals.length > 0) {
-                    showToast('У вас вже є активна апеляція.', 'warning');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити апеляцію';
-                    return;
-                }
+    try {
+        // ✅ ТІЛЬКИ ПОЛЯ, ЯКІ Є В ТАБЛИЦІ!
+        var result = await db.supabaseQuery('appeals', {
+            method: 'POST',
+            body: JSON.stringify({
+                id: generateUUID(),
+                user_id: userId,
+                ban_reason: banReason || 'Порушення правил',
+                description: message,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            }),
+            headers: { 'Prefer': 'return=representation' }
+        });
 
-                var result = await db.createAppeal({
-                    user_id: userId,
-                    target_user_id: userId,
-                    reason: 'Апеляція на блокування',
-                    description: message
-                });
-
-                if (!result || result.length === 0) {
-                    throw new Error('Не вдалося створити апеляцію');
-                }
-
-                currentAppeal = result[0];
-
-                await db.sendAppealMessage({
-                    appeal_id: currentAppeal.id,
-                    sender_id: userId,
-                    sender_type: 'user',
-                    message: message,
-                    created_at: new Date().toISOString()
-                });
-
-                await db.addLog('Створено апеляцію', 'appeal', currentAppeal.id, { user_id: userId });
-                showToast('✅ Апеляцію подано!', 'success');
-                
-                await loadAppealMessages(currentAppeal.id);
-                renderAppealView();
-
-            } catch (error) {
-                showToast('Помилка: ' + error.message, 'error');
-            }
-
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити апеляцію';
+        if (!result || result.length === 0) {
+            throw new Error('Не вдалося створити апеляцію');
         }
 
+        currentAppeal = result[0];
+
+        // ДОДАЄМО ПОВІДОМЛЕННЯ
+        await db.supabaseQuery('appeal_messages', {
+            method: 'POST',
+            body: JSON.stringify({
+                appeal_id: currentAppeal.id,
+                sender_id: userId,
+                sender_type: 'user',
+                message: message,
+                created_at: new Date().toISOString()
+            })
+        });
+
+        await db.addLog('Створено апеляцію', 'appeal', currentAppeal.id, { user_id: userId });
+        showToast('✅ Апеляцію подано!', 'success');
+        
+        await loadAppealMessages(currentAppeal.id);
+        renderAppealView();
+
+    } catch (error) {
+        showToast('Помилка: ' + error.message, 'error');
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити апеляцію';
+}
         // ============================================
         // ВІДПРАВКА ПОВІДОМЛЕННЯ В АПЕЛЯЦІЇ
         // ============================================
