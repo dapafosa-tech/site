@@ -2063,6 +2063,37 @@ async function closeSupportTicket(ticketId) {
             });
         }
 
+        function saveActiveSection(section) {
+    try {
+        sessionStorage.setItem('activeSection', section);
+    } catch (e) {}
+}
+
+function getActiveSection() {
+    try {
+        return sessionStorage.getItem('activeSection') || 'overview';
+    } catch (e) {
+        return 'overview';
+    }
+}
+
+// Модифікуємо loadSection для збереження
+var originalLoadSection = loadSection;
+loadSection = function(section) {
+    saveActiveSection(section);
+    originalLoadSection(section);
+};
+
+// При ініціалізації - завантажуємо збережений розділ
+document.addEventListener('DOMContentLoaded', function() {
+    var savedSection = getActiveSection();
+    // Перевіряємо чи не намагаємось завантажити сповіщення на сторінці де їх немає
+    var allowedSections = ['overview', 'users', 'orgs', 'chat', 'vacations', 'requests', 'appeals', 'support', 'adminforms', 'logs', 'notifications'];
+    if (allowedSections.indexOf(savedSection) !== -1) {
+        loadSection(savedSection);
+    }
+});
+
         // ============================================================
         // ІНІЦІАЛІЗАЦІЯ
         // ============================================================
@@ -2080,6 +2111,15 @@ async function closeSupportTicket(ticketId) {
                 document.getElementById('statsGrid').style.display = 'none';
                 return;
             }
+
+                var savedSection = getActiveSection();
+    var allowedSections = ['overview', 'users', 'orgs', 'chat', 'vacations', 'requests', 'appeals', 'support', 'adminforms', 'logs', 'notifications'];
+    if (allowedSections.indexOf(savedSection) !== -1) {
+        loadSection(savedSection);
+    } else {
+        await loadOverview();
+    }
+            
             var otpOk = await requirePanelOtp('адмін-панелі');
             if (!otpOk) return;
             
