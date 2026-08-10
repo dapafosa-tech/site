@@ -644,10 +644,10 @@
             document.getElementById('genericModal').classList.add('active');
         }
 
-        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator'; }
+        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot'; }
 
         function getRoleBadgeHtml(role) {
-            var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'user': '👤 Користувач' };
+            var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'bot': '🤖 Typebiz Bot', 'user': '👤 Користувач' };
             return labels[role] || '👤 Користувач';
         }
 
