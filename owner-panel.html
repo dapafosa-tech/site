@@ -766,6 +766,9 @@
                         var actionsHtml = '<div class="actions-cell">';
                         if (!isCurrentUser) {
                             actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
+                            if (u.reg_ip || u.last_ip) {
+                                actionsHtml += '<button class="btn btn-sm btn-purple" onclick="banUserIp(\'' + u.id + '\')" title="Забанити IP"><i class="fas fa-network-wired"></i></button>';
+                            }
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                             if (u.reg_ip) {
                                 actionsHtml += '<button class="btn btn-sm btn-warning" onclick="banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP: ' + u.reg_ip + '"><i class="fas fa-network-wired"></i></button>';
