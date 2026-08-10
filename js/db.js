@@ -1487,10 +1487,222 @@ function isStaffRole(role) {
 }
 
 // ============================================
+// НОВІ ФУНКЦІЇ ДЛЯ ПОВНИХ ДАНИХ
+// ============================================
+
+/**
+ * ОТРИМАТИ ПОВНУ ІНФОРМАЦІЮ ПРО КОРИСТУВАЧА ДЛЯ ШІ
+ */
+async function getUserFullData(userId) {
+    try {
+        // 1. ОСНОВНІ ДАНІ
+        const { data: user, error } = await window.sb
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+        
+        if (error || !user) return null;
+        
+        // 2. ОРГАНІЗАЦІЇ КОРИСТУВАЧА
+        const { data: members } = await window.sb
+            .from('org_members')
+            .select(`
+                organization_id,
+                is_leader,
+                joined_at,
+                organizations:organization_id (
+                    id,
+                    name,
+                    type,
+                    status,
+                    leader_id,
+                    created_at
+                )
+            `)
+            .eq('user_id', userId);
+        
+        // 3. ІСТОРІЯ БАНІВ
+        const { data: bans } = await window.sb
+            .from('ai_actions_log')
+            .select('*')
+            .eq('target_user_id', userId)
+            .eq('action_type', 'censor_and_ban')
+            .order('created_at', { ascending: false })
+            .limit(10);
+        
+        // 4. ПОВІДОМЛЕННЯ КОРИСТУВАЧА
+        const { data: messages } = await window.sb
+            .from('org_chat_messages')
+            .select('message, created_at, is_censored')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(20);
+        
+        // 5. АПЕЛЯЦІЇ КОРИСТУВАЧА
+        const { data: appeals } = await window.sb
+            .from('appeals')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        
+        // 6. ТИКЕТИ КОРИСТУВАЧА
+        const { data: tickets } = await window.sb
+            .from('support_tickets')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+        
+        return {
+            user: user,
+            organizations: members || [],
+            ban_history: bans || [],
+            messages: messages || [],
+            appeals: appeals || [],
+            tickets: tickets || [],
+            total_bans: bans ? bans.length : 0,
+            total_appeals: appeals ? appeals.length : 0
+        };
+    } catch (error) {
+        console.error('❌ Помилка отримання даних:', error);
+        return null;
+    }
+}
+
+/**
+ * ОТРИМАТИ ВСІХ КОРИСТУВАЧІВ З ПОВНИМИ ДАНИМИ (ДЛЯ ШІ)
+ */
+async function getAllUsersFullData() {
+    try {
+        const { data: users } = await window.sb
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (!users) return [];
+        
+        const result = [];
+        for (const user of users) {
+            const fullData = await getUserFullData(user.id);
+            if (fullData) result.push(fullData);
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка:', error);
+        return [];
+    }
+}
+
+/**
+ * ОНОВИТИ СТАТУС БАНУ В UI
+ */
+async function refreshBanStatus(userId) {
+    try {
+        const { data: user } = await window.sb
+            .from('users')
+            .select('is_banned, ban_reason, banned_until')
+            .eq('id', userId)
+            .single();
+        
+        if (!user) return null;
+        
+        // ОНОВЛЮЄМО LOCALSTORAGE
+        const localUser = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (localUser.id === userId) {
+            localUser.is_banned = user.is_banned;
+            localUser.ban_reason = user.ban_reason;
+            localUser.banned_until = user.banned_until;
+            localStorage.setItem('userData', JSON.stringify(localUser));
+        }
+        
+        return user;
+    } catch (error) {
+        console.error('❌ Помилка оновлення статусу:', error);
+        return null;
+    }
+}
+
+/**
+ * СТВОРИТИ АПЕЛЯЦІЮ (ТРИГЕР ЗРОБИТЬ ВСЕ САМ)
+ */
+async function createAppeal(data) {
+    try {
+        if (await isUserBanned(data.user_id)) {
+            throw new Error('Ваш акаунт заблоковано');
+        }
+        
+        const result = await supabaseQuery('appeals', {
+            method: 'POST',
+            body: JSON.stringify({
+                id: generateUUID(),
+                user_id: data.user_id,
+                target_user_id: data.target_user_id || data.user_id,
+                reason: data.reason || 'Апеляція на блокування',
+                description: data.description || '',
+                status: 'pending',
+                created_at: new Date().toISOString()
+            }),
+            headers: { 'Prefer': 'return=representation' }
+        });
+        
+        await addLog('Створено апеляцію', 'appeal', null, {
+            reason: data.reason,
+            user_id: data.user_id
+        });
+        
+        return result;
+    } catch (error) {
+        console.error('❌ Помилка створення апеляції:', error);
+        throw error;
+    }
+}
+
+/**
+ * ОТРИМАТИ АПЕЛЯЦІЮ З ВІДПОВІДДЮ ШІ
+ */
+async function getAppealWithAIResponse(appealId) {
+    try {
+        const appeal = await supabaseQuery('appeals?id=eq.' + appealId);
+        if (!appeal || appeal.length === 0) return null;
+        
+        const messages = await supabaseQuery('appeal_messages?appeal_id=eq.' + appealId + '&order=created_at.asc');
+        const aiLogs = await supabaseQuery('ai_actions_log?target_user_id=eq.' + appeal[0].user_id + '&order=created_at.desc&limit=5');
+        
+        return {
+            ...appeal[0],
+            messages: messages || [],
+            ai_logs: aiLogs || []
+        };
+    } catch (error) {
+        console.error('❌ Помилка отримання апеляції:', error);
+        return null;
+    }
+}
+
+/**
+ * ПЕРЕВІРИТИ СТАТУС ОБРОБКИ АПЕЛЯЦІЇ
+ */
+async function checkAppealStatus(appealId) {
+    try {
+        const result = await supabaseQuery('appeals?id=eq.' + appealId + '&select=status,resolution,resolved_at');
+        if (result && result.length > 0) {
+            return result[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('❌ Помилка перевірки статусу:', error);
+        return null;
+    }
+}
+
+// ============================================
 // ЕКСПОРТ ВСІХ ФУНКЦІЙ
 // ============================================
 
 window.db = {
+    // ОСНОВНІ ФУНКЦІЇ
     supabaseQuery: supabaseQuery,
     addLog: addLog,
     getUserName: getUserName,
@@ -1501,15 +1713,23 @@ window.db = {
     clearBannedWordsCache: clearBannedWordsCache,
     findBannedWord: findBannedWord,
     getActiveAnnouncements: getActiveAnnouncements,
+    
+    // КОРИСТУВАЧІ
     getUserRole: getUserRole,
     isUserBanned: isUserBanned,
     getUsersWithRoles: getUsersWithRoles,
     updateUser: updateUser,
     deleteUser: deleteUser,
     setUserRole: setUserRole,
+    getUserFullData: getUserFullData,
+    getAllUsersFullData: getAllUsersFullData,
+    refreshBanStatus: refreshBanStatus,
+    
+    // ОРГАНІЗАЦІЇ
     createOrganization: createOrganization,
     getUserOrganizations: getUserOrganizations,
     getUserAllOrganizations: getUserAllOrganizations,
+    getUserLedOrganizations: getUserLedOrganizations,
     getOrganization: getOrganization,
     updateOrganization: updateOrganization,
     deleteOrganization: deleteOrganization,
@@ -1525,6 +1745,8 @@ window.db = {
     createJoinRequest: createJoinRequest,
     getJoinRequests: getJoinRequests,
     updateJoinRequest: updateJoinRequest,
+    
+    // СПІВРОБІТНИКИ
     createEmployee: createEmployee,
     getOrganizationEmployees: getOrganizationEmployees,
     updateEmployee: updateEmployee,
@@ -1536,98 +1758,145 @@ window.db = {
     assignEmployeeToDepartment: assignEmployeeToDepartment,
     getEmployeesByDepartment: getEmployeesByDepartment,
     removeEmployeeFromDepartment: removeEmployeeFromDepartment,
+    
+    // ЧАТ
     sendChatMessage: sendChatMessage,
     getChatMessages: getChatMessages,
     deleteChatMessage: deleteChatMessage,
+    
+    // ВІДПУСТКИ
     createVacation: createVacation,
     getVacations: getVacations,
     getUserVacations: getUserVacations,
     updateVacationStatus: updateVacationStatus,
     deleteVacation: deleteVacation,
+    
+    // ПОДІЇ
     createEvent: createEvent,
     getEvents: getEvents,
     deleteEvent: deleteEvent,
+    
+    // ЗАВДАННЯ
     createTask: createTask,
     getTasks: getTasks,
     updateTask: updateTask,
     deleteTask: deleteTask,
+    
+    // ОПИТУВАННЯ
     createPoll: createPoll,
     getPolls: getPolls,
     votePoll: votePoll,
     getPollResults: getPollResults,
     deletePoll: deletePoll,
+    
+    // СПОВІЩЕННЯ
     createNotification: createNotification,
     getNotifications: getNotifications,
     markNotificationRead: markNotificationRead,
+    
+    // КЛІНІКА
     getClinicPatients: getClinicPatients,
     createClinicPatient: createClinicPatient,
     getClinicAppointments: getClinicAppointments,
     createClinicAppointment: createClinicAppointment,
+    
+    // МАГАЗИН
     getShopProducts: getShopProducts,
     createShopProduct: createShopProduct,
     getShopSales: getShopSales,
     createShopSale: createShopSale,
+    
+    // БІБЛІОТЕКА
     getLibraryBooks: getLibraryBooks,
     createLibraryBook: createLibraryBook,
     getLibraryLoans: getLibraryLoans,
     createLibraryLoan: createLibraryLoan,
     getLibraryReaders: getLibraryReaders,
     createLibraryReader: createLibraryReader,
+    
+    // ШКОЛА
     getSchoolStudents: getSchoolStudents,
     createSchoolStudent: createSchoolStudent,
     getSchoolClasses: getSchoolClasses,
     createSchoolClass: createSchoolClass,
     createSchoolGrade: createSchoolGrade,
+    
+    // РЕСТОРАН
     getRestaurantMenu: getRestaurantMenu,
     createRestaurantMenuItem: createRestaurantMenuItem,
     getRestaurantOrders: getRestaurantOrders,
     createRestaurantOrder: createRestaurantOrder,
     getRestaurantBookings: getRestaurantBookings,
     createRestaurantBooking: createRestaurantBooking,
+    
+    // ГОТЕЛЬ
     getHotelRooms: getHotelRooms,
     createHotelRoom: createHotelRoom,
     getHotelBookings: getHotelBookings,
     createHotelBooking: createHotelBooking,
+    
+    // СПОРТЗАЛ
     getGymMemberships: getGymMemberships,
     createGymMembership: createGymMembership,
     getGymTrainings: getGymTrainings,
     createGymTraining: createGymTraining,
+    
+    // САЛОН КРАСИ
     getBeautyServices: getBeautyServices,
     createBeautyService: createBeautyService,
     getBeautyAppointments: getBeautyAppointments,
     createBeautyAppointment: createBeautyAppointment,
+    
+    // АВТОСЕРВІС
     getAutoOrders: getAutoOrders,
     createAutoOrder: createAutoOrder,
     getAutoParts: getAutoParts,
     createAutoPart: createAutoPart,
+    
+    // НЕРУХОМІСТЬ
     getRealtyProperties: getRealtyProperties,
     createRealtyProperty: createRealtyProperty,
     getRealtyDeals: getRealtyDeals,
     createRealtyDeal: createRealtyDeal,
+    
+    // ЛОГІСТИКА
     getLogisticsOrders: getLogisticsOrders,
     createLogisticsOrder: createLogisticsOrder,
     getDeliveryOrders: getDeliveryOrders,
     createDeliveryOrder: createDeliveryOrder,
+    
+    // IT
     getItProjects: getItProjects,
     createItProject: createItProject,
     getItBugs: getItBugs,
     createItBug: createItBug,
+    
+    // СКАРГИ
     createReport: createReport,
     getReports: getReports,
     getReport: getReport,
     updateReportStatus: updateReportStatus,
     deleteReport: deleteReport,
     getUserReports: getUserReports,
+    
+    // ПІДТРИМКА
     createSupportTicket: createSupportTicket,
     getSupportTickets: getSupportTickets,
     getSupportTicket: getSupportTicket,
     updateSupportTicket: updateSupportTicket,
     getSupportMessages: getSupportMessages,
     sendSupportMessage: sendSupportMessage,
+    
+    // АПЕЛЯЦІЇ
     getAppeals: getAppeals,
     getAppealMessages: getAppealMessages,
     updateAppealStatus: updateAppealStatus,
     sendAppealMessage: sendAppealMessage,
+    createAppeal: createAppeal,
+    getAppealWithAIResponse: getAppealWithAIResponse,
+    checkAppealStatus: checkAppealStatus,
+    
+    // ШІ
     isAiEnabled: isAiEnabled,
     getAiGraceMinutes: getAiGraceMinutes,
     canAiReplyToTicket: canAiReplyToTicket,
