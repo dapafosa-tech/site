@@ -938,6 +938,53 @@
             }
         }
 
+        async function banUserIp(userId) {
+  try {
+    var userData = await db.supabaseQuery('users?id=eq.' + userId + '&select=full_name,email,reg_ip,last_ip');
+    if (!userData || userData.length === 0) { await showAlert('Користувача не знайдено', 'error'); return; }
+    var u = userData[0];
+
+    var ips = [];
+    if (u.reg_ip) ips.push(u.reg_ip);
+    if (u.last_ip && u.last_ip !== u.reg_ip) ips.push(u.last_ip);
+    if (ips.length === 0) { await showAlert('У цього користувача немає збереженого IP', 'warning'); return; }
+
+    var ipToBan = ips[0];
+    if (ips.length > 1) {
+      var choice = await showPrompt(
+        'У користувача кілька IP: ' + ips.join(' , ') + '. Введіть, який саме банити (або лишіть перший):',
+        ips[0], 'Вибір IP'
+      );
+      if (choice === null) return;
+      if (choice.trim()) ipToBan = choice.trim();
+    }
+
+    var reason = await showPrompt('Причина бану IP ' + ipToBan + ':', 'Порушення правил (' + (u.full_name || u.email || 'користувач') + ')', 'Бан по IP');
+    if (reason === null) return;
+    if (!reason.trim()) { await showAlert('Введіть причину', 'warning'); return; }
+
+    var daysStr = await showPrompt('На скільки днів забанити IP?', '15', 'Термін бану IP');
+    if (daysStr === null) return;
+    var days = parseInt(daysStr, 10);
+    if (!days || days <= 0) { await showAlert('Некоректна кількість днів', 'warning'); return; }
+
+    var confirmed = await showConfirm('Забанити IP ' + ipToBan + ' на ' + days + ' дн.? Це заблокує реєстрацію нових акаунтів з цього IP.', 'Підтвердження');
+    if (!confirmed) return;
+
+    var banUntil = new Date(Date.now() + days * 86400000).toISOString();
+    await db.supabaseQuery('banned_ips?on_conflict=ip', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ ip: ipToBan, reason: reason.trim(), banned_until: banUntil })
+    });
+
+    await db.addLog('Заблоковано IP', 'ip', ipToBan, { reason: reason.trim(), days: days, related_user: u.full_name || u.email });
+    await showToast('IP ' + ipToBan + ' заблоковано на ' + days + ' дн.', 'success');
+  } catch (error) {
+    await showAlert('Помилка: ' + error.message, 'error');
+  }
+}
+
         async function deleteUser(id) {
             try {
                 var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача? Всі дані будуть втрачені.', 'Увага');
