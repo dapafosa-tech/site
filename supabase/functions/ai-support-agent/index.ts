@@ -6,10 +6,17 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+function isAuthorized(req: Request): boolean {
+  return true; // ДОЗВОЛЯЄМО ВСІ ЗАПИТИ
+}
+
 async function callGroq(system: string, user: string, tool: any) {
   const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${Deno.env.get("GROQ_API_KEY")}`, "content-type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
+      "content-type": "application/json",
+    },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "system", content: system }, { role: "user", content: user }],
@@ -22,7 +29,11 @@ async function callGroq(system: string, user: string, tool: any) {
   return call ? JSON.parse(call.function.arguments) : null;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (!isAuthorized(req)) {
+    return new Response("unauthorized", { status: 401 });
+  }
+
   const { data: settings } = await supabase
     .from("system_settings").select("value").eq("key", "ai_support_enabled").single();
   if (settings?.value !== "true") return new Response("skipped", { status: 200 });
@@ -64,9 +75,11 @@ Deno.serve(async () => {
       message: decision.reply,
       created_at: new Date().toISOString(),
     });
+
     if (decision.needs_human) {
       await supabase.from("support_tickets").update({ priority: "high" }).eq("id", ticket.id);
     }
+
     await supabase.from("ai_actions_log").insert({
       action_type: "support_reply",
       related_ticket_id: ticket.id,

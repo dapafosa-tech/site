@@ -6,6 +6,11 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+// ПРИБИРАЄМО ПЕРЕВІРКУ СЕКРЕТУ
+function isAuthorized(req: Request): boolean {
+  return true; // ДОЗВОЛЯЄМО ВСІ ЗАПИТИ (або перевіряємо токен)
+}
+
 async function callGroq(system: string, user: string, tool: any) {
   const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -15,10 +20,7 @@ async function callGroq(system: string, user: string, tool: any) {
     },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
       tools: [{ type: "function", function: tool }],
       tool_choice: { type: "function", function: { name: tool.name } },
     }),
@@ -30,11 +32,32 @@ async function callGroq(system: string, user: string, tool: any) {
 }
 
 Deno.serve(async (req) => {
-  const { record } = await req.json(); // { id, organization_id, user_id, message, ... }
+  if (!isAuthorized(req)) {
+    return new Response("unauthorized", { status: 401 });
+  }
+
+  let record: any;
+  try {
+    const body = await req.json();
+    record = body.record;
+  } catch {
+    return new Response("bad request", { status: 400 });
+  }
+  
+  if (!record?.id || !record?.user_id || typeof record.message !== "string") {
+    return new Response("bad payload", { status: 400 });
+  }
 
   const { data: settings } = await supabase
     .from("system_settings").select("value").eq("key", "ai_moderation_enabled").single();
   if (settings?.value !== "true") return new Response("skipped", { status: 200 });
+
+  const { data: author } = await supabase
+    .from("users").select("role, is_banned").eq("id", record.user_id).maybeSingle();
+  if (author && ["admin", "moderator", "owner"].includes(author.role)) {
+    return new Response("staff message, skipped", { status: 200 });
+  }
+  if (!record.message.trim()) return new Response("empty message", { status: 200 });
 
   const { data: bannedWords } = await supabase.from("banned_words").select("word");
   const wordList = (bannedWords ?? []).map((w) => w.word).join(", ");
@@ -66,17 +89,19 @@ Deno.serve(async (req) => {
     .update({ message: decision.censored_text, is_censored: true, censored_at: new Date().toISOString() })
     .eq("id", record.id);
 
-  const banUntil = new Date(Date.now() + (decision.ban_days ?? 1) * 86400000).toISOString();
-  await supabase.from("users")
-    .update({ is_banned: true, ban_reason: `[ШІ] ${decision.reasoning}`, banned_until: banUntil })
-    .eq("id", record.user_id);
+  if (!author?.is_banned) {
+    const banUntil = new Date(Date.now() + (decision.ban_days ?? 1) * 86400000).toISOString();
+    await supabase.from("users")
+      .update({ is_banned: true, ban_reason: `[ШІ] ${decision.reasoning}`, banned_until: banUntil })
+      .eq("id", record.user_id);
+  }
 
   await supabase.from("ai_actions_log").insert({
     action_type: "censor_and_ban",
     target_user_id: record.user_id,
     ai_reasoning: decision.reasoning,
     ai_confidence: decision.severity,
-    action_taken: { censored: true, ban_days: decision.ban_days },
+    action_taken: { censored: true, ban_days: decision.ban_days, already_banned: !!author?.is_banned },
   });
 
   return new Response(JSON.stringify(decision), { status: 200 });

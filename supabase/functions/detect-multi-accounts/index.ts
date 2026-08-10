@@ -6,39 +6,86 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-Deno.serve(async () => {
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
+
+function isAuthorized(req: Request): boolean {
+  if (!CRON_SECRET) return false;
+  return req.headers.get("x-cron-secret") === CRON_SECRET;
+}
+
+Deno.serve(async (req) => {
+  if (!isAuthorized(req)) {
+    return new Response("unauthorized", { status: 401 });
+  }
+
   const { data: settings } = await supabase
     .from("system_settings").select("value").eq("key", "ai_moderation_enabled").single();
   if (settings?.value !== "true") return new Response("skipped", { status: 200 });
 
   const { data: users } = await supabase
-    .from("users").select("id, reg_ip").not("reg_ip", "is", null).eq("is_banned", false);
+    .from("users").select("id, reg_ip, full_name, email").not("reg_ip", "is", null).eq("is_banned", false);
   const { data: leaders } = await supabase
     .from("org_members").select("user_id").eq("is_leader", true);
   const leaderIds = new Set((leaders ?? []).map((l) => l.user_id));
 
   const byIp: Record<string, string[]> = {};
-  for (const u of users ?? []) (byIp[u.reg_ip] ??= []).push(u.id);
+  const userNames: Record<string, string> = {};
+  for (const u of users ?? []) {
+    byIp[u.reg_ip] ??= [];
+    byIp[u.reg_ip].push(u.id);
+    userNames[u.id] = u.full_name || u.email || 'Користувач';
+  }
 
   for (const [ip, ids] of Object.entries(byIp)) {
     const leaderCount = ids.filter((id) => leaderIds.has(id)).length;
-    if (ids.length > 5 && leaderCount >= 3) {
-      const reasoning = `${ids.length} акаунтів з IP ${ip}, з них ${leaderCount} лідери організацій (дозволено max 2). Авто-бан за підозрою в мультиакаунтингу.`;
-      const banUntil = new Date(Date.now() + 30 * 86400000).toISOString();
-      const ipBanUntil = new Date(Date.now() + 15 * 86400000).toISOString();
+    if (ids.length >= 3 && leaderCount >= 3) {
+      // Дістаємо засновників
+      const { data: owners } = await supabase
+        .from("users").select("id").eq("role", "owner");
 
-      for (const id of ids) {
-        await supabase.from("users")
-          .update({ is_banned: true, ban_reason: `[ШІ] ${reasoning}`, banned_until: banUntil })
-          .eq("id", id);
+      const ownerIds = owners?.map(o => o.id) || [];
+
+      // Створюємо повідомлення для засновників
+      const message = [
+        `🔍 ВИЯВЛЕНО МУЛЬТИАКАУНТИНГ`,
+        `IP-адреса: ${ip}`,
+        `Кількість акаунтів: ${ids.length}`,
+        `З них лідерів організацій: ${leaderCount}`,
+        `Акаунти:`,
+        ...ids.map(id => `  - ${userNames[id] || id}`),
+        ``,
+        `📋 Рекомендація:`,
+        `  - Бан всіх акаунтів на 1-3 дні (перше порушення)`,
+        `  - При повторі - бан на 5-30 днів`,
+        `  - Рекомендований термін: ${leaderCount >= 5 ? '30 днів' : leaderCount >= 4 ? '14 днів' : '7 днів'}`,
+        ``,
+        `⚡ Дія: Акаунти не заблоковано автоматично. Потрібне ручне рішення засновника.`
+      ].join('\n');
+
+      // Відправляємо повідомлення кожному засновнику (через support tickets)
+      for (const ownerId of ownerIds) {
+        await supabase.from("support_tickets").insert({
+          user_id: ownerId,
+          subject: `🚨 Виявлено мультиакаунтинг з IP ${ip}`,
+          message: message,
+          type: 'system_alert',
+          priority: 'high',
+          status: 'open',
+          created_at: new Date().toISOString()
+        });
       }
-      await supabase.from("banned_ips")
-        .upsert({ ip, reason: reasoning, banned_until: ipBanUntil }, { onConflict: "ip" });
+
+      // Логуємо
       await supabase.from("ai_actions_log").insert({
-        action_type: "multi_account_ban",
+        action_type: "multi_account_detected",
         target_ip: ip,
-        ai_reasoning: reasoning,
-        action_taken: { user_ids: ids, ban_days: 30, ip_ban_days: 15 },
+        ai_reasoning: `Виявлено ${ids.length} акаунтів з IP ${ip}, ${leaderCount} з них лідери`,
+        action_taken: { 
+          user_ids: ids, 
+          detected: true, 
+          notified_owners: ownerIds.length,
+          recommended_ban_days: leaderCount >= 5 ? 30 : leaderCount >= 4 ? 14 : 7
+        },
       });
     }
   }
