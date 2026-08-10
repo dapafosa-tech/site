@@ -608,9 +608,9 @@
             try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
         }
 
-        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot'; }
+        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot' || role === 'ai'; }
         function getRoleBadgeHtml(role) {
-            var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'bot': '🤖 Typebiz Bot', 'user': '👤 Користувач' };
+            var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'bot': '🤖 Typebiz Bot', 'ai': '🤖 Typebiz Bot', 'user': '👤 Користувач' };
             return labels[role] || '👤 Користувач';
         }
 
@@ -2216,16 +2216,38 @@
 
         function renderAdminForms() {
             var container = document.getElementById('ownerContent');
-            var typeLabels = { transfer: '📤 Передача', request: '❓ Запит', punishment: '⚖️ Форма покарання' };
-            var typeColors = { transfer: 'badge-primary', request: 'badge-warning', punishment: 'badge-danger' };
-            var roleLabels = { ai: '🤖 ШІ', moderator: '🛡️ Модератор', admin: '⭐ Адмін', owner: '👑 Засновник' };
-
-            var html = '<div class="card"><div class="card-header"><h3 class="card-title">📄 Адмін-Форми</h3><span class="badge badge-primary">' + adminFormsCache.length + '</span></div>';
+            var html = '<div class="card"><div class="card-header"><h3 class="card-title">📄 Адмін-Форми</h3><div style="display:flex;align-items:center;gap:0.6rem;"><span class="badge badge-primary">' + adminFormsCache.length + '</span><button class="btn btn-gold btn-sm" onclick="openCreateAdminFormModal()"><i class="fas fa-plus"></i> Створити форму</button></div></div>';
             html += '<div class="search-filters"><select class="filter-select" id="adminFormsTypeFilter" onchange="renderAdminFormsFiltered()"><option value="">Всі типи</option><option value="transfer">Передача</option><option value="request">Запит</option><option value="punishment">Форма покарання</option></select>';
             html += '<select class="filter-select" id="adminFormsStatusFilter" onchange="renderAdminFormsFiltered()"><option value="">Всі статуси</option><option value="pending">Очікує</option><option value="answered">Відповіли</option><option value="approved">Схвалено</option><option value="rejected">Відхилено</option></select></div>';
             html += '<div id="adminFormsList"></div></div>';
             container.innerHTML = html;
             renderAdminFormsFiltered();
+        }
+
+        function openCreateAdminFormModal() {
+            var user = auth.getCurrentUser();
+            var html = '<form id="createAdminFormForm">';
+            html += '<div class="form-group"><label class="form-label">Тип форми</label><select class="form-control" id="afType"><option value="request">❓ Запит</option><option value="transfer">📤 Передача</option></select></div>';
+            html += '<div class="form-group"><label class="form-label">Кому адресовано</label><select class="form-control" id="afRecipient"><option value="admin_team">Адмін-команді</option><option value="owner">Засновнику</option></select></div>';
+            html += '<div class="form-group"><label class="form-label">Тема</label><input type="text" class="form-control" id="afSubject" placeholder="Коротко опишіть суть" required></div>';
+            html += '<div class="form-group"><label class="form-label">Опис / деталі</label><textarea class="form-control" id="afBody" rows="4" placeholder="Детальний опис запиту або передачі..."></textarea></div>';
+            html += '<button type="submit" class="btn btn-gold btn-block"><i class="fas fa-paper-plane"></i> Відправити</button>';
+            html += '</form>';
+            openModal('Нова Адмін-Форма (' + (user.full_name || user.email) + ')', html);
+            document.getElementById('createAdminFormForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var formType = document.getElementById('afType').value;
+                var recipient = document.getElementById('afRecipient').value;
+                var subject = document.getElementById('afSubject').value.trim();
+                var body = document.getElementById('afBody').value.trim();
+                if (!subject) { await showAlert('Вкажіть тему форми', 'warning'); return; }
+                try {
+                    await db.createAdminForm({ form_type: formType, recipient_text: recipient, subject: subject, body: body });
+                    await showToast('Форму відправлено!', 'success');
+                    closeModal();
+                    loadAdminForms();
+                } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+            });
         }
 
         function renderAdminFormsFiltered() {
@@ -2308,18 +2330,16 @@
             if (!checkOwnerAccess()) return;
             var container = document.getElementById('ownerContent');
             try {
-                var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=200');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
-                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                var logs = await db.getCombinedLogs(200);
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи (адмін + ШІ)</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+                html += '<select class="filter-select" id="logSourceFilter" onchange="filterLogsTable()"><option value="">Всі джерела</option><option value="admin">Персонал</option><option value="ai">ШІ</option></select></div>';
                 html += '<div style="overflow-x:auto;"><table class="table" id="logsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="logsTableBody">';
                 if (logs && logs.length > 0) {
-                    var users = await db.supabaseQuery('users?select=id,full_name,email');
-                    var userMap = {};
-                    if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
                     for (var i = 0; i < logs.length; i++) {
                         var log = logs[i];
-                        var userName = log.user_name || userMap[log.user_id] || 'Система';
-                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge badge-primary">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
+                        var userName = log.user_name || 'Система';
+                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '" data-source="' + (log.source || 'admin') + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge ' + (log.source === 'ai' ? 'badge-warning' : 'badge-primary') + '">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
                     }
                 } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає логів</td></tr>'; }
                 html += '</tbody></table></div></div>';
@@ -2331,47 +2351,75 @@
 
         function filterLogsTable() {
             var searchInput = document.getElementById('logSearchInput');
+            var sourceFilter = document.getElementById('logSourceFilter');
             if (!searchInput) return;
             var query = searchInput.value.toLowerCase().trim();
+            var source = sourceFilter ? sourceFilter.value : '';
             var rows = document.querySelectorAll('#logsTableBody tr');
             rows.forEach(function(row) {
                 var userName = row.getAttribute('data-user') || '';
                 var action = row.getAttribute('data-action') || '';
                 var entity = row.getAttribute('data-entity') || '';
+                var rowSource = row.getAttribute('data-source') || 'admin';
                 var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
-                row.style.display = matchSearch ? '' : 'none';
+                var matchSource = !source || rowSource === source;
+                row.style.display = (matchSearch && matchSource) ? '' : 'none';
             });
         }
 
         // ============================================================
-        // РОЗДІЛ: ШІ МОДЕРАЦІЯ (ЗАПИТИ ДО ШІ)
+        // РОЗДІЛ: ШІ МОДЕРАЦІЯ (2 ВКЛАДКИ: УПРАВЛІННЯ+ЛОГИ / ЗАПИТИ)
         // ============================================================
         var aiOwnerRequestsCache = [];
+        var aiModerationActiveTab = 'manage';
 
         async function loadAiModeration() {
             if (!checkOwnerAccess()) return;
             var container = document.getElementById('ownerContent');
-            
+
+            var html = '';
+            html += '<div class="tab-nav">';
+            html += '<button id="aiTabBtn_manage" class="' + (aiModerationActiveTab === 'manage' ? 'active' : '') + '" onclick="switchAiModerationTab(\'manage\')"><i class="fas fa-sliders-h"></i> Управління та Логи</button>';
+            html += '<button id="aiTabBtn_requests" class="' + (aiModerationActiveTab === 'requests' ? 'active' : '') + '" onclick="switchAiModerationTab(\'requests\')"><i class="fas fa-comments"></i> Запити (Дії)</button>';
+            html += '</div>';
+            html += '<div id="aiTabContent_manage" class="tab-content ' + (aiModerationActiveTab === 'manage' ? 'active' : '') + '"><p class="text-muted">Завантаження...</p></div>';
+            html += '<div id="aiTabContent_requests" class="tab-content ' + (aiModerationActiveTab === 'requests' ? 'active' : '') + '"><p class="text-muted">Завантаження...</p></div>';
+            container.innerHTML = html;
+
+            await loadAiModerationManageTab();
+            await loadAiModerationRequestsTab();
+        }
+
+        function switchAiModerationTab(tab) {
+            aiModerationActiveTab = tab;
+            var btnManage = document.getElementById('aiTabBtn_manage');
+            var btnRequests = document.getElementById('aiTabBtn_requests');
+            var contentManage = document.getElementById('aiTabContent_manage');
+            var contentRequests = document.getElementById('aiTabContent_requests');
+            if (btnManage) btnManage.classList.toggle('active', tab === 'manage');
+            if (btnRequests) btnRequests.classList.toggle('active', tab === 'requests');
+            if (contentManage) contentManage.classList.toggle('active', tab === 'manage');
+            if (contentRequests) contentRequests.classList.toggle('active', tab === 'requests');
+        }
+
+        // ------- ВКЛАДКА 1: УПРАВЛІННЯ + ЛОГИ ШІ -------
+        async function loadAiModerationManageTab() {
+            var container = document.getElementById('aiTabContent_manage');
+            if (!container) return;
             try {
                 var settings = await db.getSystemSettings();
                 var aiEnabled = settings['ai_moderation_enabled'] !== 'false';
                 var aiSupportEnabled = settings['ai_support_enabled'] !== 'false';
-                
-                // ОТРИМУЄМО ВСІ ЗАПИТИ
-                var requests = await db.supabaseQuery('ai_owner_requests?order=created_at.desc&limit=50');
-                aiOwnerRequestsCache = requests || [];
-                
+                var aiLogs = await db.getAiActionsLog({ limit: 100 });
+
                 var html = '';
-                
-                // СТАТИСТИКА
                 html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
-                html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + (requests ? requests.length : 0) + '</div><div class="stat-label">Всього запитів</div></div>';
-                html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + (requests ? requests.filter(function(r) { return r.status === 'done'; }).length : 0) + '</div><div class="stat-label">Виконано</div></div>';
-                html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + (requests ? requests.filter(function(r) { return r.status === 'working'; }).length : 0) + '</div><div class="stat-label">В роботі</div></div>';
-                html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + (requests ? requests.filter(function(r) { return r.status === 'error' || r.status === 'failed'; }).length : 0) + '</div><div class="stat-label">Помилок</div></div>';
+                html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + (aiLogs ? aiLogs.length : 0) + '</div><div class="stat-label">Дій ШІ (останні 100)</div></div>';
+                html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + (aiLogs ? aiLogs.filter(function(l){return (l.action_type||'').indexOf('ban')!==-1;}).length : 0) + '</div><div class="stat-label">Банів/censor ШІ</div></div>';
+                html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + (aiLogs ? aiLogs.filter(function(l){return l.action_type==='support_reply';}).length : 0) + '</div><div class="stat-label">Відповідей в підтримку</div></div>';
+                html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + (aiEnabled ? 'Увімк.' : 'Вимк.') + '</div><div class="stat-label">Модерація ШІ</div></div>';
                 html += '</div>';
-                
-                // НАЛАШТУВАННЯ ШІ
+
                 html += '<div class="card"><div class="card-header"><h3 class="card-title">⚙️ Налаштування ШІ</h3></div>';
                 html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
@@ -2383,30 +2431,71 @@
                 html += '<button class="btn btn-sm ' + (aiSupportEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiSupport(' + (!aiSupportEnabled) + ')">' + (aiSupportEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
                 html += '</div>';
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;">';
-                html += '<span>⏳ Час очікування ШІ</span>';
+                html += '<span>⏳ Час очікування ШІ перед першою відповіддю в тікеті</span>';
                 html += '<span><strong>' + (settings['ai_support_grace_minutes'] || '10') + ' хв.</strong> <button class="btn btn-sm btn-primary" onclick="changeAiGrace()"><i class="fas fa-edit"></i></button></span>';
                 html += '</div>';
                 html += '</div></div>';
-                
-                // ФОРМА ДЛЯ ЗАПИТІВ
-                html += '<div class="card"><div class="card-header"><h3 class="card-title">💬 Запити до ШІ</h3></div>';
+
+                html += '<div class="card"><div class="card-header"><h3 class="card-title">📜 Логи дій ШІ</h3><span class="badge badge-primary">' + (aiLogs ? aiLogs.length : 0) + '</span></div>';
+                html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Тип дії</th><th>Ціль</th><th>Обґрунтування ШІ</th></tr></thead><tbody>';
+                if (aiLogs && aiLogs.length > 0) {
+                    var actionLabels = {
+                        'censor_and_ban': '🚫 Цензура + Бан', 'censor_only': '✏️ Цензура', 'ban': '⛔ Бан', 'unban': '✅ Розбан',
+                        'role_change': '🔧 Зміна ролі', 'support_reply': '💬 Відповідь в підтримку',
+                        'multi_account_detected': '🔍 Мультиакаунтинг', 'multi_account_ban': '🚫 Бан мультиакаунтів',
+                        'report_review': '📋 Аналіз скарги', 'appeal_review': '⚖️ Розгляд апеляції', 'support_ticket': '🎫 Тикет підтримки',
+                        'owner_request': '👑 Запит засновника', 'freeze_org': '🧊 Заморозка організації', 'unfreeze_org': '▶️ Розморозка організації'
+                    };
+                    for (var i = 0; i < aiLogs.length; i++) {
+                        var l = aiLogs[i];
+                        var reasoning = l.ai_reasoning || l.reasoning || '—';
+                        if (reasoning && reasoning.length > 140) reasoning = reasoning.slice(0, 140) + '…';
+                        html += '<tr><td style="white-space:nowrap;">' + formatDateTimeKyiv(l.created_at) + '</td><td><span class="badge badge-warning">' + (actionLabels[l.action_type] || l.action_type) + '</span></td><td>' + (l.target_user_id ? '<a href="javascript:void(0)" onclick="openUserProfileModal(\'' + l.target_user_id + '\')" style="color:var(--gold);">переглянути</a>' : '—') + '</td><td style="font-size:0.82rem;">' + reasoning + '</td></tr>';
+                    }
+                } else { html += '<tr><td colspan="4" class="text-center text-muted">Логів дій ШІ ще немає</td></tr>'; }
+                html += '</tbody></table></div></div>';
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження: ' + error.message + '</p></div>';
+            }
+        }
+
+        // ------- ВКЛАДКА 2: ЗАПИТИ ДО ШІ (ДІЇ) -------
+        async function loadAiModerationRequestsTab() {
+            var container = document.getElementById('aiTabContent_requests');
+            if (!container) return;
+            try {
+                var requests = await db.supabaseQuery('ai_owner_requests?order=created_at.desc&limit=50');
+                aiOwnerRequestsCache = requests || [];
+
+                var html = '';
+                html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
+                html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + (requests ? requests.length : 0) + '</div><div class="stat-label">Всього запитів</div></div>';
+                html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + (requests ? requests.filter(function(r) { return r.status === 'done'; }).length : 0) + '</div><div class="stat-label">Виконано</div></div>';
+                html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + (requests ? requests.filter(function(r) { return r.status === 'working' || r.status === 'queued'; }).length : 0) + '</div><div class="stat-label">В роботі / черзі</div></div>';
+                html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + (requests ? requests.filter(function(r) { return r.status === 'error' || r.status === 'failed'; }).length : 0) + '</div><div class="stat-label">Помилок</div></div>';
+                html += '</div>';
+
+                html += '<div class="card"><div class="card-header"><h3 class="card-title">💬 Запити до ШІ — постав задачу (напр. забрати роль, забанити, розбанити)</h3></div>';
+                html += '<p class="text-muted" style="margin-bottom:0.9rem;font-size:0.85rem;">Опишіть дію словами — ШІ обробить запит і за потреби виконає її: видасть/забере роль, забанить чи розбанить користувача, тощо. Кожна дія фіксується в логах ШІ (вкладка «Управління та Логи»).</p>';
                 html += '<div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">';
-                html += '<input type="text" class="form-control" id="ownerAiPrompt" placeholder="Напр.: Подивись IP користувача або забани когось" style="flex:1;min-width:200px;">';
+                html += '<input type="text" class="form-control" id="ownerAiPrompt" placeholder="Напр.: Зніми роль модератора з Івана Петренка, або Забань користувача X на 3 дні за спам" style="flex:1;min-width:220px;">';
                 html += '<button class="btn btn-gold" onclick="sendOwnerAiRequest()"><i class="fas fa-paper-plane"></i> Надіслати</button>';
                 html += '</div>';
-                
-                html += '<div id="ownerAiRequestsList" style="max-height:500px;overflow-y:auto;">';
+
+                html += '<div id="ownerAiRequestsList" style="max-height:520px;overflow-y:auto;">';
                 if (requests && requests.length > 0) {
                     var statusLabels = { queued: '⏳ В черзі', working: '⚙️ Виконується', done: '✅ Готово', error: '❌ Помилка', failed: '❌ Помилка' };
                     var statusColors = { queued: 'badge-secondary', working: 'badge-warning', done: 'badge-success', error: 'badge-danger', failed: 'badge-danger' };
+                    var users = await db.supabaseQuery('users?select=id,full_name,email');
+                    var userMap = {};
+                    if (users) { for (var j = 0; j < users.length; j++) { userMap[users[j].id] = users[j].full_name || users[j].email || 'Користувач'; } }
                     for (var i = 0; i < requests.length; i++) {
                         var r = requests[i];
-                        var users = await db.supabaseQuery('users?select=id,full_name,email');
-                        var userMap = {};
-                        if (users) { for (var j = 0; j < users.length; j++) { userMap[users[j].id] = users[j].full_name || users[j].email || 'Користувач'; } }
                         var fromName = userMap[r.requested_by] || 'Невідомо';
                         var isAnswered = r.status === 'done' || r.status === 'error' || r.status === 'failed';
-                        html += '<div class="chat-bubble owner"><strong>👑 Ви (' + fromName + '):</strong> ' + r.prompt + '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.2rem;"><span class="badge ' + (statusColors[r.status] || 'badge-secondary') + '">' + (statusLabels[r.status] || r.status) + '</span><span class="text-muted" style="font-size:0.72rem;">' + formatDateTimeKyiv(r.created_at) + '</span></div></div>';
+                        html += '<div class="chat-bubble owner"><strong>👑 ' + fromName + ':</strong> ' + r.prompt + '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.2rem;"><span class="badge ' + (statusColors[r.status] || 'badge-secondary') + '">' + (statusLabels[r.status] || r.status) + '</span><span class="text-muted" style="font-size:0.72rem;">' + formatDateTimeKyiv(r.created_at) + '</span></div></div>';
                         if (r.greeting) {
                             html += '<div class="chat-bubble ai"><strong>🤖 ШІ:</strong> ' + r.greeting + '</div>';
                         }
@@ -2418,15 +2507,18 @@
                         }
                     }
                 } else {
-                    html += '<p class="text-muted">Запитів ще немає. Напишіть перший — напр. "Подивись IP користувача" або "Забанити користувача за порушення".</p>';
+                    html += '<p class="text-muted">Запитів ще немає. Напишіть перший — напр. "Зніми роль з користувача X" або "Забанити користувача за порушення".</p>';
                 }
                 html += '</div></div>';
-                
+
                 container.innerHTML = html;
             } catch (error) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження ШІ модерації: ' + error.message + '</p></div>';
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження запитів ШІ: ' + error.message + '</p></div>';
             }
         }
+
+        // Зворотна сумісність зі старими викликами
+        async function loadAiModerationLegacy() { await loadAiModeration(); }
 
         // ============================================================
         // ДІЇ З ШІ
@@ -2452,7 +2544,9 @@
                     var requestId = result[0].id;
                     await showToast('Запит надіслано ШІ, ID: ' + requestId.substring(0, 8), 'success');
                     
-                    // ВИКЛИКАЄМО ШІ ДЛЯ ОБРОБКИ
+                    // ВИКЛИКАЄМО ШІ ДЛЯ ОБРОБКИ (edge function ai-owner-request:
+                    // саме вона повинна вміти виконувати дії — бан/розбан/зміну ролей —
+                    // на основі тексту запиту і писати результат у ai_actions_log)
                     try {
                         var response = await fetch(
                             'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/ai-owner-request',
@@ -2476,7 +2570,8 @@
                 }
                 
                 input.value = '';
-                loadAiModeration();
+                await loadAiModerationRequestsTab();
+                await loadAiModerationManageTab();
             } catch (error) {
                 await showAlert('Помилка: ' + error.message, 'error');
             }
@@ -2498,7 +2593,7 @@
                 }
                 await db.addLog('Змінено налаштування ШІ модерації', 'system', null, { enabled: enabled });
                 await showToast('Налаштування збережено!', 'success');
-                loadAiModeration();
+                loadAiModerationManageTab();
             } catch (error) {
                 await showAlert('Помилка: ' + error.message, 'error');
             }
@@ -2520,7 +2615,7 @@
                 }
                 await db.addLog('Змінено налаштування ШІ підтримки', 'system', null, { enabled: enabled });
                 await showToast('Налаштування збережено!', 'success');
-                loadAiModeration();
+                loadAiModerationManageTab();
             } catch (error) {
                 await showAlert('Помилка: ' + error.message, 'error');
             }
@@ -2552,7 +2647,7 @@
                 }
                 await db.addLog('Змінено час очікування ШІ', 'system', null, { minutes: minutes });
                 await showToast('Збережено!', 'success');
-                loadAiModeration();
+                loadAiModerationManageTab();
             } catch (error) {
                 await showAlert('Помилка: ' + error.message, 'error');
             }
