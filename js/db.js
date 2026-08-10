@@ -1629,9 +1629,6 @@ async function refreshBanStatus(userId) {
  */
 async function createAppeal(data) {
     try {
-        if (await isUserBanned(data.user_id)) {
-            throw new Error('Ваш акаунт заблоковано');
-        }
         
         const result = await supabaseQuery('appeals', {
             method: 'POST',
