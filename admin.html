@@ -176,11 +176,6 @@
             gap:1.5rem;
             margin-bottom:2rem;
         }
-        .grid-2{
-            display:grid;
-            grid-template-columns:repeat(2,1fr);
-            gap:1.5rem;
-        }
         .stat-card{
             background:var(--ink-soft);
             border:1px solid var(--ink-line);
@@ -391,30 +386,6 @@
         }
         .mobile-topbar{display:none;}
         .sidebar-backdrop{display:none;}
-        .tab-nav{
-            display:flex;
-            gap:0.4rem;
-            flex-wrap:wrap;
-            margin-bottom:1.5rem;
-            border-bottom:1px solid var(--ink-line);
-            padding-bottom:0.6rem;
-        }
-        .tab-nav button{
-            padding:0.5rem 1.2rem;
-            border-radius:var(--radius-sm);
-            border:1px solid transparent;
-            background:transparent;
-            color:var(--muted);
-            cursor:pointer;
-            font-weight:500;
-            transition:all .15s ease;
-            font-family:'IBM Plex Sans',sans-serif;
-            font-size:0.87rem;
-        }
-        .tab-nav button:hover{background:var(--ink-raised);color:var(--text-onink);}
-        .tab-nav button.active{background:var(--gold);color:var(--ink);font-weight:600;}
-
-        /* АДМІН-ФОРМИ СТИЛІ */
         .form-type-card{
             background:var(--ink);
             border:1px solid var(--ink-line);
@@ -423,14 +394,6 @@
             margin-bottom:0.8rem;
         }
         .form-type-card.answered{opacity:0.65;}
-        .form-type-badge{
-            font-family:'IBM Plex Mono';
-            font-size:0.65rem;
-            padding:0.15rem 0.55rem;
-            border-radius:6px;
-            text-transform:uppercase;
-            letter-spacing:0.04em;
-        }
         .profile-grid{
             display:grid;
             grid-template-columns:1fr 1fr;
@@ -470,14 +433,6 @@
         }
         .timeline-item .t-action{font-weight:600;font-size:0.85rem;}
         .timeline-item .t-time{font-size:0.72rem;color:var(--muted-dim);font-family:'IBM Plex Mono';}
-        .chat-bubble{
-            padding:0.8rem 1rem;
-            border-radius:10px;
-            margin-bottom:0.7rem;
-            max-width:85%;
-        }
-        .chat-bubble.owner{background:var(--gold-glow);margin-left:auto;border:1px solid rgba(242,169,59,0.3);}
-        .chat-bubble.ai{background:var(--ink);border:1px solid var(--ink-line);}
 
         @media(max-width:768px){
             .mobile-topbar{
@@ -513,7 +468,6 @@
             .main-content{margin-left:0;padding:1rem;}
             .page-header h1{font-size:1.5rem;}
             .grid-4{grid-template-columns:1fr 1fr;}
-            .grid-2{grid-template-columns:1fr;}
             .search-wrapper{min-width:100%;}
             .filter-select{min-width:100%;}
             .profile-grid{grid-template-columns:1fr;}
@@ -521,7 +475,6 @@
         @media(max-width:480px){
             .grid-4{grid-template-columns:1fr;}
             .search-filters{flex-direction:column;}
-            .tab-nav button{flex:1;text-align:center;font-size:0.8rem;padding:0.4rem 0.8rem;}
         }
         @media (max-width: 768px) {
             table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -564,7 +517,6 @@
             <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
             <li><a onclick="loadSection('adminforms')"><i class="fas fa-file-signature"></i> Адмін-Форми</a></li>
             <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
-            <li><a onclick="loadSection('ai')"><i class="fas fa-robot"></i> ШІ Модерація</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
     </aside>
@@ -608,7 +560,6 @@
         </div>
     </main>
 
-    <!-- МОДАЛКИ -->
     <div class="modal" id="chatModal">
         <div class="modal-content modal-content-wide">
             <div class="modal-header">
@@ -859,8 +810,7 @@
                 'appeals': 'Апеляції',
                 'support': 'Техпідтримка',
                 'adminforms': '📄 Адмін-Форми',
-                'logs': 'Логи',
-                'ai': '🤖 ШІ Модерація'
+                'logs': 'Логи'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
             document.getElementById('pageSubtitle').textContent = 'Управління системою';
@@ -875,7 +825,6 @@
                 case 'support': loadSupportManagement(); break;
                 case 'adminforms': loadAdminForms(); break;
                 case 'logs': loadLogs(); break;
-                case 'ai': loadAiModeration(); break;
                 default: loadOverview();
             }
         }
@@ -985,7 +934,7 @@
                 html += '<div class="profile-field"><div class="k">Апеляцій подано</div><div class="v">' + ((appealsRows || []).length) + '</div></div>';
                 html += '</div>';
 
-                html += '<div class="card-header" style="margin-top:0.5rem;"><h3 class="card-title" style="font-size:1rem;">Історія (ролі, бани, дії ШІ)</h3><span class="badge badge-primary">' + combined.length + '</span></div>';
+                html += '<div class="card-header" style="margin-top:0.5rem;"><h3 class="card-title" style="font-size:1rem;">Історія</h3><span class="badge badge-primary">' + combined.length + '</span></div>';
                 if (combined.length > 0) {
                     html += '<div style="max-height:340px;overflow-y:auto;">';
                     for (var i = 0; i < combined.length; i++) {
@@ -1823,7 +1772,6 @@
                     body: JSON.stringify({ status: newStatus, response: response, answered_by: user.id, answered_at: new Date().toISOString() })
                 });
 
-                // Якщо форма покарання схвалена — виконуємо бан
                 var form = adminFormsCache.find(function(f) { return f.id === formId; });
                 if (form && form.form_type === 'punishment' && newStatus === 'approved' && form.target_user_id) {
                     var days = form.ban_days || 5;
@@ -1880,191 +1828,6 @@
                 var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
                 row.style.display = matchSearch ? '' : 'none';
             });
-        }
-
-        // ============================================================
-        // РОЗДІЛ: ШІ МОДЕРАЦІЯ (ПОВЕРНУТО!)
-        // ============================================================
-        var aiModTab = 'actions';
-
-        async function loadAiModeration() {
-            var container = document.getElementById('adminContent');
-            var user = auth.getCurrentUser();
-            if (!canViewData(user)) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
-                return;
-            }
-
-            var tabsHtml = '<div class="tab-nav">';
-            tabsHtml += '<button class="' + (aiModTab === 'actions' ? 'active' : '') + '" onclick="switchAiModTab(\'actions\')"><i class="fas fa-list"></i> Дії ШІ</button>';
-            tabsHtml += '<button class="' + (aiModTab === 'settings' ? 'active' : '') + '" onclick="switchAiModTab(\'settings\')"><i class="fas fa-cog"></i> Налаштування</button>';
-            tabsHtml += '</div><div id="aiModTabContent"></div>';
-            container.innerHTML = tabsHtml;
-
-            if (aiModTab === 'actions') { renderAiModActions(); } else { renderAiModSettings(); }
-        }
-
-        function switchAiModTab(tab) {
-            aiModTab = tab;
-            loadAiModeration();
-        }
-
-        async function renderAiModActions() {
-            var target = document.getElementById('aiModTabContent');
-            try {
-                var aiLogs = await db.supabaseQuery('ai_actions_log?order=created_at.desc&limit=50');
-                var aiStats = {
-                    total: aiLogs ? aiLogs.length : 0,
-                    censored: 0,
-                    banned: 0,
-                    support: 0,
-                    multiAccount: 0
-                };
-                if (aiLogs) {
-                    for (var i = 0; i < aiLogs.length; i++) {
-                        var log = aiLogs[i];
-                        if (log.action_type === 'censor_and_ban' || log.action_type === 'censor_only') aiStats.censored++;
-                        if (log.action_type === 'censor_and_ban' || log.action_type === 'ban') aiStats.banned++;
-                        if (log.action_type === 'support_reply' || log.action_type === 'support_ticket') aiStats.support++;
-                        if (log.action_type === 'multi_account_detected' || log.action_type === 'multi_account_ban') aiStats.multiAccount++;
-                    }
-                }
-
-                var html = '';
-                html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
-                html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + aiStats.total + '</div><div class="stat-label">Всього дій ШІ</div></div>';
-                html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + aiStats.censored + '</div><div class="stat-label">Зацензуровано</div></div>';
-                html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + aiStats.banned + '</div><div class="stat-label">Заблоковано ШІ</div></div>';
-                html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + aiStats.support + '</div><div class="stat-label">Дій в підтримці</div></div>';
-                html += '</div>';
-
-                html += '<div class="card"><div class="card-header"><h3 class="card-title">📋 Останні дії ШІ</h3></div>';
-                if (aiLogs && aiLogs.length > 0) {
-                    html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Тип</th><th>Дія</th><th>Ціль</th></tr></thead><tbody>';
-                    for (var i = 0; i < Math.min(aiLogs.length, 20); i++) {
-                        var log = aiLogs[i];
-                        var actionLabels = {
-                            'censor_and_ban': '🚫 Цензура + Бан',
-                            'censor_only': '✏️ Цензура',
-                            'ban': '⛔ Бан',
-                            'support_reply': '💬 Відповідь в підтримку',
-                            'support_ticket': '🎫 Обробка тикету',
-                            'multi_account_detected': '🔍 Виявлено мультиакаунтинг',
-                            'multi_account_ban': '🚫 Бан мультиакаунтів',
-                            'report_review': '📋 Аналіз скарги',
-                            'appeal_review': '⚖️ Розгляд апеляції'
-                        };
-                        var label = actionLabels[log.action_type] || log.action_type;
-                        var target = log.target_user_id ? ('<a href="javascript:void(0)" onclick="openUserProfileModal(\'' + log.target_user_id + '\')" style="color:var(--gold);">переглянути</a>') : (log.target_ip || '—');
-                        html += '<tr><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><span class="badge badge-primary">' + label + '</span></td><td>' + (log.ai_reasoning || '—') + '</td><td>' + target + '</td></tr>';
-                    }
-                    html += '</tbody></table></div>';
-                } else { html += '<p class="text-muted">Немає дій ШІ</p>'; }
-                html += '</div>';
-
-                target.innerHTML = html;
-            } catch (error) {
-                target.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження: ' + error.message + '</p></div>';
-            }
-        }
-
-        async function renderAiModSettings() {
-            var target = document.getElementById('aiModTabContent');
-            try {
-                var settings = await db.getSystemSettings();
-                var aiEnabled = settings['ai_moderation_enabled'] !== 'false';
-                var aiSupportEnabled = settings['ai_support_enabled'] !== 'false';
-
-                var html = '';
-                html += '<div class="card"><div class="card-header"><h3 class="card-title">⚙️ Налаштування ШІ</h3></div>';
-                html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
-                html += '<span>🤖 Модерація повідомлень</span>';
-                html += '<button class="btn btn-sm ' + (aiEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiModeration(' + (!aiEnabled) + ')">' + (aiEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
-                html += '</div>';
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
-                html += '<span>💬 Автовідповіді в підтримку</span>';
-                html += '<button class="btn btn-sm ' + (aiSupportEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiSupport(' + (!aiSupportEnabled) + ')">' + (aiSupportEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
-                html += '</div>';
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;">';
-                html += '<span>⏳ Час очікування перед відповіддю ШІ в підтримку</span>';
-                html += '<span><strong>' + (settings['ai_support_grace_minutes'] || '10') + ' хв.</strong> <button class="btn btn-sm btn-primary" onclick="changeAiGrace()"><i class="fas fa-edit"></i></button></span>';
-                html += '</div>';
-                html += '<p class="text-muted" style="font-size:0.78rem;margin-top:0.3rem;">Прості тикети ШІ вирішує одразу, без очікування. Грейс-період діє лише для тикетів, що потребують перевірки людини.</p>';
-                html += '</div></div>';
-                target.innerHTML = html;
-            } catch (error) {
-                target.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження налаштувань: ' + error.message + '</p></div>';
-            }
-        }
-
-        async function toggleAiModeration(enabled) {
-            try {
-                var existing = await db.supabaseQuery('system_settings?key=eq.ai_moderation_enabled');
-                if (existing && existing.length > 0) {
-                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
-                    });
-                } else {
-                    await db.supabaseQuery('system_settings', {
-                        method: 'POST',
-                        body: JSON.stringify({ key: 'ai_moderation_enabled', value: enabled ? 'true' : 'false' })
-                    });
-                }
-                await db.addLog('Змінено налаштування ШІ модерації', 'system', null, { enabled: enabled });
-                await showToast('Налаштування збережено!', 'success');
-                loadAiModeration();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
-        }
-
-        async function toggleAiSupport(enabled) {
-            try {
-                var existing = await db.supabaseQuery('system_settings?key=eq.ai_support_enabled');
-                if (existing && existing.length > 0) {
-                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
-                    });
-                } else {
-                    await db.supabaseQuery('system_settings', {
-                        method: 'POST',
-                        body: JSON.stringify({ key: 'ai_support_enabled', value: enabled ? 'true' : 'false' })
-                    });
-                }
-                await db.addLog('Змінено налаштування ШІ підтримки', 'system', null, { enabled: enabled });
-                await showToast('Налаштування збережено!', 'success');
-                loadAiModeration();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
-        }
-
-        async function changeAiGrace() {
-            try {
-                var settings = await db.getSystemSettings();
-                var current = settings['ai_support_grace_minutes'] || '10';
-                var newValue = await showPrompt('Введіть час очікування перед відповіддю ШІ (хвилини):', current, 'Час очікування ШІ');
-                if (newValue === null) return;
-                var minutes = parseInt(newValue, 10);
-                if (isNaN(minutes) || minutes < 0) {
-                    await showAlert('Введіть коректне число', 'warning');
-                    return;
-                }
-                var existing = await db.supabaseQuery('system_settings?key=eq.ai_support_grace_minutes');
-                if (existing && existing.length > 0) {
-                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ value: String(minutes) })
-                    });
-                } else {
-                    await db.supabaseQuery('system_settings', {
-                        method: 'POST',
-                        body: JSON.stringify({ key: 'ai_support_grace_minutes', value: String(minutes) })
-                    });
-                }
-                await db.addLog('Змінено час очікування ШІ', 'system', null, { minutes: minutes });
-                await showToast('Збережено!', 'success');
-                loadAiModeration();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         // ============================================================
