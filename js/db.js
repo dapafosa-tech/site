@@ -1465,6 +1465,7 @@ window.db = {
     supabaseQuery: supabaseQuery,
     addLog: addLog,
     getUserName: getUserName,
+    getClientIp: getClientIp,
     getSystemSettings: getSystemSettings,
     clearSystemSettingsCache: clearSystemSettingsCache,
     getBannedWords: getBannedWords,
