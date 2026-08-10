@@ -239,6 +239,7 @@
             border-bottom:1px solid var(--ink-line);
         }
         .table tr:hover{background:rgba(255,255,255,0.02);}
+        .table tr.clickable-row{cursor:pointer;}
         .badge{
             display:inline-block;
             padding:0.2rem 0.7rem;
@@ -390,6 +391,93 @@
         }
         .mobile-topbar{display:none;}
         .sidebar-backdrop{display:none;}
+        .tab-nav{
+            display:flex;
+            gap:0.4rem;
+            flex-wrap:wrap;
+            margin-bottom:1.5rem;
+            border-bottom:1px solid var(--ink-line);
+            padding-bottom:0.6rem;
+        }
+        .tab-nav button{
+            padding:0.5rem 1.2rem;
+            border-radius:var(--radius-sm);
+            border:1px solid transparent;
+            background:transparent;
+            color:var(--muted);
+            cursor:pointer;
+            font-weight:500;
+            transition:all .15s ease;
+            font-family:'IBM Plex Sans',sans-serif;
+            font-size:0.87rem;
+        }
+        .tab-nav button:hover{background:var(--ink-raised);color:var(--text-onink);}
+        .tab-nav button.active{background:var(--gold);color:var(--ink);font-weight:600;}
+
+        /* АДМІН-ФОРМИ СТИЛІ */
+        .form-type-card{
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius-sm);
+            padding:1rem;
+            margin-bottom:0.8rem;
+        }
+        .form-type-card.answered{opacity:0.65;}
+        .form-type-badge{
+            font-family:'IBM Plex Mono';
+            font-size:0.65rem;
+            padding:0.15rem 0.55rem;
+            border-radius:6px;
+            text-transform:uppercase;
+            letter-spacing:0.04em;
+        }
+        .profile-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:0.9rem 1.4rem;
+            margin-bottom:1.2rem;
+        }
+        .profile-field{
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius-sm);
+            padding:0.65rem 0.85rem;
+        }
+        .profile-field .k{
+            font-family:'IBM Plex Mono';
+            font-size:0.68rem;
+            color:var(--muted-dim);
+            text-transform:uppercase;
+            letter-spacing:0.05em;
+            margin-bottom:0.25rem;
+        }
+        .profile-field .v{font-size:0.92rem;word-break:break-all;}
+        .timeline-item{
+            padding:0.6rem 0.8rem;
+            border-left:2px solid var(--ink-line);
+            margin-left:0.3rem;
+            position:relative;
+        }
+        .timeline-item::before{
+            content:"";
+            position:absolute;
+            left:-5px;
+            top:1rem;
+            width:8px;
+            height:8px;
+            border-radius:50%;
+            background:var(--gold);
+        }
+        .timeline-item .t-action{font-weight:600;font-size:0.85rem;}
+        .timeline-item .t-time{font-size:0.72rem;color:var(--muted-dim);font-family:'IBM Plex Mono';}
+        .chat-bubble{
+            padding:0.8rem 1rem;
+            border-radius:10px;
+            margin-bottom:0.7rem;
+            max-width:85%;
+        }
+        .chat-bubble.owner{background:var(--gold-glow);margin-left:auto;border:1px solid rgba(242,169,59,0.3);}
+        .chat-bubble.ai{background:var(--ink);border:1px solid var(--ink-line);}
 
         @media(max-width:768px){
             .mobile-topbar{
@@ -428,12 +516,13 @@
             .grid-2{grid-template-columns:1fr;}
             .search-wrapper{min-width:100%;}
             .filter-select{min-width:100%;}
+            .profile-grid{grid-template-columns:1fr;}
         }
         @media(max-width:480px){
             .grid-4{grid-template-columns:1fr;}
             .search-filters{flex-direction:column;}
+            .tab-nav button{flex:1;text-align:center;font-size:0.8rem;padding:0.4rem 0.8rem;}
         }
-    /* ==================== Загальні мобільні виправлення ==================== */
         @media (max-width: 768px) {
             table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
             .modal-content { max-height: 85dvh; overflow-y: auto; }
@@ -473,7 +562,9 @@
             <li><a onclick="loadSection('requests')"><i class="fas fa-inbox"></i> Заявки</a></li>
             <li><a onclick="loadSection('appeals')"><i class="fas fa-gavel"></i> Апеляції</a></li>
             <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
+            <li><a onclick="loadSection('adminforms')"><i class="fas fa-file-signature"></i> Адмін-Форми</a></li>
             <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
+            <li><a onclick="loadSection('ai')"><i class="fas fa-robot"></i> ШІ Модерація</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
     </aside>
@@ -517,6 +608,7 @@
         </div>
     </main>
 
+    <!-- МОДАЛКИ -->
     <div class="modal" id="chatModal">
         <div class="modal-content modal-content-wide">
             <div class="modal-header">
@@ -560,82 +652,20 @@
     <script src="/js/panel-otp.js"></script>
     <script src="/js/check-auth.js"></script>
     <script>
+        // ============================================================
+        // БАЗОВІ ФУНКЦІЇ
+        // ============================================================
         function toggleMobileSidebar() {
             document.getElementById('sidebar').classList.toggle('mobile-active');
             document.getElementById('sidebarBackdrop').classList.toggle('active');
         }
-
         function closeMobileSidebar() {
             document.getElementById('sidebar').classList.remove('mobile-active');
             document.getElementById('sidebarBackdrop').classList.remove('active');
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.sidebar .nav-menu a').forEach(function(link) {
-                link.addEventListener('click', closeMobileSidebar);
-            });
-        });
-
-        function hasAccess(user, requiredRole) {
-            if (!user) return false;
-            var roleHierarchy = { 'user': 0, 'moderator': 1, 'admin': 2, 'owner': 3 };
-            return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
-        }
-
-        function canViewData(user) {
-            return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
-        }
-
-        function canBanUser(user) {
-            return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator');
-        }
-
-        function canDeleteUser(user) {
-            return user && (user.role === 'owner' || user.role === 'admin');
-        }
-
-        var ROLE_LEVEL = { 'user': 0, 'moderator': 1, 'admin': 2, 'owner': 3 };
-        function roleLevel(role) { return ROLE_LEVEL[role] !== undefined ? ROLE_LEVEL[role] : 0; }
-
-        // moderator -> тільки user; admin -> user та moderator (не admin, не owner); owner -> всіх
-        function canBanTarget(actor, target) {
-            if (!actor || !target) return false;
-            if (!canBanUser(actor)) return false;
-            if (actor.role === 'owner') return true;
-            return roleLevel(actor.role) > roleLevel(target.role);
-        }
-
-        function canDeleteTarget(actor, target) {
-            if (!actor || !target) return false;
-            if (!canDeleteUser(actor)) return false;
-            if (actor.role === 'owner') return true;
-            return roleLevel(actor.role) > roleLevel(target.role);
-        }
-
-        function canChangeRoles(user) {
-            return user && user.role === 'owner';
-        }
-
-        function canFreezeOrg(user) {
-            return user && (user.role === 'owner' || user.role === 'admin');
-        }
-
-        function canTransferLeadership(user) {
-            return user && user.role === 'owner';
-        }
-
-        function canRenameOrg(user) {
-            return user && user.role === 'owner';
-        }
-
-        function canDeleteOrg(user) {
-            return user && (user.role === 'owner' || user.role === 'admin');
-        }
-
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
         }
-
         function openModal(title, html, wide) {
             document.getElementById('genericModalTitle').textContent = title;
             document.getElementById('genericModalBody').innerHTML = html;
@@ -644,13 +674,48 @@
             document.getElementById('genericModal').classList.add('active');
         }
 
-        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot'; }
+        function formatDateKyiv(d) {
+            try { return new Date(d).toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
+        function formatDateTimeKyiv(d) {
+            try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
 
+        function isStaffRole(role) { return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'bot'; }
         function getRoleBadgeHtml(role) {
             var labels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'bot': '🤖 Typebiz Bot', 'user': '👤 Користувач' };
             return labels[role] || '👤 Користувач';
         }
 
+        var ROLE_LEVEL = { 'user': 0, 'moderator': 1, 'admin': 2, 'owner': 3 };
+        function roleLevel(role) { return ROLE_LEVEL[role] !== undefined ? ROLE_LEVEL[role] : 0; }
+
+        function hasAccess(user, requiredRole) {
+            if (!user) return false;
+            return roleLevel(user.role) >= roleLevel(requiredRole);
+        }
+        function canViewData(user) { return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator'); }
+        function canBanUser(user) { return user && (user.role === 'owner' || user.role === 'admin' || user.role === 'moderator'); }
+        function canDeleteUser(user) { return user && (user.role === 'owner' || user.role === 'admin'); }
+        function canFreezeOrg(user) { return user && (user.role === 'owner' || user.role === 'admin'); }
+        function canDeleteOrg(user) { return user && (user.role === 'owner' || user.role === 'admin'); }
+
+        function canBanTarget(actor, target) {
+            if (!actor || !target) return false;
+            if (!canBanUser(actor)) return false;
+            if (actor.role === 'owner') return true;
+            return roleLevel(actor.role) > roleLevel(target.role);
+        }
+        function canDeleteTarget(actor, target) {
+            if (!actor || !target) return false;
+            if (!canDeleteUser(actor)) return false;
+            if (actor.role === 'owner') return true;
+            return roleLevel(actor.role) > roleLevel(target.role);
+        }
+
+        // ============================================================
+        // TOAST / ALERT / CONFIRM / PROMPT
+        // ============================================================
         function showToast(message, type) {
             var container = document.getElementById('toastContainer');
             if (!container) {
@@ -727,29 +792,29 @@
             });
         }
 
-        var style = document.createElement('style');
-        style.textContent = '@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
-        document.head.appendChild(style);
+        var styleEl = document.createElement('style');
+        styleEl.textContent = '@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
+        document.head.appendChild(styleEl);
 
+        // ============================================================
+        // ОБРОБКА ВИХОДУ
+        // ============================================================
         async function handleLogout() {
             var confirmed = await showConfirm('Ви впевнені, що хочете вийти?', 'Вихід');
             if (confirmed) { auth.logoutUser(); }
         }
 
-        document.querySelectorAll('.modal').forEach(function(modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) this.classList.remove('active');
-            });
-        });
-
+        // ============================================================
+        // ЗАВАНТАЖЕННЯ СТАТИСТИКИ
+        // ============================================================
         async function loadStats() {
             try {
                 var user = auth.getCurrentUser();
                 if (!canViewData(user)) { document.getElementById('statsGrid').style.display = 'none'; return; }
-                var users = await db.supabaseQuery('users?select=*');
-                var orgs = await db.supabaseQuery('organizations?select=*');
-                var messages = await db.supabaseQuery('org_chat_messages?select=*');
-                var vacations = await db.supabaseQuery('org_vacations?select=*');
+                var users = await db.supabaseQuery('users?select=id');
+                var orgs = await db.supabaseQuery('organizations?select=id');
+                var messages = await db.supabaseQuery('org_chat_messages?select=id');
+                var vacations = await db.supabaseQuery('org_vacations?select=id');
                 document.getElementById('totalUsers').textContent = users ? users.length : 0;
                 document.getElementById('totalOrgs').textContent = orgs ? orgs.length : 0;
                 document.getElementById('totalMessages').textContent = messages ? messages.length : 0;
@@ -774,6 +839,9 @@
             } catch (error) { console.error('Load logs error:', error); document.getElementById('recentLogs').innerHTML = '<p class="text-danger">Помилка завантаження логів</p>'; }
         }
 
+        // ============================================================
+        // НАВІГАЦІЯ ПО РОЗДІЛАХ
+        // ============================================================
         function loadSection(section) {
             var links = document.querySelectorAll('.nav-menu a');
             for (var i = 0; i < links.length; i++) links[i].classList.remove('active');
@@ -781,8 +849,21 @@
                 var onclick = links[j].getAttribute('onclick') || '';
                 if (onclick.indexOf(section) !== -1) links[j].classList.add('active');
             }
-            var titles = { 'overview': 'Огляд', 'users': 'Користувачі', 'orgs': 'Організації', 'chat': 'Чати', 'vacations': 'Відпустки', 'requests': 'Заявки', 'appeals': 'Апеляції', 'support': 'Техпідтримка', 'logs': 'Логи' };
+            var titles = {
+                'overview': 'Огляд',
+                'users': 'Користувачі',
+                'orgs': 'Організації',
+                'chat': 'Чати',
+                'vacations': 'Відпустки',
+                'requests': 'Заявки',
+                'appeals': 'Апеляції',
+                'support': 'Техпідтримка',
+                'adminforms': '📄 Адмін-Форми',
+                'logs': 'Логи',
+                'ai': '🤖 ШІ Модерація'
+            };
             document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
+            document.getElementById('pageSubtitle').textContent = 'Управління системою';
             switch(section) {
                 case 'overview': loadOverview(); break;
                 case 'users': loadUsers(); break;
@@ -792,7 +873,9 @@
                 case 'requests': loadRequests(); break;
                 case 'appeals': loadAppeals(); break;
                 case 'support': loadSupportManagement(); break;
+                case 'adminforms': loadAdminForms(); break;
                 case 'logs': loadLogs(); break;
+                case 'ai': loadAiModeration(); break;
                 default: loadOverview();
             }
         }
@@ -804,13 +887,20 @@
             await loadStats();
         }
 
+        // ============================================================
+        // РОЗДІЛ: КОРИСТУВАЧІ
+        // ============================================================
         async function loadUsers() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
             if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var users = await db.supabaseQuery('users?select=*');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі користувачі</h3><span class="badge badge-primary">' + (users ? users.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()"><button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()"><option value="">Всі ролі</option><option value="owner">Засновник</option><option value="admin">Адмін</option><option value="moderator">Модератор</option><option value="user">Користувач</option></select><select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()"><option value="">Всі статуси</option><option value="active">Активний</option><option value="banned">Заблокований</option></select></div><div style="overflow-x:auto;"><table class="table" id="usersTable"><thead><tr><th>Ім\'я</th><th>Email</th><th>Телефон</th><th>Роль</th><th>Статус</th><th>IP</th><th>Дії</th></tr></thead><tbody id="usersTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі користувачі</h3><span class="badge badge-primary">' + (users ? users.length : 0) + '</span></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userSearchInput" placeholder="Пошук за ім\'ям або email..." oninput="filterUsersTable()"><button class="search-clear" onclick="document.getElementById(\'userSearchInput\').value=\'\';filterUsersTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+                html += '<select class="filter-select" id="userRoleFilter" onchange="filterUsersTable()"><option value="">Всі ролі</option><option value="owner">Засновник</option><option value="admin">Адмін</option><option value="moderator">Модератор</option><option value="user">Користувач</option></select>';
+                html += '<select class="filter-select" id="userStatusFilter" onchange="filterUsersTable()"><option value="">Всі статуси</option><option value="active">Активний</option><option value="banned">Заблокований</option></select></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="usersTable"><thead><tr><th>Ім\'я</th><th>Email</th><th>Телефон</th><th>Роль</th><th>Статус</th><th>IP</th><th>Дії</th></tr></thead><tbody id="usersTableBody">';
                 if (users && users.length > 0) {
                     var roleLabels = { 'owner': '<span class="badge" style="background:#8B5CF6;color:white;">Засновник</span>', 'admin': '<span class="badge badge-danger">Адмін</span>', 'moderator': '<span class="badge badge-warning">Модератор</span>', 'user': '<span class="badge badge-primary">Користувач</span>' };
                     for (var i = 0; i < users.length; i++) {
@@ -818,22 +908,21 @@
                         var isUserBanned = u.is_banned === true && (!u.banned_until || new Date(u.banned_until) > new Date());
                         var isCurrentUser = u.id === user.id;
                         var actionsHtml = '<div class="actions-cell">';
+                        actionsHtml += '<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openUserProfileModal(\'' + u.id + '\')" title="Профіль"><i class="fas fa-id-card"></i></button>';
                         if (canBanTarget(user, u) && !isCurrentUser) {
-                            actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
+                            actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="event.stopPropagation();unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
                         }
                         if (canDeleteTarget(user, u) && !isCurrentUser) {
-                            actionsHtml += '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
+                            actionsHtml += '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
                         if (user.role === 'owner' && !isCurrentUser && u.reg_ip) {
-                            actionsHtml += '<button class="btn btn-sm btn-warning" onclick="banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP: ' + u.reg_ip + '"><i class="fas fa-network-wired"></i></button>';
+                            actionsHtml += '<button class="btn btn-sm btn-warning" onclick="event.stopPropagation();banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP"><i class="fas fa-network-wired"></i></button>';
                         }
                         actionsHtml += '</div>';
                         var banStatusLabel = isUserBanned ? (u.banned_until ? 'До ' + formatDateKyiv(u.banned_until) : 'Назавжди') : 'Активний';
-                        html += '<tr data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '" title="' + banStatusLabel + '">' + banStatusLabel + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td>' + actionsHtml + '</td></tr>';
+                        html += '<tr class="clickable-row" onclick="openUserProfileModal(\'' + u.id + '\')" data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '" title="' + banStatusLabel + '">' + banStatusLabel + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td onclick="event.stopPropagation();">' + actionsHtml + '</td></tr>';
                     }
-                } else {
-                    html += '<tr><td colspan="7" class="text-center text-muted">Немає користувачів</td></tr>';
-                }
+                } else { html += '<tr><td colspan="7" class="text-center text-muted">Немає користувачів</td></tr>'; }
                 html += '</tbody></table></div></div>';
                 container.innerHTML = html;
             } catch (error) { console.error('Load users error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження користувачів</p></div>'; }
@@ -860,10 +949,67 @@
             });
         }
 
+        // ============= ПРОФІЛЬ КОРИСТУВАЧА =============
+        async function openUserProfileModal(userId) {
+            openModal('Профіль користувача', '<p class="text-muted">Завантаження...</p>', true);
+            try {
+                var rows = await db.supabaseQuery('users?id=eq.' + userId + '&select=*');
+                if (!rows || rows.length === 0) { document.getElementById('genericModalBody').innerHTML = '<p class="text-danger">Користувача не знайдено</p>'; return; }
+                var u = rows[0];
+
+                var logs = await db.supabaseQuery('activity_logs?entity_id=eq.' + userId + '&entity_type=eq.user&order=created_at.desc&limit=50');
+                var aiLogs = await db.supabaseQuery('ai_actions_log?target_user_id=eq.' + userId + '&order=created_at.desc&limit=50');
+                var appealsRows = await db.supabaseQuery('appeals?user_id=eq.' + userId + '&order=created_at.desc');
+
+                var combined = [];
+                (logs || []).forEach(function(l) { combined.push({ time: l.created_at, label: l.action || '—', source: 'admin', details: l.details }); });
+                (aiLogs || []).forEach(function(l) {
+                    var actionLabels = { 'censor_and_ban': '🚫 ШІ: Цензура + Бан', 'censor_only': '✏️ ШІ: Цензура', 'ban': '⛔ ШІ: Бан', 'support_reply': '💬 ШІ: Відповідь в підтримку', 'multi_account_detected': '🔍 ШІ: Виявлено мультиакаунтинг', 'multi_account_ban': '🚫 ШІ: Бан мультиакаунтів', 'report_review': '📋 ШІ: Аналіз скарги', 'appeal_review': '⚖️ ШІ: Розгляд апеляції', 'support_ticket': '🎫 ШІ: Тикет підтримки' };
+                    combined.push({ time: l.created_at, label: actionLabels[l.action_type] || ('ШІ: ' + l.action_type), source: 'ai', details: { reasoning: l.ai_reasoning } });
+                });
+                combined.sort(function(a, b) { return new Date(b.time) - new Date(a.time); });
+
+                var roleLabels = { 'owner': '👑 Засновник', 'admin': '⭐ Адмін', 'moderator': '🛡️ Модератор', 'user': '👤 Користувач' };
+                var isUserBanned = u.is_banned === true && (!u.banned_until || new Date(u.banned_until) > new Date());
+
+                var html = '<div class="profile-grid">';
+                html += '<div class="profile-field"><div class="k">Ім\'я</div><div class="v">' + (u.full_name || '—') + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Email</div><div class="v">' + (u.email || '—') + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Телефон</div><div class="v">' + (u.phone || '—') + '</div></div>';
+                html += '<div class="profile-field"><div class="k">ID</div><div class="v" style="font-family:\'IBM Plex Mono\';font-size:0.78rem;">' + u.id + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Роль</div><div class="v">' + (roleLabels[u.role] || u.role) + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Статус</div><div class="v">' + (isUserBanned ? '<span class="text-danger">Заблокований' + (u.ban_reason ? ' — ' + u.ban_reason : '') + (u.banned_until ? ' (до ' + formatDateKyiv(u.banned_until) + ')' : ' (назавжди)') + '</span>' : '<span class="text-success">Активний</span>') + '</div></div>';
+                html += '<div class="profile-field"><div class="k">IP реєстрації</div><div class="v">' + (u.reg_ip || '—') + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Останній IP</div><div class="v">' + (u.last_ip || '—') + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Зареєстрований</div><div class="v">' + formatDateTimeKyiv(u.created_at) + '</div></div>';
+                html += '<div class="profile-field"><div class="k">Апеляцій подано</div><div class="v">' + ((appealsRows || []).length) + '</div></div>';
+                html += '</div>';
+
+                html += '<div class="card-header" style="margin-top:0.5rem;"><h3 class="card-title" style="font-size:1rem;">Історія (ролі, бани, дії ШІ)</h3><span class="badge badge-primary">' + combined.length + '</span></div>';
+                if (combined.length > 0) {
+                    html += '<div style="max-height:340px;overflow-y:auto;">';
+                    for (var i = 0; i < combined.length; i++) {
+                        var item = combined[i];
+                        var detailsStr = '';
+                        try { detailsStr = item.details ? JSON.stringify(item.details) : ''; if (detailsStr.length > 160) detailsStr = detailsStr.slice(0, 160) + '…'; } catch (e) {}
+                        html += '<div class="timeline-item"><div class="t-action">' + item.label + '</div><div class="t-time">' + formatDateTimeKyiv(item.time) + (item.source === 'ai' ? ' · ШІ' : '') + '</div>' + (detailsStr ? '<div class="text-muted" style="font-size:0.76rem;margin-top:0.15rem;">' + detailsStr + '</div>' : '') + '</div>';
+                    }
+                    html += '</div>';
+                } else { html += '<p class="text-muted">Історії дій ще немає</p>'; }
+
+                document.getElementById('genericModalBody').innerHTML = html;
+                document.getElementById('genericModalTitle').textContent = 'Профіль: ' + (u.full_name || u.email || 'Користувач');
+            } catch (error) {
+                document.getElementById('genericModalBody').innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
+            }
+        }
+
+        // ============================================================
+        // ДІЇ З КОРИСТУВАЧАМИ
+        // ============================================================
         async function banUserIp(ip) {
             var user = auth.getCurrentUser();
             if (!user || user.role !== 'owner') { await showAlert('Тільки засновник може банити по IP', 'error'); return; }
-
             var daysInput = await showPrompt('На скільки днів заблокувати IP ' + ip + '? (макс. 2000, порожньо = назавжди):', '', 'Блокування IP');
             if (daysInput === null) return;
             var banUntil = null;
@@ -875,10 +1021,8 @@
             }
             var reason = await showPrompt('Причина блокування IP:', 'Порушення правил', 'Блокування IP');
             if (reason === null) return;
-
             var confirmed = await showConfirm('Заблокувати реєстрацію з IP ' + ip + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' назавжди') + '?', 'Підтвердження');
             if (!confirmed) return;
-
             try {
                 await db.supabaseQuery('banned_ips', {
                     method: 'POST',
@@ -886,13 +1030,13 @@
                 });
                 await db.addLog('Заблоковано IP', 'ip', ip, { reason: reason, banned_until: banUntil });
                 await showToast('IP заблоковано', 'success');
+                loadUsers();
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
         async function banUser(userId) {
             try {
                 var user = auth.getCurrentUser();
-
                 var targetRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=id,role,full_name,email');
                 var target = targetRows && targetRows[0];
                 if (!target || !canBanTarget(user, target)) { await showAlert('У вас немає прав блокувати цього користувача', 'error'); return; }
@@ -909,12 +1053,7 @@
                             return;
                         }
                     }
-                } catch (cooldownError) {
-                    // Кулдаун - не критична фіча. Якщо колонки last_ban_action_at
-                    // ще немає в БД або запит впав з іншої причини - просто пропускаємо
-                    // перевірку кулдауна замість того щоб мовчки зупиняти весь бан.
-                    console.warn('Ban cooldown check failed, skipping:', cooldownError.message);
-                }
+                } catch (cooldownError) { console.warn('Ban cooldown check failed, skipping:', cooldownError.message); }
 
                 var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
                 if (reason === null) return;
@@ -932,6 +1071,30 @@
 
                 var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача' + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' безстроково') + '?', 'Підтвердження');
                 if (!confirmed) return;
+
+                // СТВОРЮЄМО АДМІН-ФОРМУ ЯКЩО БАН > 5 ДНІВ
+                var banDays = daysInput ? parseInt(daysInput.trim(), 10) : 0;
+                if (banDays >= 5 || !banUntil) {
+                    try {
+                        await db.supabaseQuery('admin_forms', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                form_type: 'punishment',
+                                created_by: user.id,
+                                created_by_role: user.role,
+                                recipient_text: 'admin_team',
+                                subject: 'Форма покарання: бан ' + (target.full_name || target.email || 'користувача'),
+                                body: 'Бан на ' + (banUntil ? banDays + ' дн.' : 'назавжди') + '. Причина: ' + reason.trim(),
+                                target_user_id: userId,
+                                ban_days: banDays || 0,
+                                status: 'pending'
+                            })
+                        });
+                        await showToast('Створено форму покарання для затвердження засновником', 'info');
+                    } catch (formError) {
+                        console.warn('Помилка створення форми покарання:', formError);
+                    }
+                }
 
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
                 if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
@@ -951,14 +1114,11 @@
         async function unbanUser(userId) {
             try {
                 var user = auth.getCurrentUser();
-
                 var targetRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=id,role');
                 var target = targetRows && targetRows[0];
                 if (!target || !canBanTarget(user, target)) { await showAlert('У вас немає прав розблоковувати цього користувача', 'error'); return; }
-
                 var confirmed = await showConfirm('Розблокувати цього користувача?', 'Підтвердження');
                 if (!confirmed) return;
-
                 await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null, banned_until: null }) });
                 var userData = await db.supabaseQuery('users?id=eq.' + userId);
                 var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
@@ -974,14 +1134,11 @@
         async function deleteUser(id) {
             try {
                 var user = auth.getCurrentUser();
-
                 var targetRows = await db.supabaseQuery('users?id=eq.' + id + '&select=id,role');
                 var target = targetRows && targetRows[0];
                 if (!target || !canDeleteTarget(user, target)) { await showAlert('У вас немає прав видаляти цього користувача', 'error'); return; }
-
                 var confirmed = await showConfirm('Ви впевнені, що хочете видалити цього користувача?', 'Підтвердження');
                 if (!confirmed) return;
-
                 await db.deleteUser(id);
                 await showToast('Користувача видалено', 'success');
                 loadUsers();
@@ -991,6 +1148,9 @@
             }
         }
 
+        // ============================================================
+        // РОЗДІЛ: ОРГАНІЗАЦІЇ
+        // ============================================================
         async function loadOrgs() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
@@ -1004,7 +1164,10 @@
                 var leaderMap = {};
                 if (members) { for (var i = 0; i < members.length; i++) { var m = members[i]; if (m.is_leader) { leaderMap[m.organization_id] = m.user_id; } } }
                 var typeLabels = { 'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія', 'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан', 'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал', 'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість', 'it': 'IT-компанія', 'other': 'Інше' };
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі організації</h3><span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="orgSearchInput" placeholder="Пошук за назвою або типом..." oninput="filterOrgsTable()"><button class="search-clear" onclick="document.getElementById(\'orgSearchInput\').value=\'\';filterOrgsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="orgStatusFilter" onchange="filterOrgsTable()"><option value="">Всі статуси</option><option value="active">Активна</option><option value="frozen">Заморожена</option></select></div><div style="overflow-x:auto;"><table class="table" id="orgsTable"><thead><tr><th>Назва</th><th>Тип</th><th>Код</th><th>Лідер</th><th>Статус</th><th>Дії</th></tr></thead><tbody id="orgsTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі організації</h3><span class="badge badge-primary">' + (orgs ? orgs.length : 0) + '</span></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="orgSearchInput" placeholder="Пошук за назвою..." oninput="filterOrgsTable()"><button class="search-clear" onclick="document.getElementById(\'orgSearchInput\').value=\'\';filterOrgsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+                html += '<select class="filter-select" id="orgStatusFilter" onchange="filterOrgsTable()"><option value="">Всі статуси</option><option value="active">Активна</option><option value="frozen">Заморожена</option></select></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="orgsTable"><thead><tr><th>Назва</th><th>Тип</th><th>Код</th><th>Лідер</th><th>Статус</th><th>Дії</th></tr></thead><tbody id="orgsTableBody">';
                 if (orgs && orgs.length > 0) {
                     for (var i = 0; i < orgs.length; i++) {
                         var org = orgs[i];
@@ -1025,9 +1188,7 @@
                         actionsHtml += '</div>';
                         html += '<tr data-name="' + (org.name || '').toLowerCase() + '" data-type="' + (typeLabels[org.type] || org.type || '').toLowerCase() + '" data-status="' + statusValue + '"><td><strong>' + (org.name || 'Без назви') + '</strong></td><td>' + (typeLabels[org.type] || org.type || '—') + '</td><td style="font-family:monospace;font-size:0.8rem;text-transform:lowercase;">' + (org.join_code || '—') + '</td><td>' + leaderName + '</td><td><span class="badge ' + statusClass + '">' + statusText + (freezeReason ? ' (' + freezeReason + ')' : '') + '</span></td><td>' + actionsHtml + '</td></tr>';
                     }
-                } else {
-                    html += '<tr><td colspan="6" class="text-center text-muted">Немає організацій</td></tr>';
-                }
+                } else { html += '<tr><td colspan="6" class="text-center text-muted">Немає організацій</td></tr>'; }
                 html += '</tbody></table></div></div>';
                 container.innerHTML = html;
             } catch (error) { console.error('Load orgs error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження організацій</p></div>'; }
@@ -1082,18 +1243,23 @@
         async function deleteOrg(id) {
             var user = auth.getCurrentUser();
             if (!canDeleteOrg(user)) { await showAlert('Тільки засновник або адмін може видаляти', 'error'); return; }
-            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю організацію? Всі дані будуть втрачені.', 'Увага');
+            var confirmed = await showConfirm('Ви впевнені, що хочете видалити цю організацію?', 'Увага');
             if (!confirmed) return;
             try { await db.deleteOrganization(id); await showToast('Організацію видалено', 'success'); loadOrgs(); } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
+        // ============================================================
+        // РОЗДІЛ: ЧАТИ
+        // ============================================================
         async function loadChat() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
             if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Чати організацій</h3></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="chatSearchInput" placeholder="Пошук за назвою організації..." oninput="filterChatsTable()"><button class="search-clear" onclick="document.getElementById(\'chatSearchInput\').value=\'\';filterChatsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div><div style="overflow-x:auto;"><table class="table" id="chatsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Повідомлень</th><th>Дії</th></tr></thead><tbody id="chatsTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Чати організацій</h3></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="chatSearchInput" placeholder="Пошук за назвою..." oninput="filterChatsTable()"><button class="search-clear" onclick="document.getElementById(\'chatSearchInput\').value=\'\';filterChatsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="chatsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Повідомлень</th><th>Дії</th></tr></thead><tbody id="chatsTableBody">';
                 if (orgs && orgs.length > 0) {
                     for (var i = 0; i < orgs.length; i++) {
                         var org = orgs[i];
@@ -1203,13 +1369,18 @@
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
+        // ============================================================
+        // РОЗДІЛ: ВІДПУСТКИ
+        // ============================================================
         async function loadVacations() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
             if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Відпустки в організаціях</h3></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="vacationSearchInput" placeholder="Пошук за назвою організації..." oninput="filterVacationsTable()"><button class="search-clear" onclick="document.getElementById(\'vacationSearchInput\').value=\'\';filterVacationsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div><div style="overflow-x:auto;"><table class="table" id="vacationsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Заявок</th><th>Очікують</th><th>Дії</th></tr></thead><tbody id="vacationsTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Відпустки в організаціях</h3></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="vacationSearchInput" placeholder="Пошук за назвою..." oninput="filterVacationsTable()"><button class="search-clear" onclick="document.getElementById(\'vacationSearchInput\').value=\'\';filterVacationsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="vacationsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Заявок</th><th>Очікують</th><th>Дії</th></tr></thead><tbody id="vacationsTableBody">';
                 if (orgs && orgs.length > 0) {
                     for (var i = 0; i < orgs.length; i++) {
                         var org = orgs[i];
@@ -1260,6 +1431,9 @@
             } catch (error) { console.error('View vacations error:', error); document.getElementById('vacationContainer').innerHTML = '<p class="text-danger">Помилка завантаження даних</p>'; }
         }
 
+        // ============================================================
+        // РОЗДІЛ: ЗАЯВКИ НА ВСТУП
+        // ============================================================
         async function loadRequests() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
@@ -1272,7 +1446,10 @@
                 var orgs = await db.supabaseQuery('organizations?select=id,name');
                 var orgMap = {};
                 if (orgs) { for (var i = 0; i < orgs.length; i++) { orgMap[orgs[i].id] = orgs[i].name || 'Без назви'; } }
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі заявки на вступ</h3><span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." oninput="filterRequestsTable()"><button class="search-clear" onclick="document.getElementById(\'requestSearchInput\').value=\'\';filterRequestsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="requestStatusFilter" onchange="filterRequestsTable()"><option value="">Всі статуси</option><option value="pending">Очікує</option><option value="approved">Схвалено</option><option value="rejected">Відхилено</option></select></div><div style="overflow-x:auto;"><table class="table" id="requestsTable"><thead><tr><th>Користувач</th><th>Організація</th><th>Повідомлення</th><th>Статус</th><th>Дата</th></tr></thead><tbody id="requestsTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі заявки на вступ</h3><span class="badge badge-primary">' + (requests ? requests.length : 0) + '</span></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="requestSearchInput" placeholder="Пошук за користувачем або організацією..." oninput="filterRequestsTable()"><button class="search-clear" onclick="document.getElementById(\'requestSearchInput\').value=\'\';filterRequestsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+                html += '<select class="filter-select" id="requestStatusFilter" onchange="filterRequestsTable()"><option value="">Всі статуси</option><option value="pending">Очікує</option><option value="approved">Схвалено</option><option value="rejected">Відхилено</option></select></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="requestsTable"><thead><tr><th>Користувач</th><th>Організація</th><th>Повідомлення</th><th>Статус</th><th>Дата</th></tr></thead><tbody id="requestsTableBody">';
                 if (requests && requests.length > 0) {
                     var statusLabels = { 'pending': 'Очікує', 'approved': 'Схвалено', 'rejected': 'Відхилено' };
                     for (var i = 0; i < requests.length; i++) {
@@ -1306,8 +1483,9 @@
             });
         }
 
-        // ============= АПЕЛЯЦІЇ =============
-
+        // ============================================================
+        // РОЗДІЛ: АПЕЛЯЦІЇ
+        // ============================================================
         async function loadAppeals() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
@@ -1317,7 +1495,10 @@
                 var users = await db.supabaseQuery('users?select=id,full_name,email');
                 var userMap = {};
                 if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📋 Апеляції користувачів</h3><span class="badge badge-primary">' + (appeals ? appeals.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="appealSearchInput" placeholder="Пошук за користувачем..." oninput="filterAppealsTable()"><button class="search-clear" onclick="document.getElementById(\'appealSearchInput\').value=\'\';filterAppealsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="appealStatusFilter" onchange="filterAppealsTable()"><option value="">Всі статуси</option><option value="pending">⏳ Очікується</option><option value="approved">✅ Схвалено</option><option value="rejected">❌ Відмовлено</option><option value="closed">🔒 Закрито</option></select></div><div style="overflow-x:auto;"><table class="table" id="appealsTable"><thead><tr><th>Користувач</th><th>Причина бана</th><th>Статус</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="appealsTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📋 Апеляції користувачів</h3><span class="badge badge-primary">' + (appeals ? appeals.length : 0) + '</span></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="appealSearchInput" placeholder="Пошук за користувачем..." oninput="filterAppealsTable()"><button class="search-clear" onclick="document.getElementById(\'appealSearchInput\').value=\'\';filterAppealsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+                html += '<select class="filter-select" id="appealStatusFilter" onchange="filterAppealsTable()"><option value="">Всі статуси</option><option value="pending">⏳ Очікується</option><option value="approved">✅ Схвалено</option><option value="rejected">❌ Відмовлено</option><option value="closed">🔒 Закрито</option></select></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="appealsTable"><thead><tr><th>Користувач</th><th>Причина бана</th><th>Статус</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="appealsTableBody">';
                 if (appeals && appeals.length > 0) {
                     var statusLabels = { 'pending': '⏳ Очікується', 'approved': '✅ Схвалено', 'rejected': '❌ Відмовлено', 'closed': '🔒 Закрито' };
                     var statusClasses = { 'pending': 'badge-warning', 'approved': 'badge-success', 'rejected': 'badge-danger', 'closed': 'badge-secondary' };
@@ -1398,42 +1579,23 @@
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
-async function approveAppeal(appealId) {
-    var confirmed = await showConfirm('Схвалити апеляцію? Користувач буде розблокований.', 'Підтвердження');
-    if (!confirmed) return;
-    try {
-        var appeals = await db.getAppeals({ appealId: appealId });
-        if (!appeals || appeals.length === 0) {
-            await showAlert('Апеляцію не знайдено', 'error');
-            return;
+        async function approveAppeal(appealId) {
+            var confirmed = await showConfirm('Схвалити апеляцію? Користувач буде розблокований.', 'Підтвердження');
+            if (!confirmed) return;
+            try {
+                var appeals = await db.getAppeals({ appealId: appealId });
+                if (!appeals || appeals.length === 0) { await showAlert('Апеляцію не знайдено', 'error'); return; }
+                var appeal = appeals[0];
+                var userData = await db.supabaseQuery('users?id=eq.' + appeal.user_id);
+                var userName = userData && userData.length > 0 ? (userData[0].full_name || userData[0].email || 'Користувач') : 'Користувач';
+                await db.updateAppealStatus(appealId, 'approved');
+                await db.supabaseQuery('users?id=eq.' + appeal.user_id, { method: 'PATCH', body: JSON.stringify({ is_banned: false, ban_reason: null }) });
+                await db.addLog('Розблоковано користувача ' + userName + ' за апеляцією №' + appealId.substring(0, 8), 'appeal', appealId, { user_id: appeal.user_id, user_name: userName, appeal_id: appealId, action: 'approve' });
+                await showToast('✅ Апеляцію схвалено, користувача розблоковано!', 'success');
+                await loadAppeals();
+                closeModal('genericModal');
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
-        var appeal = appeals[0];
-        
-        var userData = await db.supabaseQuery('users?id=eq.' + appeal.user_id);
-        var userName = userData && userData.length > 0 
-            ? (userData[0].full_name || userData[0].email || 'Користувач') 
-            : 'Користувач';
-        
-        await db.updateAppealStatus(appealId, 'approved');
-        await db.supabaseQuery('users?id=eq.' + appeal.user_id, {
-            method: 'PATCH',
-            body: JSON.stringify({ is_banned: false, ban_reason: null })
-        });
-        
-        await db.addLog('Розблоковано користувача ' + userName + ' за апеляцією №' + appealId.substring(0, 8), 'appeal', appealId, {
-            user_id: appeal.user_id,
-            user_name: userName,
-            appeal_id: appealId,
-            action: 'approve'
-        });
-        
-        await showToast('✅ Апеляцію схвалено, користувача розблоковано!', 'success');
-        await loadAppeals();
-        closeModal('genericModal');
-    } catch (error) {
-        await showAlert('Помилка: ' + error.message, 'error');
-    }
-}
 
         async function rejectAppeal(appealId) {
             var confirmed = await showConfirm('Відхилити апеляцію? Користувач залишиться заблокованим.', 'Підтвердження');
@@ -1450,8 +1612,9 @@ async function approveAppeal(appealId) {
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
-        // ============= ТЕХПІДТРИМКА =============
-
+        // ============================================================
+        // РОЗДІЛ: ТЕХПІДТРИМКА
+        // ============================================================
         var supportTicketsCache = [];
         var supportUserMapCache = {};
         var statusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
@@ -1481,7 +1644,10 @@ async function approveAppeal(appealId) {
                 if (wa !== wb) return wa - wb;
                 return new Date(b.created_at) - new Date(a.created_at);
             });
-            var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div><select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div><div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
+            var html = '<div class="card"><div class="card-header"><h3 class="card-title">🎫 Заявки в підтримку</h3><span class="badge badge-primary">' + sorted.length + '</span></div>';
+            html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="supportSearchInput" placeholder="Пошук за користувачем (ім\'я/email)..." oninput="filterSupportTickets()"><button class="search-clear" onclick="document.getElementById(\'supportSearchInput\').value=\'\';filterSupportTickets();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+            html += '<select class="filter-select" id="supportStatusFilter" onchange="filterSupportTickets()"><option value="">Всі статуси</option><option value="open">Відкрито</option><option value="in_progress">В роботі</option><option value="closed">Закрито</option></select></div>';
+            html += '<div style="overflow-x:auto;"><table class="table" id="supportTicketsTable"><thead><tr><th>Користувач</th><th>Тема</th><th>Статус</th><th>Пріоритет</th><th>Дата</th><th>Дії</th></tr></thead><tbody id="supportTicketsBody">';
             if (sorted.length > 0) {
                 for (var i = 0; i < sorted.length; i++) {
                     var t = sorted[i];
@@ -1523,7 +1689,8 @@ async function approveAppeal(appealId) {
                         var msg = messages[i];
                         var isStaff = isStaffRole(msg.sender_type);
                         var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : userName;
-                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : 'var(--teal)') + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
+                        if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
+                        html += '<div style="padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:' + (isStaff ? 'var(--ink)' : 'var(--ink-soft)') + ';border-left:3px solid ' + (isStaff ? 'var(--gold)' : (msg.sender_type === 'ai' ? '#8B5CF6' : 'var(--teal)')) + ';"><div style="font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;">' + msg.message + '</div></div>';
                     }
                 }
                 if (t.status !== 'closed') {
@@ -1562,13 +1729,130 @@ async function approveAppeal(appealId) {
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
 
+        // ============================================================
+        // РОЗДІЛ: АДМІН-ФОРМИ
+        // ============================================================
+        var adminFormsCache = [];
+        var adminFormsUserMapCache = {};
+
+        async function loadAdminForms() {
+            var container = document.getElementById('adminContent');
+            var user = auth.getCurrentUser();
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
+            container.innerHTML = '<div class="card"><p class="text-muted">Завантаження...</p></div>';
+            try {
+                var forms = await db.supabaseQuery('admin_forms?order=created_at.desc');
+                var users = await db.supabaseQuery('users?select=id,full_name,email');
+                var userMap = {};
+                if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
+                adminFormsCache = forms || [];
+                adminFormsUserMapCache = userMap;
+                renderAdminForms();
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка: ' + error.message + '. Можливо, таблиця admin_forms ще не готова.</p></div>';
+            }
+        }
+
+        function renderAdminForms() {
+            var container = document.getElementById('adminContent');
+            var typeLabels = { transfer: '📤 Передача', request: '❓ Запит', punishment: '⚖️ Форма покарання' };
+            var typeColors = { transfer: 'badge-primary', request: 'badge-warning', punishment: 'badge-danger' };
+            var roleLabels = { ai: '🤖 ШІ', moderator: '🛡️ Модератор', admin: '⭐ Адмін', owner: '👑 Засновник' };
+
+            var html = '<div class="card"><div class="card-header"><h3 class="card-title">📄 Адмін-Форми</h3><span class="badge badge-primary">' + adminFormsCache.length + '</span></div>';
+            html += '<div class="search-filters"><select class="filter-select" id="adminFormsTypeFilter" onchange="renderAdminFormsFiltered()"><option value="">Всі типи</option><option value="transfer">Передача</option><option value="request">Запит</option><option value="punishment">Форма покарання</option></select>';
+            html += '<select class="filter-select" id="adminFormsStatusFilter" onchange="renderAdminFormsFiltered()"><option value="">Всі статуси</option><option value="pending">Очікує</option><option value="answered">Відповіли</option><option value="approved">Схвалено</option><option value="rejected">Відхилено</option></select></div>';
+            html += '<div id="adminFormsList"></div></div>';
+            container.innerHTML = html;
+            renderAdminFormsFiltered();
+        }
+
+        function renderAdminFormsFiltered() {
+            var typeFilter = (document.getElementById('adminFormsTypeFilter') || {}).value || '';
+            var statusFilter = (document.getElementById('adminFormsStatusFilter') || {}).value || '';
+            var list = document.getElementById('adminFormsList');
+            var typeLabels = { transfer: '📤 Передача', request: '❓ Запит', punishment: '⚖️ Форма покарання' };
+            var typeColors = { transfer: 'badge-primary', request: 'badge-warning', punishment: 'badge-danger' };
+            var roleLabels = { ai: '🤖 ШІ', moderator: '🛡️ Модератор', admin: '⭐ Адмін', owner: '👑 Засновник' };
+            var statusLabels = { pending: 'Очікує', answered: 'Відповіли', approved: 'Схвалено', rejected: 'Відхилено', closed: 'Закрито' };
+
+            var filtered = adminFormsCache.filter(function(f) {
+                return (!typeFilter || f.form_type === typeFilter) && (!statusFilter || f.status === statusFilter);
+            });
+
+            if (filtered.length === 0) { list.innerHTML = '<p class="text-muted">Немає форм за цим фільтром</p>'; return; }
+
+            var html = '';
+            for (var i = 0; i < filtered.length; i++) {
+                var f = filtered[i];
+                var isAnswered = !!f.answered_at;
+                var fromName = adminFormsUserMapCache[f.created_by] || '—';
+                html += '<div class="form-type-card' + (isAnswered ? ' answered' : '') + '">';
+                html += '<div class="flex justify-between items-center" style="margin-bottom:0.5rem;"><div><span class="badge ' + (typeColors[f.form_type] || 'badge-secondary') + '">' + (typeLabels[f.form_type] || f.form_type) + '</span> <span class="badge badge-secondary">' + (statusLabels[f.status] || f.status) + '</span></div><span class="text-muted" style="font-size:0.75rem;">' + formatDateTimeKyiv(f.created_at) + '</span></div>';
+                html += '<div style="font-size:0.9rem;"><strong>Кому:</strong> ' + (f.recipient_text || '—') + '</div>';
+                html += '<div style="font-size:0.9rem;margin-top:0.2rem;"><strong>Що:</strong> ' + (f.subject || '—') + '</div>';
+                if (f.body) html += '<div class="text-muted" style="font-size:0.85rem;margin-top:0.3rem;">' + f.body + '</div>';
+                if (f.form_type === 'punishment') html += '<div style="font-size:0.85rem;margin-top:0.3rem;"><strong>Строк бану:</strong> ' + (f.ban_days || '—') + ' дн.' + (f.target_user_id ? ' · <a href="javascript:void(0)" onclick="openUserProfileModal(\'' + f.target_user_id + '\')" style="color:var(--gold);">переглянути ціль</a>' : '') + '</div>';
+                html += '<div class="text-muted" style="font-size:0.78rem;margin-top:0.3rem;">Від: ' + fromName + ' (' + (roleLabels[f.created_by_role] || f.created_by_role || '—') + ')</div>';
+                if (isAnswered) {
+                    html += '<div style="margin-top:0.5rem;padding:0.6rem;background:var(--ink-raised);border-radius:6px;"><strong>Відповідь:</strong> ' + (f.response || '—') + '<div class="text-muted" style="font-size:0.72rem;margin-top:0.2rem;">' + formatDateTimeKyiv(f.answered_at) + ' — форму закрито, повторна відповідь неможлива</div></div>';
+                } else {
+                    html += '<div style="margin-top:0.6rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">';
+                    html += '<input type="text" class="form-control" id="formResp_' + f.id + '" placeholder="Відповідь..." style="flex:1;min-width:180px;">';
+                    if (f.form_type === 'punishment') {
+                        html += '<button class="btn btn-sm btn-success" onclick="respondAdminForm(\'' + f.id + '\', \'approved\')"><i class="fas fa-check"></i> Схвалити бан</button>';
+                        html += '<button class="btn btn-sm btn-danger" onclick="respondAdminForm(\'' + f.id + '\', \'rejected\')"><i class="fas fa-times"></i> Відхилити</button>';
+                    } else {
+                        html += '<button class="btn btn-sm btn-gold" onclick="respondAdminForm(\'' + f.id + '\', \'answered\')"><i class="fas fa-paper-plane"></i> Відповісти</button>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            list.innerHTML = html;
+        }
+
+        async function respondAdminForm(formId, newStatus) {
+            var input = document.getElementById('formResp_' + formId);
+            var response = input ? input.value.trim() : '';
+            if (!response) { await showAlert('Введіть текст відповіді', 'warning'); return; }
+            var user = auth.getCurrentUser();
+            try {
+                await db.supabaseQuery('admin_forms?id=eq.' + formId, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: newStatus, response: response, answered_by: user.id, answered_at: new Date().toISOString() })
+                });
+
+                // Якщо форма покарання схвалена — виконуємо бан
+                var form = adminFormsCache.find(function(f) { return f.id === formId; });
+                if (form && form.form_type === 'punishment' && newStatus === 'approved' && form.target_user_id) {
+                    var days = form.ban_days || 5;
+                    var until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+                    await db.supabaseQuery('users?id=eq.' + form.target_user_id, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ is_banned: true, ban_reason: '[Форма #' + formId.substring(0,8) + '] ' + (form.subject || ''), banned_until: until })
+                    });
+                    await db.addLog('Бан виконано за схваленою формою', 'user', form.target_user_id, { form_id: formId, days: days });
+                }
+
+                await db.addLog('Відповідь на Адмін-Форму', 'admin_form', formId, { status: newStatus });
+                await showToast('Форму оброблено', 'success');
+                loadAdminForms();
+            } catch (error) { await showAlert('Помилка: ' + error.message + ' (форма могла бути вже оброблена іншим адміном)', 'error'); }
+        }
+
+        // ============================================================
+        // РОЗДІЛ: ЛОГИ
+        // ============================================================
         async function loadLogs() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
             if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
                 var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=200');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div><div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div><div style="overflow-x:auto;"><table class="table" id="logsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="logsTableBody">';
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="logsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="logsTableBody">';
                 if (logs && logs.length > 0) {
                     var users = await db.supabaseQuery('users?select=id,full_name,email');
                     var userMap = {};
@@ -1598,6 +1882,194 @@ async function approveAppeal(appealId) {
             });
         }
 
+        // ============================================================
+        // РОЗДІЛ: ШІ МОДЕРАЦІЯ (ПОВЕРНУТО!)
+        // ============================================================
+        var aiModTab = 'actions';
+
+        async function loadAiModeration() {
+            var container = document.getElementById('adminContent');
+            var user = auth.getCurrentUser();
+            if (!canViewData(user)) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>';
+                return;
+            }
+
+            var tabsHtml = '<div class="tab-nav">';
+            tabsHtml += '<button class="' + (aiModTab === 'actions' ? 'active' : '') + '" onclick="switchAiModTab(\'actions\')"><i class="fas fa-list"></i> Дії ШІ</button>';
+            tabsHtml += '<button class="' + (aiModTab === 'settings' ? 'active' : '') + '" onclick="switchAiModTab(\'settings\')"><i class="fas fa-cog"></i> Налаштування</button>';
+            tabsHtml += '</div><div id="aiModTabContent"></div>';
+            container.innerHTML = tabsHtml;
+
+            if (aiModTab === 'actions') { renderAiModActions(); } else { renderAiModSettings(); }
+        }
+
+        function switchAiModTab(tab) {
+            aiModTab = tab;
+            loadAiModeration();
+        }
+
+        async function renderAiModActions() {
+            var target = document.getElementById('aiModTabContent');
+            try {
+                var aiLogs = await db.supabaseQuery('ai_actions_log?order=created_at.desc&limit=50');
+                var aiStats = {
+                    total: aiLogs ? aiLogs.length : 0,
+                    censored: 0,
+                    banned: 0,
+                    support: 0,
+                    multiAccount: 0
+                };
+                if (aiLogs) {
+                    for (var i = 0; i < aiLogs.length; i++) {
+                        var log = aiLogs[i];
+                        if (log.action_type === 'censor_and_ban' || log.action_type === 'censor_only') aiStats.censored++;
+                        if (log.action_type === 'censor_and_ban' || log.action_type === 'ban') aiStats.banned++;
+                        if (log.action_type === 'support_reply' || log.action_type === 'support_ticket') aiStats.support++;
+                        if (log.action_type === 'multi_account_detected' || log.action_type === 'multi_account_ban') aiStats.multiAccount++;
+                    }
+                }
+
+                var html = '';
+                html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
+                html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + aiStats.total + '</div><div class="stat-label">Всього дій ШІ</div></div>';
+                html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + aiStats.censored + '</div><div class="stat-label">Зацензуровано</div></div>';
+                html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + aiStats.banned + '</div><div class="stat-label">Заблоковано ШІ</div></div>';
+                html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + aiStats.support + '</div><div class="stat-label">Дій в підтримці</div></div>';
+                html += '</div>';
+
+                html += '<div class="card"><div class="card-header"><h3 class="card-title">📋 Останні дії ШІ</h3></div>';
+                if (aiLogs && aiLogs.length > 0) {
+                    html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Тип</th><th>Дія</th><th>Ціль</th></tr></thead><tbody>';
+                    for (var i = 0; i < Math.min(aiLogs.length, 20); i++) {
+                        var log = aiLogs[i];
+                        var actionLabels = {
+                            'censor_and_ban': '🚫 Цензура + Бан',
+                            'censor_only': '✏️ Цензура',
+                            'ban': '⛔ Бан',
+                            'support_reply': '💬 Відповідь в підтримку',
+                            'support_ticket': '🎫 Обробка тикету',
+                            'multi_account_detected': '🔍 Виявлено мультиакаунтинг',
+                            'multi_account_ban': '🚫 Бан мультиакаунтів',
+                            'report_review': '📋 Аналіз скарги',
+                            'appeal_review': '⚖️ Розгляд апеляції'
+                        };
+                        var label = actionLabels[log.action_type] || log.action_type;
+                        var target = log.target_user_id ? ('<a href="javascript:void(0)" onclick="openUserProfileModal(\'' + log.target_user_id + '\')" style="color:var(--gold);">переглянути</a>') : (log.target_ip || '—');
+                        html += '<tr><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><span class="badge badge-primary">' + label + '</span></td><td>' + (log.ai_reasoning || '—') + '</td><td>' + target + '</td></tr>';
+                    }
+                    html += '</tbody></table></div>';
+                } else { html += '<p class="text-muted">Немає дій ШІ</p>'; }
+                html += '</div>';
+
+                target.innerHTML = html;
+            } catch (error) {
+                target.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження: ' + error.message + '</p></div>';
+            }
+        }
+
+        async function renderAiModSettings() {
+            var target = document.getElementById('aiModTabContent');
+            try {
+                var settings = await db.getSystemSettings();
+                var aiEnabled = settings['ai_moderation_enabled'] !== 'false';
+                var aiSupportEnabled = settings['ai_support_enabled'] !== 'false';
+
+                var html = '';
+                html += '<div class="card"><div class="card-header"><h3 class="card-title">⚙️ Налаштування ШІ</h3></div>';
+                html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
+                html += '<span>🤖 Модерація повідомлень</span>';
+                html += '<button class="btn btn-sm ' + (aiEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiModeration(' + (!aiEnabled) + ')">' + (aiEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
+                html += '</div>';
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
+                html += '<span>💬 Автовідповіді в підтримку</span>';
+                html += '<button class="btn btn-sm ' + (aiSupportEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiSupport(' + (!aiSupportEnabled) + ')">' + (aiSupportEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
+                html += '</div>';
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;">';
+                html += '<span>⏳ Час очікування перед відповіддю ШІ в підтримку</span>';
+                html += '<span><strong>' + (settings['ai_support_grace_minutes'] || '10') + ' хв.</strong> <button class="btn btn-sm btn-primary" onclick="changeAiGrace()"><i class="fas fa-edit"></i></button></span>';
+                html += '</div>';
+                html += '<p class="text-muted" style="font-size:0.78rem;margin-top:0.3rem;">Прості тикети ШІ вирішує одразу, без очікування. Грейс-період діє лише для тикетів, що потребують перевірки людини.</p>';
+                html += '</div></div>';
+                target.innerHTML = html;
+            } catch (error) {
+                target.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження налаштувань: ' + error.message + '</p></div>';
+            }
+        }
+
+        async function toggleAiModeration(enabled) {
+            try {
+                var existing = await db.supabaseQuery('system_settings?key=eq.ai_moderation_enabled');
+                if (existing && existing.length > 0) {
+                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
+                    });
+                } else {
+                    await db.supabaseQuery('system_settings', {
+                        method: 'POST',
+                        body: JSON.stringify({ key: 'ai_moderation_enabled', value: enabled ? 'true' : 'false' })
+                    });
+                }
+                await db.addLog('Змінено налаштування ШІ модерації', 'system', null, { enabled: enabled });
+                await showToast('Налаштування збережено!', 'success');
+                loadAiModeration();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function toggleAiSupport(enabled) {
+            try {
+                var existing = await db.supabaseQuery('system_settings?key=eq.ai_support_enabled');
+                if (existing && existing.length > 0) {
+                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
+                    });
+                } else {
+                    await db.supabaseQuery('system_settings', {
+                        method: 'POST',
+                        body: JSON.stringify({ key: 'ai_support_enabled', value: enabled ? 'true' : 'false' })
+                    });
+                }
+                await db.addLog('Змінено налаштування ШІ підтримки', 'system', null, { enabled: enabled });
+                await showToast('Налаштування збережено!', 'success');
+                loadAiModeration();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        async function changeAiGrace() {
+            try {
+                var settings = await db.getSystemSettings();
+                var current = settings['ai_support_grace_minutes'] || '10';
+                var newValue = await showPrompt('Введіть час очікування перед відповіддю ШІ (хвилини):', current, 'Час очікування ШІ');
+                if (newValue === null) return;
+                var minutes = parseInt(newValue, 10);
+                if (isNaN(minutes) || minutes < 0) {
+                    await showAlert('Введіть коректне число', 'warning');
+                    return;
+                }
+                var existing = await db.supabaseQuery('system_settings?key=eq.ai_support_grace_minutes');
+                if (existing && existing.length > 0) {
+                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ value: String(minutes) })
+                    });
+                } else {
+                    await db.supabaseQuery('system_settings', {
+                        method: 'POST',
+                        body: JSON.stringify({ key: 'ai_support_grace_minutes', value: String(minutes) })
+                    });
+                }
+                await db.addLog('Змінено час очікування ШІ', 'system', null, { minutes: minutes });
+                await showToast('Збережено!', 'success');
+                loadAiModeration();
+            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+        }
+
+        // ============================================================
+        // ІНІЦІАЛІЗАЦІЯ
+        // ============================================================
         async function init() {
             var user = auth.getCurrentUser();
             if (!user) { window.location.href = '/login'; return; }
@@ -1612,12 +2084,8 @@ async function approveAppeal(appealId) {
                 document.getElementById('statsGrid').style.display = 'none';
                 return;
             }
-
-            // Одноразовий код на пошту - питаємо 1 раз за сесію (поки юзер
-            // не вийшов з акаунту чи не зайшов з іншого пристрою/сесії).
             var otpOk = await requirePanelOtp('адмін-панелі');
             if (!otpOk) return;
-
             await loadStats();
             await loadOverview();
         }
