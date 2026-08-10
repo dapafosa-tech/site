@@ -1460,23 +1460,36 @@ async function canAiReplyToTicket(ticketId) {
         var ticket = await getSupportTicket(ticketId);
         if (!ticket) return false;
         if (ticket.status === 'closed') return false;
-        
+
         var messages = await getSupportMessages(ticketId);
+
+        // Якщо будь-коли в тікет втручався живий співробітник (не ШІ) —
+        // ШІ більше НЕ відповідає в цьому тікеті, він переданий людині.
         for (var i = 0; i < messages.length; i++) {
-            if (isStaffRole(messages[i].sender_type)) {
-                return false;
-            }
-            if (messages[i].sender_type === 'ai') {
+            if (isStaffRole(messages[i].sender_type) && messages[i].sender_type !== 'ai') {
                 return false;
             }
         }
-        
-        var graceMinutes = await getAiGraceMinutes();
-        var created = new Date(ticket.created_at);
-        var now = new Date();
-        var diffMinutes = (now - created) / 60000;
-        
-        return diffMinutes >= graceMinutes;
+
+        if (!messages || messages.length === 0) {
+            // Ще ніхто не відповідав — чекаємо grace period від створення тікету
+            var graceMinutes = await getAiGraceMinutes();
+            var created = new Date(ticket.created_at);
+            var now = new Date();
+            var diffMinutes = (now - created) / 60000;
+            return diffMinutes >= graceMinutes;
+        }
+
+        // Дивимось хто писав останнім
+        var lastMessage = messages[messages.length - 1];
+        if (lastMessage.sender_type === 'ai') {
+            // ШІ вже відповів останнім і чекає на користувача — не дублюємо відповідь
+            return false;
+        }
+
+        // Останнім писав користувач (в т.ч. після того як ШІ вже щось запитував) —
+        // ШІ може (і повинен) відповісти знову, без повторного очікування grace period.
+        return true;
     } catch {
         return false;
     }
@@ -1765,16 +1778,25 @@ async function checkAppealStatus(appealId) {
 
 /**
  * СТВОРИТИ АДМІН-ФОРМУ (ЗАПИТ АБО ПЕРЕДАЧА)
+ * Доступно для будь-якого автентифікованого співробітника (moderator/admin/owner).
  */
 async function createAdminForm(data) {
     try {
         var user = getCurrentUser();
         if (!user) throw new Error('Не авторизовано');
-        
+
+        var staffRoles = ['moderator', 'admin', 'owner'];
+        if (staffRoles.indexOf(user.role) === -1) {
+            throw new Error('Створювати Адмін-Форми можуть лише модератори, адміністратори та засновник');
+        }
+
         // ВАЛІДАЦІЯ
         var validTypes = ['transfer', 'request', 'punishment'];
         if (validTypes.indexOf(data.form_type) === -1) {
             throw new Error('Невірний тип форми. Доступні: transfer, request, punishment');
+        }
+        if (!data.subject || !data.subject.trim()) {
+            throw new Error('Вкажіть тему форми');
         }
         
         var formData = {
@@ -1806,7 +1828,7 @@ async function createAdminForm(data) {
             headers: { 'Prefer': 'return=representation' }
         });
         
-        await addLog('Створено адмін-форму', 'admin_form', null, {
+        await addLog('Створено адмін-форму', 'admin_form', (result && result[0] ? result[0].id : null), {
             type: data.form_type,
             subject: data.subject
         });
