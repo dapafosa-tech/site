@@ -984,6 +984,81 @@ async function markNotificationRead(notificationId) {
     });
 }
 
+// ============================================================
+// ОСОБИСТІ ПОВІДОМЛЕННЯ (адмін-команда / ШІ <-> користувач)
+// Потребує таблицю direct_messages - див. supabase/migrations/
+// 001_direct_messages.sql
+// ============================================================
+
+async function sendDirectMessage(recipientId, message, opts) {
+    opts = opts || {};
+    var me = getCurrentUser();
+    if (!me && !opts.senderId) throw new Error('Не авторизовано');
+
+    var row = {
+        id: generateUUID(),
+        sender_id: opts.senderId || me.id,
+        sender_role: opts.senderRole || (me && me.role) || 'user',
+        sender_name: opts.senderName || (me && (me.full_name || me.email)) || 'Адміністрація',
+        recipient_id: recipientId,
+        message: message,
+        is_read: false,
+        created_at: new Date().toISOString()
+    };
+
+    var result = await supabaseQuery('direct_messages', {
+        method: 'POST',
+        body: JSON.stringify(row),
+        headers: { 'Prefer': 'return=representation' }
+    });
+
+    // Сповіщення отримувачу - спрацює існуючий бейдж/звук/попап "У вас нове повідомлення"
+    try {
+        await createNotification({
+            user_id: recipientId,
+            type: 'direct_message',
+            title: 'У вас нове повідомлення',
+            message: (row.sender_name || 'Адміністрація') + ': ' + String(message).slice(0, 140),
+            link: '/dashboard.html?dm=' + encodeURIComponent(row.sender_id || '')
+        });
+    } catch (e) {}
+
+    if (me) {
+        await addLog('Особисте повідомлення користувачу', 'direct_message', recipientId, {
+            preview: String(message).slice(0, 80)
+        });
+    }
+
+    return result;
+}
+
+async function getDirectMessageThread(otherUserId, limit) {
+    var me = getCurrentUser();
+    if (!me) return [];
+    limit = limit || 200;
+    return supabaseQuery(
+        'direct_messages?or=(and(sender_id.eq.' + me.id + ',recipient_id.eq.' + otherUserId + '),and(sender_id.eq.' + otherUserId + ',recipient_id.eq.' + me.id + '))&order=created_at.asc&limit=' + limit
+    );
+}
+
+async function getMyDirectMessageThreads() {
+    var me = getCurrentUser();
+    if (!me) return [];
+    return supabaseQuery('direct_messages?or=(sender_id.eq.' + me.id + ',recipient_id.eq.' + me.id + ')&order=created_at.desc&limit=300');
+}
+
+async function markDirectMessagesRead(otherUserId) {
+    var me = getCurrentUser();
+    if (!me) return;
+    return supabaseQuery(
+        'direct_messages?sender_id=eq.' + otherUserId + '&recipient_id=eq.' + me.id + '&is_read=eq.false',
+        {
+            method: 'PATCH',
+            body: JSON.stringify({ is_read: true, read_at: new Date().toISOString() })
+        }
+    );
+}
+
 async function getClinicPatients(orgId) {
     return supabaseQuery('clinic_patients?organization_id=eq.' + orgId + '&order=created_at.desc');
 }
@@ -2201,5 +2276,11 @@ window.db = {
     // НОВІ ФУНКЦІЇ ДЛЯ ЗАПИТІВ ДО ШІ
     createAiOwnerRequest: createAiOwnerRequest,
     getAiOwnerRequests: getAiOwnerRequests,
-    updateAiOwnerRequest: updateAiOwnerRequest
+    updateAiOwnerRequest: updateAiOwnerRequest,
+
+    // ОСОБИСТІ ПОВІДОМЛЕННЯ
+    sendDirectMessage: sendDirectMessage,
+    getDirectMessageThread: getDirectMessageThread,
+    getMyDirectMessageThreads: getMyDirectMessageThreads,
+    markDirectMessagesRead: markDirectMessagesRead
 };
