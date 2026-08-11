@@ -262,10 +262,38 @@
         .ticket-card .ticket-card-top{display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.4rem;}
         .ticket-card .ticket-card-subject{font-weight:600;font-size:0.95rem;}
         .ticket-card .ticket-card-meta{font-size:0.78rem;color:var(--muted);display:flex;gap:0.6rem;flex-wrap:wrap;}
+        
         .support-msg{padding:0.75rem;margin:0.5rem 0;border-radius:6px;background:var(--ink);border-left:3px solid var(--teal);}
         .support-msg.staff{background:var(--ink-raised);border-left-color:var(--gold);}
         .support-msg .support-msg-top{font-size:0.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
         .support-msg .support-msg-body{margin-top:0.4rem;font-size:0.9rem;line-height:1.4;}
+
+        .dm-item{
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:var(--radius-sm);
+            padding:0.9rem 1rem;
+            margin-bottom:0.7rem;
+            cursor:pointer;
+            transition:border-color .15s ease,transform .15s ease;
+        }
+        .dm-item:hover{border-color:var(--teal);transform:translateY(-1px);}
+        .dm-item.unread{background:var(--ink-raised);border-left:3px solid var(--gold);}
+        .dm-item .dm-top{display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.3rem;}
+        .dm-item .dm-user{font-weight:600;font-size:0.95rem;}
+        .dm-item .dm-preview{font-size:0.85rem;color:var(--muted);}
+        .dm-item .dm-time{font-size:0.7rem;color:var(--muted-dim);}
+        .dm-item .dm-badge{
+            display:inline-block;
+            background:var(--gold);
+            color:var(--ink);
+            border-radius:50%;
+            padding:0 6px;
+            font-size:0.6rem;
+            font-weight:700;
+            min-width:18px;
+            text-align:center;
+        }
 
         .org-grid{
             display:grid;
@@ -382,6 +410,7 @@
             box-shadow:0 30px 70px rgba(0,0,0,0.5);
             animation:modalIn .22s ease;
         }
+        .modal-content.wide{max-width:620px;}
         @keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(0.98);}to{opacity:1;transform:none;}}
         .modal-tag{
             font-family:'IBM Plex Mono';
@@ -468,7 +497,6 @@
         .mobile-topbar{display:none;}
         .sidebar-backdrop{display:none;}
 
-        /* Стилі для сповіщень */
         .notification-item {
             padding:0.75rem;
             border-bottom:1px solid var(--ink-line);
@@ -489,6 +517,21 @@
             color:var(--gold);
             margin-top:0.2rem;
         }
+
+        .dm-chat-message{
+            padding:0.6rem 0.8rem;
+            margin:0.3rem 0;
+            border-radius:8px;
+            background:var(--ink);
+            max-width:80%;
+        }
+        .dm-chat-message.own{
+            background:var(--gold-glow);
+            border:1px solid rgba(242,169,59,0.2);
+            margin-left:auto;
+        }
+        .dm-chat-message .dm-msg-top{font-size:0.7rem;color:var(--muted);display:flex;justify-content:space-between;gap:0.5rem;}
+        .dm-chat-message .dm-msg-body{font-size:0.9rem;margin-top:0.2rem;word-break:break-word;}
 
         @media(max-width:768px){
             .mobile-topbar{
@@ -613,6 +656,7 @@
         </div>
     </main>
 
+    <!-- Модалка створення організації -->
     <div class="modal" id="createOrgModal">
         <div class="modal-content">
             <div class="modal-tag">TYPEBIZ // NEW RECORD</div>
@@ -710,6 +754,7 @@
         </div>
     </div>
 
+    <!-- Модалка приєднання -->
     <div class="modal" id="joinOrgModal">
         <div class="modal-content">
             <div class="modal-tag">TYPEBIZ // JOIN REQUEST</div>
@@ -734,8 +779,9 @@
         </div>
     </div>
 
+    <!-- Модалка підтримки - список -->
     <div class="modal" id="supportListModal">
-        <div class="modal-content" style="max-width:620px;">
+        <div class="modal-content wide">
             <div class="modal-tag">TYPEBIZ // SUPPORT</div>
             <div class="modal-header">
                 <h2>📩 Підтримка</h2>
@@ -750,8 +796,9 @@
         </div>
     </div>
 
+    <!-- Модалка перегляду тікета -->
     <div class="modal" id="supportTicketModal">
-        <div class="modal-content" style="max-width:620px;">
+        <div class="modal-content wide">
             <div class="modal-tag">TYPEBIZ // SUPPORT</div>
             <div class="modal-header">
                 <h2 id="supportTicketModalTitle">Тікет</h2>
@@ -762,12 +809,13 @@
                     <button class="modal-close" onclick="closeModal('supportTicketModal')">&times;</button>
                 </div>
             </div>
-            <div id="supportTicketModalBody">
+            <div id="supportTicketModalBody" style="max-height:60vh;overflow-y:auto;">
                 <p class="text-muted">Завантаження...</p>
             </div>
         </div>
     </div>
 
+    <!-- Модалка створення тікета -->
     <div class="modal" id="supportModal">
         <div class="modal-content">
             <div class="modal-tag">TYPEBIZ // SUPPORT</div>
@@ -810,6 +858,31 @@
         </div>
     </div>
 
+    <!-- Модалка переписки (чат) -->
+    <div class="modal" id="dmChatModal">
+        <div class="modal-content wide">
+            <div class="modal-tag">TYPEBIZ // DIRECT MESSAGE</div>
+            <div class="modal-header">
+                <h2 id="dmChatTitle">💬 Чат</h2>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <button class="btn-back" onclick="closeModal('dmChatModal');loadDirectMessages();" title="Назад">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </button>
+                    <button class="modal-close" onclick="closeModal('dmChatModal');loadDirectMessages();">&times;</button>
+                </div>
+            </div>
+            <div id="dmChatBody" style="max-height:55vh;overflow-y:auto;margin-bottom:0.8rem;">
+                <p class="text-muted">Завантаження...</p>
+            </div>
+            <div style="display:flex;gap:0.6rem;">
+                <textarea class="form-control" id="dmMessageInput" rows="2" placeholder="Написати повідомлення..." style="flex:1;min-height:50px;"></textarea>
+                <button class="btn btn-gold" onclick="sendDmMessage()" style="align-self:flex-end;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
@@ -835,34 +908,16 @@
 
         function logoutUser() {
             showConfirm('Ви впевнені, що хочете вийти?', 'Вихід').then(function(confirmed) {
-                if (confirmed) { auth.logoutUser(); }
+                if (confirmed) {
+                    localStorage.removeItem('userData');
+                    localStorage.removeItem('isGuest');
+                    window.location.href = '/login';
+                }
             });
         }
 
         function openCreateOrg() {
             document.getElementById('createOrgModal').classList.add('active');
-        }
-
-        async function loadCustomOrgTypes() {
-            try {
-                var customTypes = await db.supabaseQuery('org_types?order=name.asc');
-                if (!customTypes || customTypes.length === 0) return;
-                var select = document.getElementById('orgType');
-                if (!select) return;
-                var existingValues = [];
-                for (var i = 0; i < select.options.length; i++) {
-                    existingValues.push(select.options[i].value);
-                }
-                for (var j = 0; j < customTypes.length; j++) {
-                    var ct = customTypes[j];
-                    if (!ct.code || existingValues.indexOf(ct.code) !== -1) continue;
-                    var opt = document.createElement('option');
-                    opt.value = ct.code;
-                    opt.textContent = ct.name;
-                    select.appendChild(opt);
-                    typeLabels[ct.code] = ct.name;
-                }
-            } catch (e) {}
         }
 
         function openJoinOrg() {
@@ -871,6 +926,599 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+        }
+
+        // ============================================================
+        // ФОРМАТУВАННЯ
+        // ============================================================
+        function formatDateKyiv(d) {
+            try { return new Date(d).toLocaleDateString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
+
+        function formatDateTimeKyiv(d) {
+            try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
+        }
+
+        function getShortTicketId(id) {
+            if (!id) return '---';
+            return id.slice(0, 8);
+        }
+
+        function isStaffRole(type) {
+            return type === 'admin' || type === 'support' || type === 'moderator' || type === 'owner';
+        }
+
+        function getRoleBadgeHtml(type) {
+            var labels = { 'admin': '🛡️ Адмін', 'support': '🛟 Підтримка', 'moderator': '⚖️ Модератор', 'owner': '👑 Власник' };
+            return labels[type] || type;
+        }
+
+        // ============================================================
+        // ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ
+        // ============================================================
+        async function loadDashboard() {
+            var user = auth.getCurrentUser();
+            if (!user) {
+                window.location.href = '/login';
+                return;
+            }
+
+            sessionStorage.removeItem('onNotificationsPage');
+            sessionStorage.removeItem('onDmPage');
+
+            document.getElementById('userName').textContent = user.full_name || 'Користувач';
+            document.getElementById('userEmail').textContent = user.email;
+
+            var avatarEl = document.getElementById('userAvatar');
+            if (user.avatar_url) {
+                avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
+            } else {
+                avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
+            }
+
+            var adminLink = document.getElementById('adminLink');
+            var ownerLink = document.getElementById('ownerLink');
+            if (user.role === 'owner') {
+                ownerLink.style.display = 'block';
+                adminLink.style.display = 'none';
+            } else if (user.role === 'admin' || user.role === 'moderator') {
+                adminLink.style.display = 'block';
+                ownerLink.style.display = 'none';
+            } else {
+                adminLink.style.display = 'none';
+                ownerLink.style.display = 'none';
+            }
+
+            document.querySelectorAll('.nav-menu a').forEach(function(a) {
+                a.classList.remove('active');
+            });
+            var dashLink = document.getElementById('dashboardLink');
+            if (dashLink) dashLink.classList.add('active');
+
+            document.getElementById('pageEyebrow').textContent = 'Картотека організацій';
+            document.getElementById('pageTitle').textContent = 'Мої організації';
+            document.getElementById('pageSubtitle').textContent = 'Керуйте своїми організаціями та створюйте нові';
+            document.getElementById('pageActions').style.display = 'flex';
+
+            await loadOrganizations();
+        }
+
+        function loadDashboardView() {
+            loadDashboard();
+        }
+
+        async function loadOrganizations() {
+            var loading = document.getElementById('orgLoading');
+            var grid = document.getElementById('orgGrid');
+            var emptyState = document.getElementById('emptyState');
+            
+            try {
+                var user = auth.getCurrentUser();
+                if (!user) throw new Error('Користувач не авторизований');
+                
+                var members = await db.supabaseQuery('org_members?user_id=eq.' + user.id);
+                if (!members || members.length === 0) {
+                    loading.style.display = 'none';
+                    grid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                var orgIds = members.map(function(m) { return m.organization_id; }).join(',');
+                if (!orgIds) {
+                    loading.style.display = 'none';
+                    grid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                var orgs = await db.supabaseQuery('organizations?id=in.(' + orgIds + ')');
+                loading.style.display = 'none';
+                grid.innerHTML = '';
+                grid.style.display = 'grid';
+                
+                if (!orgs || orgs.length === 0) {
+                    emptyState.style.display = 'block';
+                    grid.style.display = 'none';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                var accentPalette = ['#F2A93B', '#46C9B8', '#E2503E', '#8B93A6', '#8B5CF6', '#F59E0B'];
+                var typeLabels = {
+                    'shop': 'Магазин', 'library': 'Бібліотека', 'company': 'Компанія',
+                    'school': 'Школа', 'clinic': 'Клініка', 'restaurant': 'Ресторан',
+                    'cafe': 'Кафе', 'hotel': 'Готель', 'gym': 'Спортзал',
+                    'beauty': 'Салон краси', 'auto': 'Автосервіс', 'realty': 'Нерухомість',
+                    'it': 'IT-компанія', 'marketing': 'Маркетинг', 'legal': 'Юридична',
+                    'finance': 'Фінанси', 'education': 'Освіта', 'medical': 'Медицина',
+                    'sport': 'Спорт', 'art': 'Мистецтво', 'music': 'Музика',
+                    'photo': 'Фото', 'video': 'Відео', 'construction': 'Будівництво',
+                    'repair': 'Ремонт', 'cleaning': 'Клінінг', 'delivery': 'Доставка',
+                    'logistics': 'Логістика', 'agriculture': 'Сільське господарство',
+                    'tourism': 'Туризм', 'event': 'Івент', 'charity': 'Благодійність',
+                    'government': 'Державна', 'gamedev': 'GameDev', 'indie': 'Інді-розробка',
+                    'publishing': 'Видавництво', 'animation': 'Анімація', 'vr': 'VR/AR',
+                    'esports': 'Кіберспорт', 'streaming': 'Стримінг', 'podcast': 'Подкаст',
+                    'blogging': 'Блогінг', 'social': 'Соцмережі', 'startup': 'Стартап',
+                    'agency': 'Агентство', 'consulting': 'Консалтинг', 'freelance': 'Фриланс',
+                    'remote': 'Віддалена робота', 'coworking': 'Коворкінг', 'incubator': 'Інкубатор',
+                    'accelerator': 'Акселератор', 'venture': 'Венчур', 'nonprofit': 'Некомерційна',
+                    'community': 'Спільнота', 'religious': 'Релігійна', 'cultural': 'Культурна',
+                    'research': 'Дослідження', 'science': 'Наука', 'space': 'Космос',
+                    'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
+                    'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
+                    'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
+                };
+                
+                var iconMap = {
+                    'shop': 'fa-store', 'library': 'fa-book', 'company': 'fa-building',
+                    'school': 'fa-graduation-cap', 'clinic': 'fa-heartbeat',
+                    'restaurant': 'fa-utensils', 'cafe': 'fa-coffee', 'hotel': 'fa-hotel',
+                    'gym': 'fa-dumbbell', 'beauty': 'fa-spa', 'auto': 'fa-car',
+                    'realty': 'fa-home', 'it': 'fa-code', 'marketing': 'fa-chart-line',
+                    'legal': 'fa-gavel', 'finance': 'fa-coins', 'education': 'fa-graduation-cap',
+                    'medical': 'fa-heartbeat', 'sport': 'fa-running', 'art': 'fa-palette',
+                    'music': 'fa-music', 'photo': 'fa-camera', 'video': 'fa-video',
+                    'construction': 'fa-hard-hat', 'repair': 'fa-tools', 'cleaning': 'fa-broom',
+                    'delivery': 'fa-truck', 'logistics': 'fa-shipping-fast',
+                    'agriculture': 'fa-tractor', 'tourism': 'fa-plane', 'event': 'fa-calendar-check',
+                    'charity': 'fa-hand-holding-heart', 'government': 'fa-landmark',
+                    'gamedev': 'fa-gamepad', 'indie': 'fa-rocket', 'publishing': 'fa-newspaper',
+                    'animation': 'fa-film', 'vr': 'fa-vr-cardboard', 'esports': 'fa-trophy',
+                    'streaming': 'fa-broadcast', 'podcast': 'fa-microphone', 'blogging': 'fa-blog',
+                    'social': 'fa-share-alt', 'startup': 'fa-lightbulb', 'agency': 'fa-ad',
+                    'consulting': 'fa-handshake', 'freelance': 'fa-user-tie', 'remote': 'fa-globe',
+                    'coworking': 'fa-building', 'incubator': 'fa-seedling', 'accelerator': 'fa-rocket',
+                    'venture': 'fa-chart-pie', 'nonprofit': 'fa-heart', 'community': 'fa-users',
+                    'religious': 'fa-church', 'cultural': 'fa-landmark', 'research': 'fa-flask',
+                    'science': 'fa-atom', 'space': 'fa-rocket', 'robotics': 'fa-robot',
+                    'ai': 'fa-brain', 'blockchain': 'fa-link', 'crypto': 'fa-coins',
+                    'defi': 'fa-chart-line', 'nft': 'fa-image', 'metaverse': 'fa-vr-cardboard',
+                    'web3': 'fa-globe', 'other': 'fa-cubes'
+                };
+                
+                orgs.forEach(function(org) {
+                    var iconClass = iconMap[org.type] || 'fa-cubes';
+                    var hash = 0;
+                    for (var i = 0; i < (org.type || 'other').length; i++) hash += org.type.charCodeAt(i);
+                    var accent = accentPalette[hash % accentPalette.length];
+                    var card = document.createElement('div');
+                    card.className = 'org-card';
+                    card.style.setProperty('--card-accent', accent);
+                    card.innerHTML =
+                        '<div class="org-top">' +
+                            '<div class="org-icon"><i class="fas ' + iconClass + '"></i></div>' +
+                            '<i class="fas fa-arrow-right org-arrow"></i>' +
+                        '</div>' +
+                        '<h3>' + (org.name || 'Без назви') + '</h3>' +
+                        '<p>' + (org.description || 'Без опису') + '</p>' +
+                        '<div class="org-meta">' +
+                            '<span class="org-type">' + (typeLabels[org.type] || org.type || '—') + '</span>' +
+                            '<div class="org-join-code"><i class="fas fa-key"></i> <span class="join-code">' + (org.join_code || '---') + '</span></div>' +
+                        '</div>';
+                    card.addEventListener('click', function() {
+                        window.location.href = '/org?id=' + org.id;
+                    });
+                    grid.appendChild(card);
+                });
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                console.error('loadOrganizations error:', error);
+                showAlert('Помилка завантаження організацій: ' + error.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // ПЕРЕПИСКИ (РОБОЧА ВЕРСІЯ)
+        // ============================================================
+
+        var dmChannel = null;
+        var currentDmUserId = null;
+
+        async function loadDirectMessages() {
+            sessionStorage.setItem('onDmPage', 'true');
+            
+            var container = document.getElementById('orgsContainer');
+            if (!container) return;
+            
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            document.querySelectorAll('.nav-menu a').forEach(function(a) {
+                a.classList.remove('active');
+            });
+            var dmLink = document.querySelector('.nav-menu a[onclick*="loadDirectMessages()"]');
+            if (dmLink) dmLink.classList.add('active');
+
+            document.getElementById('pageEyebrow').textContent = 'Особисті переписки';
+            document.getElementById('pageTitle').textContent = '💬 Переписки';
+            document.getElementById('pageSubtitle').textContent = 'Всі ваші особисті повідомлення';
+            document.getElementById('pageActions').style.display = 'none';
+            
+            try {
+                // Отримуємо всіх користувачів з якими є переписка
+                var sent = await db.supabaseQuery('direct_messages?sender_id=eq.' + user.id + '&select=recipient_id');
+                var received = await db.supabaseQuery('direct_messages?recipient_id=eq.' + user.id + '&select=sender_id');
+                
+                var userIds = new Set();
+                (sent || []).forEach(function(m) { if (m.recipient_id) userIds.add(m.recipient_id); });
+                (received || []).forEach(function(m) { if (m.sender_id) userIds.add(m.sender_id); });
+                
+                if (userIds.size === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fas fa-envelope"></i></div>
+                            <h3>Немає переписок</h3>
+                            <p>У вас ще немає особистих повідомлень. Почніть спілкуватися з учасниками ваших організацій!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                var ids = Array.from(userIds).join(',');
+                var profiles = await db.supabaseQuery('users?q=id.in.(' + ids + ')&select=id,full_name,avatar_url,role');
+                
+                var userMap = {};
+                (profiles || []).forEach(function(p) { userMap[p.id] = p; });
+                
+                // Отримуємо останнє повідомлення для кожного
+                var conversations = [];
+                for (var uid of userIds) {
+                    var lastMessages = await db.supabaseQuery(
+                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
+                    );
+                    // Простіше: отримуємо всі повідомлення між двома користувачами
+                    var msgs = await db.supabaseQuery(
+                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
+                    );
+                    var lastMsg = msgs && msgs.length > 0 ? msgs[0] : null;
+                    
+                    // Рахуємо непрочитані
+                    var unread = await db.supabaseQuery(
+                        'direct_messages?recipient_id=eq.' + user.id + '&sender_id=eq.' + uid + '&is_read=eq.false'
+                    );
+                    var unreadCount = unread ? unread.length : 0;
+                    
+                    var profile = userMap[uid] || { full_name: 'Користувач', avatar_url: null };
+                    conversations.push({
+                        user_id: uid,
+                        full_name: profile.full_name || 'Користувач',
+                        avatar_url: profile.avatar_url,
+                        last_message: lastMsg ? lastMsg.message : '...',
+                        last_time: lastMsg ? lastMsg.created_at : null,
+                        unread: unreadCount
+                    });
+                }
+                
+                // Сортуємо за часом останнього повідомлення
+                conversations.sort(function(a, b) {
+                    return new Date(b.last_time || 0) - new Date(a.last_time || 0);
+                });
+                
+                var html = '<div style="max-height:600px;overflow-y:auto;">';
+                for (var i = 0; i < conversations.length; i++) {
+                    var conv = conversations[i];
+                    var isUnread = conv.unread > 0;
+                    var initial = (conv.full_name || 'U')[0].toUpperCase();
+                    html += '<div class="dm-item' + (isUnread ? ' unread' : '') + '" onclick="openDmChat(\'' + conv.user_id + '\', \'' + conv.full_name + '\')">';
+                    html += '<div class="dm-top">';
+                    html += '<div style="display:flex;align-items:center;gap:0.6rem;">';
+                    html += '<div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;color:var(--ink);font-weight:600;font-size:0.8rem;overflow:hidden;flex-shrink:0;">';
+                    if (conv.avatar_url) {
+                        html += '<img src="' + conv.avatar_url + '" style="width:100%;height:100%;object-fit:cover;">';
+                    } else {
+                        html += initial;
+                    }
+                    html += '</div>';
+                    html += '<span class="dm-user">' + conv.full_name + '</span>';
+                    if (isUnread) {
+                        html += '<span class="dm-badge">' + conv.unread + '</span>';
+                    }
+                    html += '</div>';
+                    html += '<span class="dm-time">' + (conv.last_time ? formatDateTimeKyiv(conv.last_time) : '') + '</span>';
+                    html += '</div>';
+                    html += '<div class="dm-preview">' + (conv.last_message || '') + '</div>';
+                    html += '</div>';
+                }
+                html += '</div>';
+                container.innerHTML = html;
+                
+                // Оновлюємо бейдж
+                await updateDmBadge();
+                
+                // Налаштовуємо реальний час для нових повідомлень
+                setupRealtimeDm();
+                
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження переписок: ' + error.message + '</p></div>';
+            }
+        }
+
+        // Відкрити чат з користувачем
+        async function openDmChat(userId, userName) {
+            currentDmUserId = userId;
+            document.getElementById('dmChatModal').classList.add('active');
+            document.getElementById('dmChatTitle').textContent = '💬 Чат з ' + (userName || 'Користувачем');
+            
+            var body = document.getElementById('dmChatBody');
+            body.innerHTML = '<p class="text-muted">Завантаження...</p>';
+            
+            try {
+                var user = auth.getCurrentUser();
+                if (!user) return;
+                
+                // Позначаємо всі повідомлення від цього користувача як прочитані
+                await db.supabaseQuery(
+                    'direct_messages?recipient_id=eq.' + user.id + '&sender_id=eq.' + userId,
+                    { is_read: true },
+                    'PATCH'
+                );
+                await updateDmBadge();
+                
+                // Отримуємо історію повідомлень
+                var msgs = await db.supabaseQuery(
+                    'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + userId + ',recipient_id.eq.' + userId + ')&order=created_at.asc&limit=100'
+                );
+                
+                if (!msgs || msgs.length === 0) {
+                    body.innerHTML = '<p class="text-muted text-center" style="padding:2rem 0;">Немає повідомлень. Почніть спілкування!</p>';
+                } else {
+                    var html = '';
+                    for (var i = 0; i < msgs.length; i++) {
+                        var msg = msgs[i];
+                        var isOwn = msg.sender_id === user.id;
+                        html += '<div class="dm-chat-message' + (isOwn ? ' own' : '') + '">';
+                        html += '<div class="dm-msg-top"><span>' + (isOwn ? 'Ви' : (userName || 'Користувач')) + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+                        html += '<div class="dm-msg-body">' + msg.message + '</div>';
+                        html += '</div>';
+                    }
+                    body.innerHTML = html;
+                    body.scrollTop = body.scrollHeight;
+                }
+                
+                // Підписуємося на нові повідомлення в реальному часі
+                setupRealtimeDmChat(userId);
+                
+            } catch (error) {
+                body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
+            }
+        }
+
+        // Відправити повідомлення
+        async function sendDmMessage() {
+            var input = document.getElementById('dmMessageInput');
+            var message = input.value.trim();
+            if (!message || !currentDmUserId) return;
+            
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            var btn = document.querySelector('#dmChatModal .btn-gold');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+            
+            try {
+                await db.supabaseQuery('direct_messages', {
+                    sender_id: user.id,
+                    recipient_id: currentDmUserId,
+                    message: message,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                }, 'POST');
+                
+                input.value = '';
+                
+                // Додаємо повідомлення в чат
+                var body = document.getElementById('dmChatBody');
+                var html = '<div class="dm-chat-message own">';
+                html += '<div class="dm-msg-top"><span>Ви</span><span>' + formatDateTimeKyiv(new Date().toISOString()) + '</span></div>';
+                html += '<div class="dm-msg-body">' + message + '</div>';
+                html += '</div>';
+                body.insertAdjacentHTML('beforeend', html);
+                body.scrollTop = body.scrollHeight;
+                
+                // Оновлюємо список переписок
+                if (sessionStorage.getItem('onDmPage') === 'true') {
+                    setTimeout(loadDirectMessages, 500);
+                }
+                
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+            
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            }
+        }
+
+        // Натискання Enter для відправки
+        document.addEventListener('DOMContentLoaded', function() {
+            var input = document.getElementById('dmMessageInput');
+            if (input) {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendDmMessage();
+                    }
+                });
+            }
+        });
+
+        // Real-time для нових повідомлень в чаті
+        function setupRealtimeDmChat(otherUserId) {
+            if (dmChannel) {
+                try { window.sb.removeChannel(dmChannel); } catch(e) {}
+                dmChannel = null;
+            }
+            
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            dmChannel = window.sb
+                .channel('dm-chat-realtime-' + user.id + '-' + otherUserId)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'direct_messages',
+                    filter: 'sender_id=eq.' + otherUserId + ',recipient_id=eq.' + user.id
+                }, function(payload) {
+                    var msg = payload.new;
+                    var body = document.getElementById('dmChatBody');
+                    if (!body) return;
+                    
+                    // Якщо це відкритий чат з цим користувачем
+                    if (currentDmUserId === msg.sender_id) {
+                        var html = '<div class="dm-chat-message">';
+                        html += '<div class="dm-msg-top"><span>' + (otherUserId === msg.sender_id ? 'Користувач' : 'Ви') + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+                        html += '<div class="dm-msg-body">' + msg.message + '</div>';
+                        html += '</div>';
+                        body.insertAdjacentHTML('beforeend', html);
+                        body.scrollTop = body.scrollHeight;
+                        
+                        // Позначаємо як прочитане
+                        db.supabaseQuery('direct_messages?id=eq.' + msg.id, { is_read: true }, 'PATCH');
+                        updateDmBadge();
+                    }
+                })
+                .subscribe();
+        }
+
+        // Real-time для оновлення списку переписок
+        function setupRealtimeDm() {
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            // Простий підхід: кожні 15 секунд оновлюємо бейдж
+            // Вже є інтервал в init
+        }
+
+        // Оновлюємо badge для непрочитаних особистих повідомлень
+        async function updateDmBadge() {
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            try {
+                var unread = await db.supabaseQuery(
+                    'direct_messages?recipient_id=eq.' + user.id + '&is_read=eq.false&select=id'
+                );
+                var count = unread ? unread.length : 0;
+                var badge = document.getElementById('dmBadge');
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // ============================================================
+        // СПОВІЩЕННЯ
+        // ============================================================
+        async function loadNotifications() {
+            var container = document.getElementById('orgsContainer');
+            if (!container) return;
+            
+            var user = auth.getCurrentUser();
+            if (!user) return;
+            
+            sessionStorage.setItem('onNotificationsPage', 'true');
+            
+            document.querySelectorAll('.nav-menu a').forEach(function(a) {
+                a.classList.remove('active');
+            });
+            var notifLink = document.querySelector('.nav-menu a[onclick*="loadNotifications()"]');
+            if (notifLink) notifLink.classList.add('active');
+
+            document.getElementById('pageEyebrow').textContent = 'Сповіщення';
+            document.getElementById('pageTitle').textContent = '📬 Сповіщення';
+            document.getElementById('pageSubtitle').textContent = 'Всі ваші сповіщення';
+            document.getElementById('pageActions').style.display = 'none';
+            
+            try {
+                var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
+                var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
+                
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
+                if (unread.length > 0) {
+                    html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead();loadNotifications();"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+                }
+                html += '</div>';
+                
+                if (!notifications || notifications.length === 0) {
+                    html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
+                } else {
+                    html += '<div style="max-height:500px;overflow-y:auto;">';
+                    for (var i = 0; i < notifications.length; i++) {
+                        var n = notifications[i];
+                        var isUnread = !n.is_read;
+                        var iconMap = {
+                            'chat_mention': 'fa-at',
+                            'admin_form': 'fa-file-signature',
+                            'support_reply': 'fa-reply',
+                            'support_escalation': 'fa-flag',
+                            'system_alert': 'fa-shield-alt',
+                            'appeal_result': 'fa-gavel',
+                            'default': 'fa-bell'
+                        };
+                        var icon = iconMap[n.type] || iconMap.default;
+                        var link = n.link || '#';
+                        
+                        if (n.type === 'chat_mention' && n.organization_id) {
+                            link = '/org?id=' + n.organization_id;
+                        }
+                        
+                        html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';window.location.href=\'' + link + '\'">';
+                        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
+                        html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
+                        html += '</div>';
+                        html += '<div class="notif-message">' + n.message + '</div>';
+                        if (isUnread) {
+                            html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
+                        }
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+                
+                container.innerHTML = html;
+                
+                if (window.updateNotificationBadge) {
+                    updateNotificationBadge();
+                }
+                
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
+            }
         }
 
         // ============================================================
@@ -920,11 +1568,16 @@
                 var html = '';
                 for (var i = 0; i < sorted.length; i++) {
                     var t = sorted[i];
+                    var shortId = getShortTicketId(t.id);
                     var statusClass = myTicketStatusClasses[t.status] || 'badge-secondary';
                     var statusLabel = myTicketStatusLabels[t.status] || t.status;
                     var priorityClass = myTicketPriorityClasses[t.priority] || 'badge-primary';
                     html += '<div class="ticket-card" onclick="viewMySupportTicket(\'' + t.id + '\')">';
-                    html += '<div class="ticket-card-top"><span class="ticket-card-subject">' + (t.subject || '—') + '</span><span class="badge ' + statusClass + '">' + statusLabel + '</span></div>';
+                    html += '<div class="ticket-card-top">';
+                    html += '<span style="font-family:monospace;font-size:0.7rem;color:var(--muted);margin-right:0.5rem;">' + shortId + '</span>';
+                    html += '<span class="ticket-card-subject">' + (t.subject || '—') + '</span>';
+                    html += '<span class="badge ' + statusClass + '">' + statusLabel + '</span>';
+                    html += '</div>';
                     html += '<div class="ticket-card-meta">';
                     html += '<span><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></span>';
                     html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
@@ -949,9 +1602,11 @@
                     return;
                 }
                 var messages = await db.getSupportMessages(ticketId);
+                var shortId = getShortTicketId(ticketId);
                 var statusLabel = myTicketStatusLabels[t.status] || t.status;
-                document.getElementById('supportTicketModalTitle').textContent = t.subject || 'Тікет';
+                document.getElementById('supportTicketModalTitle').textContent = 'Тікет ' + shortId + ' — ' + (t.subject || '');
                 var html = '<div class="ticket-card-meta" style="margin-bottom:0.8rem;">';
+                html += '<span style="font-family:monospace;font-size:0.8rem;color:var(--muted);margin-right:0.5rem;">' + shortId + '</span>';
                 html += '<span class="badge ' + (myTicketStatusClasses[t.status] || 'badge-secondary') + '">' + statusLabel + '</span> ';
                 html += '<span class="badge ' + (myTicketPriorityClasses[t.priority] || 'badge-primary') + '">' + (t.priority || '—') + '</span> ';
                 html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
@@ -962,6 +1617,7 @@
                         var msg = messages[i];
                         var isStaff = isStaffRole(msg.sender_type);
                         var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
+                        if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
                         html += '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
                         html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
                         html += '<div class="support-msg-body">' + msg.message + '</div></div>';
@@ -976,6 +1632,10 @@
                     html += '<p class="text-muted" style="margin-top:1rem;">✅ Тікет закрито</p>';
                 }
                 body.innerHTML = html;
+                body.scrollTop = body.scrollHeight;
+                
+                setupRealtimeSupportChat(ticketId);
+                
             } catch (error) {
                 body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
             }
@@ -990,6 +1650,11 @@
                 return;
             }
             var user = auth.getCurrentUser();
+            var submitBtn = document.querySelector('#myTicketReply + .btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
+            }
             try {
                 await db.sendSupportMessage({
                     ticket_id: ticketId,
@@ -998,10 +1663,54 @@
                     message: message
                 });
                 await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
+                textarea.value = '';
                 await viewMySupportTicket(ticketId);
+                showToast('✅ Повідомлення відправлено!', 'success');
             } catch (error) {
                 showAlert('Помилка: ' + error.message, 'error');
             }
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Надіслати';
+            }
+        }
+
+        var _supportChatChannel = null;
+
+        function setupRealtimeSupportChat(ticketId) {
+            if (!window.sb) return;
+            if (_supportChatChannel) {
+                try { window.sb.removeChannel(_supportChatChannel); } catch(e) {}
+                _supportChatChannel = null;
+            }
+            _supportChatChannel = window.sb
+                .channel('support-chat-realtime-' + ticketId)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'support_messages',
+                    filter: 'ticket_id=eq.' + ticketId
+                }, function(payload) {
+                    var msg = payload.new;
+                    var user = auth.getCurrentUser();
+                    if (msg.sender_id === user.id && msg.sender_type === 'user') return;
+                    var container = document.getElementById('supportTicketModalBody');
+                    if (!container) return;
+                    var isStaff = isStaffRole(msg.sender_type);
+                    var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
+                    if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
+                    var html = '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
+                    html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+                    html += '<div class="support-msg-body">' + msg.message + '</div></div>';
+                    var form = container.querySelector('hr');
+                    if (form) {
+                        form.insertAdjacentHTML('beforebegin', html);
+                    } else {
+                        container.insertAdjacentHTML('beforeend', html);
+                    }
+                    container.scrollTop = container.scrollHeight;
+                })
+                .subscribe();
         }
 
         // ============================================================
@@ -1032,148 +1741,6 @@
             'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
             'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
         };
-
-        var iconMap = {
-            'shop': 'fa-store', 'library': 'fa-book', 'company': 'fa-building',
-            'school': 'fa-graduation-cap', 'clinic': 'fa-heartbeat',
-            'restaurant': 'fa-utensils', 'cafe': 'fa-coffee', 'hotel': 'fa-hotel',
-            'gym': 'fa-dumbbell', 'beauty': 'fa-spa', 'auto': 'fa-car',
-            'realty': 'fa-home', 'it': 'fa-code', 'marketing': 'fa-chart-line',
-            'legal': 'fa-gavel', 'finance': 'fa-coins', 'education': 'fa-graduation-cap',
-            'medical': 'fa-heartbeat', 'sport': 'fa-running', 'art': 'fa-palette',
-            'music': 'fa-music', 'photo': 'fa-camera', 'video': 'fa-video',
-            'construction': 'fa-hard-hat', 'repair': 'fa-tools', 'cleaning': 'fa-broom',
-            'delivery': 'fa-truck', 'logistics': 'fa-shipping-fast',
-            'agriculture': 'fa-tractor', 'tourism': 'fa-plane', 'event': 'fa-calendar-check',
-            'charity': 'fa-hand-holding-heart', 'government': 'fa-landmark',
-            'gamedev': 'fa-gamepad', 'indie': 'fa-rocket', 'publishing': 'fa-newspaper',
-            'animation': 'fa-film', 'vr': 'fa-vr-cardboard', 'esports': 'fa-trophy',
-            'streaming': 'fa-broadcast', 'podcast': 'fa-microphone', 'blogging': 'fa-blog',
-            'social': 'fa-share-alt', 'startup': 'fa-lightbulb', 'agency': 'fa-ad',
-            'consulting': 'fa-handshake', 'freelance': 'fa-user-tie', 'remote': 'fa-globe',
-            'coworking': 'fa-building', 'incubator': 'fa-seedling', 'accelerator': 'fa-rocket',
-            'venture': 'fa-chart-pie', 'nonprofit': 'fa-heart', 'community': 'fa-users',
-            'religious': 'fa-church', 'cultural': 'fa-landmark', 'research': 'fa-flask',
-            'science': 'fa-atom', 'space': 'fa-rocket', 'robotics': 'fa-robot',
-            'ai': 'fa-brain', 'blockchain': 'fa-link', 'crypto': 'fa-coins',
-            'defi': 'fa-chart-line', 'nft': 'fa-image', 'metaverse': 'fa-vr-cardboard',
-            'web3': 'fa-globe', 'other': 'fa-cubes'
-        };
-
-        // ============================================================
-        // ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ
-        // ============================================================
-        async function loadDashboard() {
-            var user = auth.getCurrentUser();
-            if (!user) {
-                window.location.href = '/login';
-                return;
-            }
-            if (user.is_banned === true) {
-                window.location.href = '/banned';
-                return;
-            }
-            document.getElementById('userName').textContent = user.full_name || 'Користувач';
-            document.getElementById('userEmail').textContent = user.email;
-            var avatarEl = document.getElementById('userAvatar');
-            if (user.avatar_url) {
-                avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
-            } else {
-                avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
-            }
-            var adminLink = document.getElementById('adminLink');
-            var ownerLink = document.getElementById('ownerLink');
-            if (user.role === 'owner') {
-                ownerLink.style.display = 'block';
-                adminLink.style.display = 'none';
-            } else if (user.role === 'admin' || user.role === 'moderator') {
-                adminLink.style.display = 'block';
-                ownerLink.style.display = 'none';
-            } else {
-                adminLink.style.display = 'none';
-                ownerLink.style.display = 'none';
-            }
-            
-            document.querySelectorAll('.nav-menu a').forEach(function(a) {
-                a.classList.remove('active');
-            });
-            var dashLink = document.getElementById('dashboardLink');
-            if (dashLink) dashLink.classList.add('active');
-
-            document.getElementById('pageEyebrow').textContent = 'Картотека організацій';
-            document.getElementById('pageTitle').textContent = 'Мої організації';
-            document.getElementById('pageSubtitle').textContent = 'Керуйте своїми організаціями та створюйте нові';
-            document.getElementById('pageActions').style.display = 'flex';
-
-            await loadOrganizations();
-        }
-
-        function loadDashboardView() {
-            loadDashboard();
-        }
-
-        async function loadOrganizations() {
-            var loading = document.getElementById('orgLoading');
-            var grid = document.getElementById('orgGrid');
-            var emptyState = document.getElementById('emptyState');
-            try {
-                var user = auth.getCurrentUser();
-                if (!user) throw new Error('Користувач не авторизований');
-                var members = await db.supabaseQuery('org_members?user_id=eq.' + user.id);
-                if (!members || members.length === 0) {
-                    loading.style.display = 'none';
-                    grid.style.display = 'none';
-                    emptyState.style.display = 'block';
-                    return;
-                }
-                var orgIds = members.map(function(m) { return m.organization_id; }).join(',');
-                if (!orgIds) {
-                    loading.style.display = 'none';
-                    grid.style.display = 'none';
-                    emptyState.style.display = 'block';
-                    return;
-                }
-                var orgs = await db.supabaseQuery('organizations?id=in.(' + orgIds + ')');
-                loading.style.display = 'none';
-                grid.innerHTML = '';
-                grid.style.display = 'grid';
-                if (!orgs || orgs.length === 0) {
-                    emptyState.style.display = 'block';
-                    grid.style.display = 'none';
-                    return;
-                }
-                emptyState.style.display = 'none';
-                var accentPalette = ['#F2A93B', '#46C9B8', '#E2503E', '#8B93A6', '#8B5CF6', '#F59E0B'];
-                orgs.forEach(function(org) {
-                    var iconClass = iconMap[org.type] || 'fa-cubes';
-                    var hash = 0;
-                    for (var i = 0; i < (org.type || 'other').length; i++) hash += org.type.charCodeAt(i);
-                    var accent = accentPalette[hash % accentPalette.length];
-                    var card = document.createElement('div');
-                    card.className = 'org-card';
-                    card.style.setProperty('--card-accent', accent);
-                    card.innerHTML =
-                        '<div class="org-top">' +
-                            '<div class="org-icon"><i class="fas ' + iconClass + '"></i></div>' +
-                            '<i class="fas fa-arrow-right org-arrow"></i>' +
-                        '</div>' +
-                        '<h3>' + org.name + '</h3>' +
-                        '<p>' + (org.description || 'Без опису') + '</p>' +
-                        '<div class="org-meta">' +
-                            '<span class="org-type">' + (typeLabels[org.type] || org.type) + '</span>' +
-                            '<div class="org-join-code"><i class="fas fa-key"></i> <span class="join-code">' + (org.join_code || '---') + '</span></div>' +
-                        '</div>';
-                    card.addEventListener('click', function() {
-                        window.location.href = '/org?id=' + org.id;
-                    });
-                    grid.appendChild(card);
-                });
-            } catch (error) {
-                loading.style.display = 'none';
-                console.error('loadOrganizations error:', error);
-                showAlert('Помилка завантаження організацій: ' + error.message, 'error');
-            }
-        }
 
         document.getElementById('createOrgForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1297,130 +1864,34 @@
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     this.classList.remove('active');
+                    if (this.id === 'dmChatModal') {
+                        loadDirectMessages();
+                    }
                 }
             });
         });
 
-        // ============================================================
-        // СПОВІЩЕННЯ
-        // ============================================================
-        async function loadNotifications() {
-            var container = document.getElementById('orgsContainer');
-            if (!container) return;
-            
-            var user = auth.getCurrentUser();
-            if (!user) return;
-            
-            document.querySelectorAll('.nav-menu a').forEach(function(a) {
-                a.classList.remove('active');
-            });
-            var notifLink = document.querySelector('.nav-menu a[onclick*="loadNotifications()"]');
-            if (notifLink) notifLink.classList.add('active');
-
-            document.getElementById('pageEyebrow').textContent = 'Сповіщення';
-            document.getElementById('pageTitle').textContent = '📬 Сповіщення';
-            document.getElementById('pageSubtitle').textContent = 'Всі ваші сповіщення';
-            document.getElementById('pageActions').style.display = 'none';
-            
+        async function loadCustomOrgTypes() {
             try {
-                var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
-                var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
-                
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
-                if (unread.length > 0) {
-                    html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead();loadNotifications();"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+                var customTypes = await db.supabaseQuery('org_types?order=name.asc');
+                if (!customTypes || customTypes.length === 0) return;
+                var select = document.getElementById('orgType');
+                if (!select) return;
+                var existingValues = [];
+                for (var i = 0; i < select.options.length; i++) {
+                    existingValues.push(select.options[i].value);
                 }
-                html += '</div>';
-                
-                if (!notifications || notifications.length === 0) {
-                    html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
-                } else {
-                    html += '<div style="max-height:500px;overflow-y:auto;">';
-                    for (var i = 0; i < notifications.length; i++) {
-                        var n = notifications[i];
-                        var isUnread = !n.is_read;
-                        var iconMap = {
-                            'chat_mention': 'fa-at',
-                            'admin_form': 'fa-file-signature',
-                            'support_reply': 'fa-reply',
-                            'support_escalation': 'fa-flag',
-                            'system_alert': 'fa-shield-alt',
-                            'appeal_result': 'fa-gavel',
-                            'default': 'fa-bell'
-                        };
-                        var icon = iconMap[n.type] || iconMap.default;
-                        var link = n.link || '#';
-                        
-                        if (n.type === 'chat_mention') {
-                            if (n.organization_id) {
-                                link = '/org?id=' + n.organization_id;
-                            }
-                        }
-                        
-                        html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';window.location.href=\'' + link + '\'">';
-                        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-                        html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
-                        html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
-                        html += '</div>';
-                        html += '<div class="notif-message">' + n.message + '</div>';
-                        if (isUnread) {
-                            html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
-                        }
-                        html += '</div>';
-                    }
-                    html += '</div>';
+                for (var j = 0; j < customTypes.length; j++) {
+                    var ct = customTypes[j];
+                    if (!ct.code || existingValues.indexOf(ct.code) !== -1) continue;
+                    var opt = document.createElement('option');
+                    opt.value = ct.code;
+                    opt.textContent = ct.name;
+                    select.appendChild(opt);
+                    typeLabels[ct.code] = ct.name;
                 }
-                html += '</div>';
-                
-                container.innerHTML = html;
-                
-                if (window.updateNotificationBadge) {
-                    updateNotificationBadge();
-                }
-                
-            } catch (error) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
-            }
+            } catch (e) {}
         }
-
-        // ============================================================
-// ПЕРЕПИСКИ (вкладка)
-// ============================================================
-
-async function loadDirectMessages() {
-    sessionStorage.setItem('onDmPage', 'true');
-    if (window.loadDirectMessages) {
-        await window.loadDirectMessages();
-    }
-}
-
-// Оновлюємо badge для непрочитаних особистих повідомлень
-async function updateDmBadge() {
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    try {
-        var unread = await db.supabaseQuery(
-            'direct_messages?recipient_id=eq.' + user.id + '&is_read=eq.false&select=id'
-        );
-        var count = unread ? unread.length : 0;
-        var badge = document.getElementById('dmBadge');
-        if (badge) {
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-    } catch (e) {}
-}
-
-// Підписуємося на Realtime для особистих повідомлень
-window.setupRealtimeDirectMessages();
-
-// Оновлюємо badge кожні 30 секунд
-setInterval(updateDmBadge, 30000);
-updateDmBadge();
 
         // ============================================================
         // ІНІЦІАЛІЗАЦІЯ
@@ -1434,17 +1905,37 @@ updateDmBadge();
                     window.location.href = '/banned';
                     return;
                 }
-                await loadDashboard();
-                loadCustomOrgTypes();
-                if (window.renderGlobalAnnouncements) {
-                    renderGlobalAnnouncements();
+                
+                var onNotificationsPage = sessionStorage.getItem('onNotificationsPage') === 'true';
+                var onDmPage = sessionStorage.getItem('onDmPage') === 'true';
+                
+                if (onNotificationsPage) {
+                    await loadNotifications();
+                    if (window.updateNotificationBadge) {
+                        updateNotificationBadge();
+                    }
+                } else if (onDmPage) {
+                    await loadDirectMessages();
+                    await updateDmBadge();
+                } else {
+                    await loadDashboard();
+                    loadCustomOrgTypes();
+                    if (window.renderGlobalAnnouncements) {
+                        renderGlobalAnnouncements();
+                    }
                 }
+                
                 if (window.setupNotificationsRealtime) {
                     setupNotificationsRealtime();
                 }
                 if (window.updateNotificationBadge) {
                     updateNotificationBadge();
                 }
+                await updateDmBadge();
+                
+                // Періодичне оновлення бейджів
+                setInterval(updateDmBadge, 30000);
+                
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
                 window.location.href = '/login';
