@@ -1210,12 +1210,9 @@
                 // Отримуємо останнє повідомлення для кожного
                 var conversations = [];
                 for (var uid of userIds) {
-                    var lastMessages = await db.supabaseQuery(
-                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
-                    );
-                    // Простіше: отримуємо всі повідомлення між двома користувачами
+                    // Отримуємо останнє повідомлення між двома конкретними користувачами
                     var msgs = await db.supabaseQuery(
-                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
+                        'direct_messages?or=(and(sender_id.eq.' + user.id + ',recipient_id.eq.' + uid + '),and(sender_id.eq.' + uid + ',recipient_id.eq.' + user.id + '))&order=created_at.desc&limit=1'
                     );
                     var lastMsg = msgs && msgs.length > 0 ? msgs[0] : null;
                     
@@ -1303,7 +1300,7 @@
                 
                 // Отримуємо історію повідомлень
                 var msgs = await db.supabaseQuery(
-                    'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + userId + ',recipient_id.eq.' + userId + ')&order=created_at.asc&limit=100'
+                    'direct_messages?or=(and(sender_id.eq.' + user.id + ',recipient_id.eq.' + userId + '),and(sender_id.eq.' + userId + ',recipient_id.eq.' + user.id + '))&order=created_at.asc&limit=100'
                 );
                 
                 if (!msgs || msgs.length === 0) {
@@ -1946,6 +1943,20 @@
                     if (window.renderGlobalAnnouncements) {
                         renderGlobalAnnouncements();
                     }
+                }
+
+                // Якщо перейшли за посиланням на конкретну переписку (напр. з сповіщення
+                // "У вас нове повідомлення") - відкриваємо маленьке діалогове вікно чату,
+                // а не просто вантажимо дашборд.
+                var dmUserId = new URLSearchParams(window.location.search).get('dm');
+                if (dmUserId) {
+                    window.history.replaceState({}, '', window.location.pathname);
+                    var dmUserName = null;
+                    try {
+                        var dmProfileRows = await db.supabaseQuery('users?id=eq.' + dmUserId + '&select=full_name');
+                        dmUserName = dmProfileRows && dmProfileRows[0] ? dmProfileRows[0].full_name : null;
+                    } catch (e) {}
+                    openDmChat(dmUserId, dmUserName);
                 }
                 
                 if (window.setupNotificationsRealtime) {
