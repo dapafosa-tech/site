@@ -878,12 +878,12 @@
                         actionsHtml += '<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openUserProfileModal(\'' + u.id + '\')" title="Профіль"><i class="fas fa-id-card"></i></button>';
                         if (!isCurrentUser) {
                             actionsHtml += isUserBanned ? '<button class="btn btn-sm btn-teal" onclick="event.stopPropagation();unbanUser(\'' + u.id + '\')" title="Розблокувати"><i class="fas fa-user-check"></i></button>' : '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();banUser(\'' + u.id + '\')" title="Заблокувати"><i class="fas fa-user-slash"></i></button>';
-                            if (u.reg_ip || u.last_ip) {
-                                actionsHtml += '<button class="btn btn-sm btn-purple" onclick="event.stopPropagation();banUserIp(\'' + u.id + '\')" title="Забанити IP"><i class="fas fa-network-wired"></i></button>';
-                            }
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                             if (u.reg_ip) {
-                                actionsHtml += '<button class="btn btn-sm btn-warning" onclick="event.stopPropagation();banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP: ' + u.reg_ip + '"><i class="fas fa-network-wired"></i></button>';
+                                actionsHtml += '<button class="btn btn-sm btn-warning" onclick="event.stopPropagation();banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP реєстрації: ' + u.reg_ip + '"><i class="fas fa-network-wired"></i></button>';
+                            }
+                            if (u.last_ip && u.last_ip !== u.reg_ip) {
+                                actionsHtml += '<button class="btn btn-sm btn-purple" onclick="event.stopPropagation();banUserIp(\'' + u.last_ip + '\')" title="Забанити останній IP: ' + u.last_ip + '"><i class="fas fa-network-wired"></i></button>';
                             }
                         }
                         actionsHtml += '</div>';
