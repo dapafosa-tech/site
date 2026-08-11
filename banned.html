@@ -580,7 +580,19 @@
         // ============================================
         async function checkExistingAppeal() {
             try {
-                var appeals = await db.supabaseQuery('appeals?user_id=eq.' + userId + '&order=created_at.desc&limit=1');
+                // Апеляція має стосуватись САМЕ поточного бану, а не будь-якого
+                // з минулого. Якщо людину розбанили, а потім забанили знову -
+                // стара (вже вирішена) апеляція має стати архівом, а кнопка -
+                // знову дозволяти подати нову апеляцію.
+                var userRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=banned_at');
+                var bannedAt = userRows && userRows[0] && userRows[0].banned_at;
+
+                var query = 'appeals?user_id=eq.' + userId + '&order=created_at.desc&limit=1';
+                if (bannedAt) {
+                    query += '&created_at=gte.' + encodeURIComponent(bannedAt);
+                }
+                var appeals = await db.supabaseQuery(query);
+
                 if (appeals && appeals.length > 0) {
                     currentAppeal = appeals[0];
                     
@@ -602,6 +614,9 @@
                         document.getElementById('appealBtn').onclick = function() { openAppealModal(); };
                     }
                 } else {
+                    // Для поточного бану апеляцій ще не було (навіть якщо є старі,
+                    // з минулих банів - вони архів і сюди вже не потрапляють).
+                    currentAppeal = null;
                     document.getElementById('appealBtn').innerHTML = '<i class="fas fa-gavel"></i> Апеляція';
                     document.getElementById('appealBtn').disabled = false;
                     document.getElementById('appealBtn').onclick = function() { openAppealModal(); };
