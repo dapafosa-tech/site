@@ -1342,17 +1342,25 @@ async function loadChat() {
     document.getElementById('pageSubtitle').textContent = 'Спілкування в організації';
 
     try {
-        _chatMembersCache = null; // свіжий список учасників при вході в розділ
+        // Очищаємо кеш учасників при вході в чат
+        _chatMembersCache = null;
+        
         var messages = await db.getChatMessages(currentOrgId);
         var user = auth.getCurrentUser();
         var currentUserId = user ? user.id : null;
         var isLeader = currentOrg && currentOrg.leader_id === currentUserId;
         var memberData = await getChatMemberProfiles(currentOrgId);
 
+        // Будуємо HTML повідомлень (від найстарішого до найновішого)
         var bubblesHtml = '';
         if (messages && messages.length > 0) {
-            for (var i = messages.length - 1; i >= 0; i--) {
-                var msg = messages[i];
+            // Сортуємо за зростанням дати (старі зверху)
+            var sortedMessages = messages.slice().sort(function(a, b) {
+                return new Date(a.created_at) - new Date(b.created_at);
+            });
+            
+            for (var i = 0; i < sortedMessages.length; i++) {
+                var msg = sortedMessages[i];
                 var profile = memberData.profiles[msg.user_id];
                 var userName = profile ? (profile.full_name || profile.email || 'Невідомо') : 'Невідомо';
                 bubblesHtml += renderChatBubble(msg, userName, currentUserId, isLeader);
@@ -1383,6 +1391,9 @@ async function loadChat() {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
+        // ============================================================
+        // ВІДПРАВКА ПОВІДОМЛЕННЯ
+        // ============================================================
         document.getElementById('chatForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var input = document.getElementById('chatInput');
@@ -1395,14 +1406,19 @@ async function loadChat() {
             sendBtn.disabled = true;
 
             try {
+                // Перевірка на заборонені слова
                 if (window.db && db.findBannedWord) {
                     var badWord = await db.findBannedWord(message);
                     if (badWord) {
                         await showAlert('Повідомлення містить заборонене слово. Відредагуйте текст.', 'warning');
+                        input.disabled = false;
+                        sendBtn.disabled = false;
+                        input.focus();
                         return;
                     }
                 }
 
+                // Пошук згадувань
                 var mentionRegex = /@(\S+)/g;
                 var mentions = [];
                 var match;
@@ -1422,11 +1438,11 @@ async function loadChat() {
                     }
                 }
 
+                // Відправляємо повідомлення
                 var created = await db.sendChatMessage(currentOrgId, currentUserId, message, mentions);
                 input.value = '';
 
-                // Додаємо нове повідомлення в кінець списку без повного
-                // перезавантаження - швидше і без "стрибка" екрана на мобільному.
+                // Додаємо повідомлення в чат (локально)
                 var newMsg = (created && created[0]) ? created[0] : {
                     id: 'tmp-' + Date.now(),
                     user_id: currentUserId,
@@ -1434,12 +1450,16 @@ async function loadChat() {
                     mentions: mentions,
                     created_at: new Date().toISOString()
                 };
+                
                 var emptyState = messagesContainer.querySelector('.chat-empty');
                 if (emptyState) emptyState.remove();
+                
                 var userName = (user && (user.full_name || user.email)) || 'Ви';
                 messagesContainer.insertAdjacentHTML('beforeend', renderChatBubble(newMsg, userName, currentUserId, isLeader));
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
             } catch (error) {
+                console.error('❌ Помилка відправки:', error);
                 await showAlert('Помилка відправки: ' + error.message, 'error');
             } finally {
                 input.disabled = false;
@@ -1448,8 +1468,14 @@ async function loadChat() {
             }
         });
 
+        // ============================================================
+        // ВКЛЮЧАЄМО REALTIME
+        // ============================================================
+        setupRealtimeChat(currentOrgId);
+
     } catch (error) {
-        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження чату</div>';
+        console.error('❌ Помилка завантаження чату:', error);
+        container.innerHTML = '<div class="alert alert-danger">Помилка завантаження чату: ' + error.message + '</div>';
     }
 }
 
@@ -5362,6 +5388,43 @@ function filterRealtyDeals() {
             item.style.display = 'none';
         }
     });
+}
+
+var _chatRealtimeChannel = null;
+
+function setupRealtimeChat(orgId) {
+    if (!window.sb) return;
+    
+    if (_chatRealtimeChannel) {
+        try { window.sb.removeChannel(_chatRealtimeChannel); } catch(e) {}
+        _chatRealtimeChannel = null;
+    }
+    
+    _chatRealtimeChannel = window.sb
+        .channel('chat-realtime-' + orgId)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'org_chat_messages',
+            filter: 'organization_id=eq.' + orgId
+        }, function(payload) {
+            var newMsg = payload.new;
+            var user = auth.getCurrentUser();
+            if (user && newMsg.user_id === user.id) return;
+            
+            var container = document.getElementById('chatMessages');
+            if (!container) return;
+            
+            getChatMemberProfiles(orgId).then(function(memberData) {
+                var profile = memberData.profiles[newMsg.user_id];
+                var userName = profile ? (profile.full_name || profile.email || 'Невідомо') : 'Невідомо';
+                var isLeader = currentOrg && currentOrg.leader_id === user?.id;
+                var html = renderChatBubble(newMsg, userName, user?.id, isLeader);
+                container.insertAdjacentHTML('beforeend', html);
+                container.scrollTop = container.scrollHeight;
+            });
+        })
+        .subscribe();
 }
 
 async function viewRealtyProperty(propertyId) {
