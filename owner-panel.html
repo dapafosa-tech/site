@@ -2302,8 +2302,8 @@ async function closeSupportTicket(ticketId) {
             var html = '<form id="createAdminFormForm">';
             html += '<div class="form-group"><label class="form-label">Тип форми</label><select class="form-control" id="afType"><option value="request">❓ Запит</option><option value="transfer">📤 Передача</option></select></div>';
             html += '<div class="form-group"><label class="form-label">Кому адресовано</label><select class="form-control" id="afRecipient"><option value="admin_team">Адмін-команді</option><option value="owner">Засновнику</option></select></div>';
-            html += '<div class="form-group"><label class="form-label">Тема</label><input type="text" class="form-control" id="afSubject" placeholder="Коротко опишіть суть" required></div>';
-            html += '<div class="form-group"><label class="form-label">Опис / деталі</label><textarea class="form-control" id="afBody" rows="4" placeholder="Детальний опис запиту або передачі..."></textarea></div>';
+            html += '<input type="text" class="form-control" id="afSubject" placeholder="Коротко опишіть суть" required style="background:var(--ink);color:var(--text-onink);border-color:var(--ink-line);border-radius:6px;padding:0.7rem 1rem;">';
+            html += '<textarea class="form-control" id="afBody" rows="4" placeholder="Детальний опис запиту або передачі..." style="background:var(--ink);color:var(--text-onink);border-color:var(--ink-line);border-radius:6px;padding:0.7rem 1rem;resize:vertical;min-height:80px;"></textarea>';
             html += '<button type="submit" class="btn btn-gold btn-block"><i class="fas fa-paper-plane"></i> Відправити</button>';
             html += '</form>';
             openModal('Нова Адмін-Форма (' + (user.full_name || user.email) + ')', html);
@@ -2354,7 +2354,7 @@ async function closeSupportTicket(ticketId) {
                     html += '<div style="margin-top:0.5rem;padding:0.6rem;background:var(--ink-raised);border-radius:6px;"><strong>Відповідь:</strong> ' + (f.response || '—') + '<div class="text-muted" style="font-size:0.72rem;margin-top:0.2rem;">' + formatDateTimeKyiv(f.answered_at) + ' — форму закрито, повторна відповідь неможлива</div></div>';
                 } else {
                     html += '<div style="margin-top:0.6rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">';
-                    html += '<input type="text" class="form-control" id="formResp_' + f.id + '" placeholder="Відповідь..." style="flex:1;min-width:180px;">';
+                    html += '<input type="text" class="form-control" id="formResp_' + f.id + '" placeholder="Відповідь..." style="flex:1;min-width:180px;background:var(--ink);color:var(--text-onink);border-color:var(--ink-line);border-radius:6px;padding:0.6rem 1rem;font-family:\'IBM Plex Sans\',sans-serif;">';
                     if (f.form_type === 'punishment') {
                         html += '<button class="btn btn-sm btn-success" onclick="respondAdminForm(\'' + f.id + '\', \'approved\')"><i class="fas fa-check"></i> Схвалити бан</button>';
                         html += '<button class="btn btn-sm btn-danger" onclick="respondAdminForm(\'' + f.id + '\', \'rejected\')"><i class="fas fa-times"></i> Відхилити</button>';
