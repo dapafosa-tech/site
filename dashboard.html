@@ -956,7 +956,30 @@
         // ============================================================
         // ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ
         // ============================================================
+        function resetOrgsContainer() {
+            var container = document.getElementById('orgsContainer');
+            if (!container) return;
+            container.innerHTML =
+                '<div class="org-grid" id="orgLoading">' +
+                    '<div class="org-card-skeleton"><div class="line"></div><div class="line short"></div></div>' +
+                    '<div class="org-card-skeleton"><div class="line"></div><div class="line short"></div></div>' +
+                    '<div class="org-card-skeleton"><div class="line"></div><div class="line short"></div></div>' +
+                '</div>' +
+                '<div class="empty-state" id="emptyState" style="display:none;">' +
+                    '<div class="empty-icon"><i class="fas fa-inbox"></i></div>' +
+                    '<h3>У вас поки немає організацій</h3>' +
+                    '<p>Створіть свою першу організацію або приєднайтеся за кодом, який видав вам лідер</p>' +
+                    '<div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">' +
+                        '<button class="btn btn-gold" onclick="openCreateOrg()"><i class="fas fa-plus"></i> Створити організацію</button>' +
+                        '<button class="btn btn-teal" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Приєднатися за кодом</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="org-grid" id="orgGrid" style="display:none;"></div>';
+        }
+
         async function loadDashboard() {
+            resetOrgsContainer();
+
             var user = auth.getCurrentUser();
             if (!user) {
                 window.location.href = '/login';
@@ -1179,7 +1202,7 @@
                 }
                 
                 var ids = Array.from(userIds).join(',');
-                var profiles = await db.supabaseQuery('users?q=id.in.(' + ids + ')&select=id,full_name,avatar_url,role');
+                var profiles = await db.supabaseQuery('users?id=in.(' + ids + ')&select=id,full_name,avatar_url,role');
                 
                 var userMap = {};
                 (profiles || []).forEach(function(p) { userMap[p.id] = p; });
