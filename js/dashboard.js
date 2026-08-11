@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ ЗІ СПОВІЩЕННЯМИ)
+// TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ)
 // ============================================
 
 // ============================================================
@@ -55,7 +55,7 @@ function formatDateTimeKyiv(d) {
 }
 
 // ============================================================
-// ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ
+// ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ (З ВИПРАВЛЕНИМ БАГОМ)
 // ============================================================
 
 async function loadDashboard() {
@@ -64,6 +64,9 @@ async function loadDashboard() {
         window.location.href = '/login';
         return;
     }
+
+    // Очищаємо флаг, що ми на сторінці сповіщень
+    sessionStorage.removeItem('onNotificationsPage');
 
     document.getElementById('userName').textContent = user.full_name || 'Користувач';
     document.getElementById('userEmail').textContent = user.email;
@@ -88,16 +91,23 @@ async function loadDashboard() {
         ownerLink.style.display = 'none';
     }
 
+    // Активуємо правильне посилання в навігації
     document.querySelectorAll('.nav-menu a').forEach(function(a) {
         a.classList.remove('active');
     });
     var dashLink = document.getElementById('dashboardLink');
     if (dashLink) dashLink.classList.add('active');
 
-    document.getElementById('pageEyebrow').textContent = 'Картотека організацій';
-    document.getElementById('pageTitle').textContent = 'Мої організації';
-    document.getElementById('pageSubtitle').textContent = 'Керуйте своїми організаціями та створюйте нові';
-    document.getElementById('pageActions').style.display = 'flex';
+    // Відновлюємо заголовок
+    var pageEyebrow = document.getElementById('pageEyebrow');
+    var pageTitle = document.getElementById('pageTitle');
+    var pageSubtitle = document.getElementById('pageSubtitle');
+    var pageActions = document.getElementById('pageActions');
+    
+    if (pageEyebrow) pageEyebrow.textContent = 'Картотека організацій';
+    if (pageTitle) pageTitle.textContent = 'Мої організації';
+    if (pageSubtitle) pageSubtitle.textContent = 'Керуйте своїми організаціями та створюйте нові';
+    if (pageActions) pageActions.style.display = 'flex';
 
     await loadOrganizations();
 }
@@ -110,6 +120,7 @@ async function loadOrganizations() {
     var loading = document.getElementById('orgLoading');
     var grid = document.getElementById('orgGrid');
     var emptyState = document.getElementById('emptyState');
+    var container = document.getElementById('orgsContainer');
     
     try {
         var user = auth.getCurrentUser();
@@ -231,134 +242,93 @@ async function loadOrganizations() {
 }
 
 // ============================================================
-// ПІДТРИМКА
+// СПОВІЩЕННЯ (З ВИПРАВЛЕНИМ БАГОМ ПЕРЕХОДУ)
 // ============================================================
 
-var myTicketStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
-var myTicketStatusLabels = { open: 'Відкрито', in_progress: 'В роботі', closed: 'Закрито' };
-var myTicketStatusClasses = { open: 'badge-success', in_progress: 'badge-warning', closed: 'badge-secondary' };
-var myTicketPriorityClasses = { high: 'badge-danger', medium: 'badge-warning', low: 'badge-primary' };
-var myTicketTypeLabels = { bug: '🐛 Помилка/Баг', question: '❓ Питання', suggestion: '💡 Пропозиція', complaint: '⚠️ Скарга', other: '📌 Інше' };
-
-function openSupport() {
-    document.getElementById('supportListModal').classList.add('active');
-    loadMySupportTickets();
-}
-
-function openSupportCreate() {
-    closeModal('supportListModal');
-    document.getElementById('supportModal').classList.add('active');
-}
-
-function backToSupportList() {
-    closeModal('supportTicketModal');
-    openSupport();
-}
-
-async function loadMySupportTickets() {
-    var container = document.getElementById('supportTicketsListBody');
-    container.innerHTML = '<p class="text-muted">Завантаження...</p>';
-    try {
-        var user = auth.getCurrentUser();
-        if (!user) {
-            container.innerHTML = '<p class="text-danger">Користувач не авторизований</p>';
-            return;
-        }
-        var tickets = await db.getSupportTickets({ userId: user.id });
-        var sorted = (tickets || []).slice().sort(function(a, b) {
-            var wa = myTicketStatusWeight[a.status] !== undefined ? myTicketStatusWeight[a.status] : 1;
-            var wb = myTicketStatusWeight[b.status] !== undefined ? myTicketStatusWeight[b.status] : 1;
-            if (wa !== wb) return wa - wb;
-            return new Date(b.created_at) - new Date(a.created_at);
-        });
-        if (sorted.length === 0) {
-            container.innerHTML = '<p class="text-muted" style="text-align:center;padding:1.5rem 0;">У вас ще немає звернень.<br>Натисніть «Створити», щоб написати нам.</p>';
-            return;
-        }
-        var html = '';
-        for (var i = 0; i < sorted.length; i++) {
-            var t = sorted[i];
-            var statusClass = myTicketStatusClasses[t.status] || 'badge-secondary';
-            var statusLabel = myTicketStatusLabels[t.status] || t.status;
-            var priorityClass = myTicketPriorityClasses[t.priority] || 'badge-primary';
-            html += '<div class="ticket-card" onclick="viewMySupportTicket(\'' + t.id + '\')">';
-            html += '<div class="ticket-card-top"><span class="ticket-card-subject">' + (t.subject || '—') + '</span><span class="badge ' + statusClass + '">' + statusLabel + '</span></div>';
-            html += '<div class="ticket-card-meta">';
-            html += '<span><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></span>';
-            html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
-            html += '<span>' + formatDateKyiv(t.created_at) + '</span>';
-            html += '</div></div>';
-        }
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
-    }
-}
-
-async function viewMySupportTicket(ticketId) {
-    closeModal('supportListModal');
-    document.getElementById('supportTicketModal').classList.add('active');
-    var body = document.getElementById('supportTicketModalBody');
-    body.innerHTML = '<p class="text-muted">Завантаження...</p>';
-    try {
-        var t = await db.getSupportTicket(ticketId);
-        if (!t) {
-            body.innerHTML = '<p class="text-danger">Тікет не знайдено</p>';
-            return;
-        }
-        var messages = await db.getSupportMessages(ticketId);
-        var statusLabel = myTicketStatusLabels[t.status] || t.status;
-        document.getElementById('supportTicketModalTitle').textContent = t.subject || 'Тікет';
-        var html = '<div class="ticket-card-meta" style="margin-bottom:0.8rem;">';
-        html += '<span class="badge ' + (myTicketStatusClasses[t.status] || 'badge-secondary') + '">' + statusLabel + '</span> ';
-        html += '<span class="badge ' + (myTicketPriorityClasses[t.priority] || 'badge-primary') + '">' + (t.priority || '—') + '</span> ';
-        html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
-        html += '</div>';
-        html += '<div class="support-msg"><div class="support-msg-top"><span>👤 Ви</span><span>' + formatDateTimeKyiv(t.created_at) + '</span></div><div class="support-msg-body">' + (t.message || '') + '</div></div>';
-        if (messages && messages.length > 0) {
-            for (var i = 0; i < messages.length; i++) {
-                var msg = messages[i];
-                var isStaff = isStaffRole(msg.sender_type);
-                var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
-                html += '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
-                html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
-                html += '<div class="support-msg-body">' + msg.message + '</div></div>';
-            }
-        }
-        if (t.status !== 'closed') {
-            html += '<div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">';
-            html += '<textarea class="form-control" id="myTicketReply" rows="3" placeholder="Написати повідомлення..."></textarea>';
-            html += '<button class="btn btn-gold" onclick="sendMySupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Надіслати</button>';
-            html += '</div>';
-        } else {
-            html += '<p class="text-muted" style="margin-top:1rem;">✅ Тікет закрито</p>';
-        }
-        body.innerHTML = html;
-    } catch (error) {
-        body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
-    }
-}
-
-async function sendMySupportReply(ticketId) {
-    var textarea = document.getElementById('myTicketReply');
-    if (!textarea) return;
-    var message = textarea.value.trim();
-    if (!message) {
-        showAlert('Введіть повідомлення', 'warning');
-        return;
-    }
+async function loadNotifications() {
+    var container = document.getElementById('orgsContainer');
+    if (!container) return;
+    
     var user = auth.getCurrentUser();
+    if (!user) return;
+    
+    // Зберігаємо флаг, що ми на сторінці сповіщень
+    sessionStorage.setItem('onNotificationsPage', 'true');
+    
+    // Активуємо посилання на сповіщення
+    document.querySelectorAll('.nav-menu a').forEach(function(a) {
+        a.classList.remove('active');
+    });
+    var notifLink = document.querySelector('.nav-menu a[onclick*="loadNotifications()"]');
+    if (notifLink) notifLink.classList.add('active');
+
+    // Оновлюємо заголовок
+    var pageEyebrow = document.getElementById('pageEyebrow');
+    var pageTitle = document.getElementById('pageTitle');
+    var pageSubtitle = document.getElementById('pageSubtitle');
+    var pageActions = document.getElementById('pageActions');
+    
+    if (pageEyebrow) pageEyebrow.textContent = 'Сповіщення';
+    if (pageTitle) pageTitle.textContent = '📬 Сповіщення';
+    if (pageSubtitle) pageSubtitle.textContent = 'Всі ваші сповіщення';
+    if (pageActions) pageActions.style.display = 'none';
+    
     try {
-        await db.sendSupportMessage({
-            ticket_id: ticketId,
-            sender_id: user.id,
-            sender_type: 'user',
-            message: message
-        });
-        await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
-        await viewMySupportTicket(ticketId);
+        var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
+        var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
+        
+        var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
+        if (unread.length > 0) {
+            html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead();loadNotifications();"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+        }
+        html += '</div>';
+        
+        if (!notifications || notifications.length === 0) {
+            html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
+        } else {
+            html += '<div style="max-height:500px;overflow-y:auto;">';
+            for (var i = 0; i < notifications.length; i++) {
+                var n = notifications[i];
+                var isUnread = !n.is_read;
+                var iconMap = {
+                    'chat_mention': 'fa-at',
+                    'admin_form': 'fa-file-signature',
+                    'support_reply': 'fa-reply',
+                    'support_escalation': 'fa-flag',
+                    'system_alert': 'fa-shield-alt',
+                    'appeal_result': 'fa-gavel',
+                    'default': 'fa-bell'
+                };
+                var icon = iconMap[n.type] || iconMap.default;
+                var link = n.link || '#';
+                
+                if (n.type === 'chat_mention' && n.organization_id) {
+                    link = '/org?id=' + n.organization_id;
+                }
+                
+                html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';window.location.href=\'' + link + '\'">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
+                html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
+                html += '</div>';
+                html += '<div class="notif-message">' + n.message + '</div>';
+                if (isUnread) {
+                    html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+        
+        container.innerHTML = html;
+        
+        if (window.updateNotificationBadge) {
+            updateNotificationBadge();
+        }
+        
     } catch (error) {
-        showAlert('Помилка: ' + error.message, 'error');
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
     }
 }
 
@@ -390,33 +360,6 @@ var typeLabels = {
     'robotics': 'Робототехніка', 'ai': 'ШІ', 'blockchain': 'Блокчейн',
     'crypto': 'Криптовалюта', 'defi': 'DeFi', 'nft': 'NFT',
     'metaverse': 'Метавсесвіт', 'web3': 'Web3', 'other': 'Інше'
-};
-
-var iconMap = {
-    'shop': 'fa-store', 'library': 'fa-book', 'company': 'fa-building',
-    'school': 'fa-graduation-cap', 'clinic': 'fa-heartbeat',
-    'restaurant': 'fa-utensils', 'cafe': 'fa-coffee', 'hotel': 'fa-hotel',
-    'gym': 'fa-dumbbell', 'beauty': 'fa-spa', 'auto': 'fa-car',
-    'realty': 'fa-home', 'it': 'fa-code', 'marketing': 'fa-chart-line',
-    'legal': 'fa-gavel', 'finance': 'fa-coins', 'education': 'fa-graduation-cap',
-    'medical': 'fa-heartbeat', 'sport': 'fa-running', 'art': 'fa-palette',
-    'music': 'fa-music', 'photo': 'fa-camera', 'video': 'fa-video',
-    'construction': 'fa-hard-hat', 'repair': 'fa-tools', 'cleaning': 'fa-broom',
-    'delivery': 'fa-truck', 'logistics': 'fa-shipping-fast',
-    'agriculture': 'fa-tractor', 'tourism': 'fa-plane', 'event': 'fa-calendar-check',
-    'charity': 'fa-hand-holding-heart', 'government': 'fa-landmark',
-    'gamedev': 'fa-gamepad', 'indie': 'fa-rocket', 'publishing': 'fa-newspaper',
-    'animation': 'fa-film', 'vr': 'fa-vr-cardboard', 'esports': 'fa-trophy',
-    'streaming': 'fa-broadcast', 'podcast': 'fa-microphone', 'blogging': 'fa-blog',
-    'social': 'fa-share-alt', 'startup': 'fa-lightbulb', 'agency': 'fa-ad',
-    'consulting': 'fa-handshake', 'freelance': 'fa-user-tie', 'remote': 'fa-globe',
-    'coworking': 'fa-building', 'incubator': 'fa-seedling', 'accelerator': 'fa-rocket',
-    'venture': 'fa-chart-pie', 'nonprofit': 'fa-heart', 'community': 'fa-users',
-    'religious': 'fa-church', 'cultural': 'fa-landmark', 'research': 'fa-flask',
-    'science': 'fa-atom', 'space': 'fa-rocket', 'robotics': 'fa-robot',
-    'ai': 'fa-brain', 'blockchain': 'fa-link', 'crypto': 'fa-coins',
-    'defi': 'fa-chart-line', 'nft': 'fa-image', 'metaverse': 'fa-vr-cardboard',
-    'web3': 'fa-globe', 'other': 'fa-cubes'
 };
 
 document.getElementById('createOrgForm').addEventListener('submit', async function(e) {
@@ -499,61 +442,6 @@ document.getElementById('joinOrgForm').addEventListener('submit', async function
     submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити заявку';
 });
 
-document.getElementById('supportForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var subject = document.getElementById('supportSubject').value.trim();
-    var type = document.getElementById('supportType').value;
-    var message = document.getElementById('supportMessage').value.trim();
-    var priority = document.getElementById('supportPriority').value;
-    
-    if (!subject) {
-        showAlert('Введіть тему звернення', 'warning');
-        return;
-    }
-    if (!type) {
-        showAlert('Виберіть тип звернення', 'warning');
-        return;
-    }
-    if (!message) {
-        showAlert('Введіть опис проблеми', 'warning');
-        return;
-    }
-    
-    var submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
-    
-    try {
-        var user = auth.getCurrentUser();
-        await db.createSupportTicket({
-            user_id: user.id,
-            subject: subject,
-            message: message,
-            type: type,
-            priority: priority,
-            status: 'open',
-            created_at: new Date().toISOString()
-        });
-        await db.addLog('Створено заявку в підтримку', 'support', null, { subject: subject, type: type });
-        showToast('✅ Ваше звернення відправлено!', 'success');
-        closeModal('supportModal');
-        document.getElementById('supportForm').reset();
-        openSupport();
-    } catch (error) {
-        showAlert('Помилка: ' + error.message, 'error');
-    }
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Відправити звернення';
-});
-
-document.querySelectorAll('.modal').forEach(function(modal) {
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.classList.remove('active');
-        }
-    });
-});
-
 // ============================================================
 // ТИПИ ОРГАНІЗАЦІЙ (кастомні)
 // ============================================================
@@ -581,86 +469,236 @@ async function loadCustomOrgTypes() {
 }
 
 // ============================================================
-// СПОВІЩЕННЯ
+// ПІДТРИМКА
 // ============================================================
 
-async function loadNotifications() {
-    var container = document.getElementById('orgsContainer');
-    if (!container) return;
-    
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    
-    document.querySelectorAll('.nav-menu a').forEach(function(a) {
-        a.classList.remove('active');
-    });
-    var notifLink = document.querySelector('.nav-menu a[onclick*="loadNotifications()"]');
-    if (notifLink) notifLink.classList.add('active');
+var myTicketStatusWeight = { 'in_progress': 0, 'open': 1, 'closed': 2 };
+var myTicketStatusLabels = { open: 'Відкрито', in_progress: 'В роботі', closed: 'Закрито' };
+var myTicketStatusClasses = { open: 'badge-success', in_progress: 'badge-warning', closed: 'badge-secondary' };
+var myTicketPriorityClasses = { high: 'badge-danger', medium: 'badge-warning', low: 'badge-primary' };
+var myTicketTypeLabels = { bug: '🐛 Помилка/Баг', question: '❓ Питання', suggestion: '💡 Пропозиція', complaint: '⚠️ Скарга', other: '📌 Інше' };
 
-    document.getElementById('pageEyebrow').textContent = 'Сповіщення';
-    document.getElementById('pageTitle').textContent = '📬 Сповіщення';
-    document.getElementById('pageSubtitle').textContent = 'Всі ваші сповіщення';
-    document.getElementById('pageActions').style.display = 'none';
-    
+function openSupport() {
+    document.getElementById('supportListModal').classList.add('active');
+    loadMySupportTickets();
+}
+
+function openSupportCreate() {
+    closeModal('supportListModal');
+    document.getElementById('supportModal').classList.add('active');
+}
+
+function backToSupportList() {
+    closeModal('supportTicketModal');
+    openSupport();
+}
+
+async function loadMySupportTickets() {
+    var container = document.getElementById('supportTicketsListBody');
+    container.innerHTML = '<p class="text-muted">Завантаження...</p>';
     try {
-        var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
-        var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
-        
-        var html = '<div class="card"><div class="card-header"><h3 class="card-title">📬 Сповіщення</h3>';
-        if (unread.length > 0) {
-            html += '<button class="btn btn-sm btn-teal" onclick="markAllNotificationsRead();loadNotifications();"><i class="fas fa-check-double"></i> Прочитати всі</button>';
+        var user = auth.getCurrentUser();
+        if (!user) {
+            container.innerHTML = '<p class="text-danger">Користувач не авторизований</p>';
+            return;
         }
-        html += '</div>';
-        
-        if (!notifications || notifications.length === 0) {
-            html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає сповіщень</p>';
-        } else {
-            html += '<div style="max-height:500px;overflow-y:auto;">';
-            for (var i = 0; i < notifications.length; i++) {
-                var n = notifications[i];
-                var isUnread = !n.is_read;
-                var iconMap = {
-                    'chat_mention': 'fa-at',
-                    'admin_form': 'fa-file-signature',
-                    'support_reply': 'fa-reply',
-                    'support_escalation': 'fa-flag',
-                    'system_alert': 'fa-shield-alt',
-                    'appeal_result': 'fa-gavel',
-                    'default': 'fa-bell'
-                };
-                var icon = iconMap[n.type] || iconMap.default;
-                var link = n.link || '#';
-                
-                if (n.type === 'chat_mention') {
-                    if (n.organization_id) {
-                        link = '/org?id=' + n.organization_id;
-                    }
-                }
-                
-                html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';window.location.href=\'' + link + '\'">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-                html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
-                html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
-                html += '</div>';
-                html += '<div class="notif-message">' + n.message + '</div>';
-                if (isUnread) {
-                    html += '<div class="notif-badge"><i class="fas fa-circle" style="font-size:0.4rem;"></i> Нове</div>';
-                }
-                html += '</div>';
-            }
+        var tickets = await db.getSupportTickets({ userId: user.id });
+        var sorted = (tickets || []).slice().sort(function(a, b) {
+            var wa = myTicketStatusWeight[a.status] !== undefined ? myTicketStatusWeight[a.status] : 1;
+            var wb = myTicketStatusWeight[b.status] !== undefined ? myTicketStatusWeight[b.status] : 1;
+            if (wa !== wb) return wa - wb;
+            return new Date(b.created_at) - new Date(a.created_at);
+        });
+        if (sorted.length === 0) {
+            container.innerHTML = '<p class="text-muted" style="text-align:center;padding:1.5rem 0;">У вас ще немає звернень.<br>Натисніть «Створити», щоб написати нам.</p>';
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < sorted.length; i++) {
+            var t = sorted[i];
+            var shortId = getShortTicketId(t.id);
+            var statusClass = myTicketStatusClasses[t.status] || 'badge-secondary';
+            var statusLabel = myTicketStatusLabels[t.status] || t.status;
+            var priorityClass = myTicketPriorityClasses[t.priority] || 'badge-primary';
+            html += '<div class="ticket-card" onclick="viewMySupportTicket(\'' + t.id + '\')">';
+            html += '<div class="ticket-card-top">';
+            html += '<span style="font-family:monospace;font-size:0.7rem;color:var(--muted);margin-right:0.5rem;">' + shortId + '</span>';
+            html += '<span class="ticket-card-subject">' + (t.subject || '—') + '</span>';
+            html += '<span class="badge ' + statusClass + '">' + statusLabel + '</span>';
             html += '</div>';
+            html += '<div class="ticket-card-meta">';
+            html += '<span><span class="badge ' + priorityClass + '">' + (t.priority || '—') + '</span></span>';
+            html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
+            html += '<span>' + formatDateKyiv(t.created_at) + '</span>';
+            html += '</div></div>';
         }
-        html += '</div>';
-        
         container.innerHTML = html;
-        
-        if (window.updateNotificationBadge) {
-            updateNotificationBadge();
+    } catch (error) {
+        container.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
+    }
+}
+
+async function viewMySupportTicket(ticketId) {
+    closeModal('supportListModal');
+    document.getElementById('supportTicketModal').classList.add('active');
+    var body = document.getElementById('supportTicketModalBody');
+    body.innerHTML = '<p class="text-muted">Завантаження...</p>';
+    try {
+        var t = await db.getSupportTicket(ticketId);
+        if (!t) {
+            body.innerHTML = '<p class="text-danger">Тікет не знайдено</p>';
+            return;
         }
+        var messages = await db.getSupportMessages(ticketId);
+        var shortId = getShortTicketId(ticketId);
+        var statusLabel = myTicketStatusLabels[t.status] || t.status;
+        document.getElementById('supportTicketModalTitle').textContent = 'Тікет ' + shortId + ' — ' + (t.subject || '');
+        var html = '<div class="ticket-card-meta" style="margin-bottom:0.8rem;">';
+        html += '<span style="font-family:monospace;font-size:0.8rem;color:var(--muted);margin-right:0.5rem;">' + shortId + '</span>';
+        html += '<span class="badge ' + (myTicketStatusClasses[t.status] || 'badge-secondary') + '">' + statusLabel + '</span> ';
+        html += '<span class="badge ' + (myTicketPriorityClasses[t.priority] || 'badge-primary') + '">' + (t.priority || '—') + '</span> ';
+        html += '<span>' + (myTicketTypeLabels[t.type] || t.type || '') + '</span>';
+        html += '</div>';
+        html += '<div class="support-msg"><div class="support-msg-top"><span>👤 Ви</span><span>' + formatDateTimeKyiv(t.created_at) + '</span></div><div class="support-msg-body">' + (t.message || '') + '</div></div>';
+        if (messages && messages.length > 0) {
+            for (var i = 0; i < messages.length; i++) {
+                var msg = messages[i];
+                var isStaff = isStaffRole(msg.sender_type);
+                var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
+                if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
+                html += '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
+                html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+                html += '<div class="support-msg-body">' + msg.message + '</div></div>';
+            }
+        }
+        if (t.status !== 'closed') {
+            html += '<div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">';
+            html += '<textarea class="form-control" id="myTicketReply" rows="3" placeholder="Написати повідомлення..."></textarea>';
+            html += '<button class="btn btn-gold" onclick="sendMySupportReply(\'' + ticketId + '\')"><i class="fas fa-paper-plane"></i> Надіслати</button>';
+            html += '</div>';
+        } else {
+            html += '<p class="text-muted" style="margin-top:1rem;">✅ Тікет закрито</p>';
+        }
+        body.innerHTML = html;
+        
+        // Налаштовуємо реальний час для чату підтримки
+        setupRealtimeSupportChat(ticketId);
         
     } catch (error) {
-        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
+        body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
     }
+}
+
+async function sendMySupportReply(ticketId) {
+    var textarea = document.getElementById('myTicketReply');
+    if (!textarea) return;
+    var message = textarea.value.trim();
+    if (!message) {
+        showAlert('Введіть повідомлення', 'warning');
+        return;
+    }
+    var user = auth.getCurrentUser();
+    var submitBtn = document.querySelector('#myTicketReply + .btn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Відправка...';
+    }
+    try {
+        await db.sendSupportMessage({
+            ticket_id: ticketId,
+            sender_id: user.id,
+            sender_type: 'user',
+            message: message
+        });
+        await db.updateSupportTicket(ticketId, { updated_at: new Date().toISOString() });
+        textarea.value = '';
+        await viewMySupportTicket(ticketId);
+        showToast('✅ Повідомлення відправлено!', 'success');
+    } catch (error) {
+        showAlert('Помилка: ' + error.message, 'error');
+    }
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Надіслати';
+    }
+}
+
+// ============================================================
+// ДИНАМІЧНИЙ ЧАТ ПІДТРИМКИ (REALTIME)
+// ============================================================
+
+var _supportChatChannel = null;
+
+function setupRealtimeSupportChat(ticketId) {
+    if (!window.sb) return;
+    
+    if (_supportChatChannel) {
+        try { window.sb.removeChannel(_supportChatChannel); } catch(e) {}
+        _supportChatChannel = null;
+    }
+    
+    _supportChatChannel = window.sb
+        .channel('support-chat-realtime-' + ticketId)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'support_messages',
+            filter: 'ticket_id=eq.' + ticketId
+        }, function(payload) {
+            var msg = payload.new;
+            var user = auth.getCurrentUser();
+            
+            // Якщо це наше повідомлення - ігноруємо
+            if (msg.sender_id === user.id && msg.sender_type === 'user') return;
+            
+            var container = document.getElementById('supportTicketModalBody');
+            if (!container) return;
+            
+            // Додаємо повідомлення
+            var isStaff = isStaffRole(msg.sender_type);
+            var senderLabel = isStaff ? getRoleBadgeHtml(msg.sender_type) : '👤 Ви';
+            if (msg.sender_type === 'ai') senderLabel = '🤖 Typebiz Bot';
+            
+            var html = '<div class="support-msg' + (isStaff ? ' staff' : '') + '">';
+            html += '<div class="support-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+            html += '<div class="support-msg-body">' + msg.message + '</div></div>';
+            
+            // Вставляємо перед формою відповіді
+            var form = container.querySelector('hr');
+            if (form) {
+                form.insertAdjacentHTML('beforebegin', html);
+            } else {
+                container.insertAdjacentHTML('beforeend', html);
+            }
+            
+            container.scrollTop = container.scrollHeight;
+            
+            // Якщо тікет закрито - оновлюємо статус
+            if (msg.sender_type === 'ai' && msg.message.includes('закрито')) {
+                // Оновлюємо статус в заголовку
+                var statusBadge = container.querySelector('.ticket-card-meta .badge:first-child');
+                if (statusBadge) {
+                    statusBadge.textContent = 'Закрито';
+                    statusBadge.className = 'badge badge-secondary';
+                }
+                // Додаємо повідомлення про закриття
+                var closeMsg = document.createElement('p');
+                closeMsg.className = 'text-muted';
+                closeMsg.style.marginTop = '1rem';
+                closeMsg.textContent = '✅ Тікет закрито';
+                container.appendChild(closeMsg);
+                // Видаляємо форму
+                var formToRemove = container.querySelector('hr');
+                if (formToRemove) {
+                    formToRemove.remove();
+                    var textarea = container.querySelector('#myTicketReply');
+                    if (textarea) textarea.remove();
+                    var btn = container.querySelector('.btn-gold[onclick*="sendMySupportReply"]');
+                    if (btn) btn.remove();
+                }
+            }
+        })
+        .subscribe();
 }
 
 // ============================================================
@@ -676,17 +714,33 @@ async function loadNotifications() {
             window.location.href = '/banned';
             return;
         }
-        await loadDashboard();
-        loadCustomOrgTypes();
-        if (window.renderGlobalAnnouncements) {
-            renderGlobalAnnouncements();
+        
+        // Перевіряємо чи ми повертаємось зі сповіщень
+        var onNotificationsPage = sessionStorage.getItem('onNotificationsPage') === 'true';
+        if (onNotificationsPage) {
+            // Якщо ми на сторінці сповіщень - завантажуємо їх
+            await loadNotifications();
+            // Оновлюємо бейдж
+            if (window.updateNotificationBadge) {
+                updateNotificationBadge();
+            }
+        } else {
+            // Інакше - завантажуємо дашборд
+            await loadDashboard();
+            loadCustomOrgTypes();
+            if (window.renderGlobalAnnouncements) {
+                renderGlobalAnnouncements();
+            }
         }
+        
+        // Налаштовуємо реальний час для сповіщень
         if (window.setupNotificationsRealtime) {
             setupNotificationsRealtime();
         }
         if (window.updateNotificationBadge) {
             updateNotificationBadge();
         }
+        
     } catch (error) {
         console.error('Dashboard initialization error:', error);
         window.location.href = '/login';
