@@ -1077,88 +1077,68 @@
             }
         }
 
-        // ============================================================
-        // РОЗДІЛ: ОРГАНІЗАЦІЇ
-        // ============================================================
-        // ============================================================
-        // РОЗДІЛ: ЧАТИ ОРГАНІЗАЦІЙ (як у адмін-панелі)
-        // ============================================================
-        async function loadOwnerChat() {
-            if (!checkOwnerAccess()) return;
-            var container = document.getElementById('ownerContent');
-            try {
-                var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
-                var html =
-                    '<div class="card">' +
-                        '<div class="card-header"><h3 class="card-title">Чати організацій</h3></div>' +
-                        '<div class="search-filters">' +
-                            '<div class="search-wrapper">' +
-                                '<i class="fas fa-search search-icon"></i>' +
-                                '<input type="text" class="search-input" id="ownerChatSearchInput" placeholder="Пошук за назвою організації..." oninput="filterOwnerChatsTable()">' +
-                            '</div>' +
-                        '</div>' +
-                        '<div style="overflow-x:auto;">' +
-                            '<table class="table" id="ownerChatsTable">' +
-                                '<thead><tr><th>Організація</th><th>Статус</th><th>Повідомлень</th><th>Дії</th></tr></thead>' +
-                                '<tbody id="ownerChatsTableBody">';
-
-                if (orgs && orgs.length > 0) {
-                    for (var i = 0; i < orgs.length; i++) {
-                        var org = orgs[i];
-                        var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + org.id + '&select=id');
-                        var count = messages ? messages.length : 0;
-                        var isActive = org.is_active !== false;
-                        html +=
-                            '<tr data-name="' + (org.name || '').toLowerCase() + '">' +
-                                '<td><strong>' + (org.name || 'Без назви') + '</strong></td>' +
-                                '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td>' +
-                                '<td>' + count + '</td>' +
-                                '<td><button class="btn btn-sm btn-teal" onclick="viewOwnerChat(\'' + org.id + '\', \'' + (org.name || 'Без назви').replace(/'/g, "\\'") + '\')" style="padding:0.25rem 0.7rem;font-size:0.7rem;"><i class="fas fa-eye"></i></button></td>' +
-                            '</tr>';
-                    }
-                } else {
-                    html += '<tr><td colspan="4" class="text-center text-muted">Немає організацій</td></tr>';
-                }
-
-                html += '</tbody></table></div></div>';
-                container.innerHTML = html;
-            } catch (error) {
-                console.error('loadOwnerChat error:', error);
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження чатів</p></div>';
+async function loadOwnerChat() {
+    if (!checkOwnerAccess()) return;
+    var container = document.getElementById('ownerContent');
+    try {
+        var orgs = await db.supabaseQuery('organizations?select=id,name,is_active');
+        var html = '<div class="card"><div class="card-header"><h3 class="card-title">Чати організацій</h3></div>';
+        html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="ownerChatSearchInput" placeholder="Пошук за назвою..." oninput="filterOwnerChatsTable()"><button class="search-clear" onclick="document.getElementById(\'ownerChatSearchInput\').value=\'\';filterOwnerChatsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+        html += '<div style="overflow-x:auto;"><table class="table" id="ownerChatsTable"><thead><tr><th>Організація</th><th>Статус</th><th>Повідомлень</th><th>Дії</th></tr></thead><tbody id="ownerChatsTableBody">';
+        if (orgs && orgs.length > 0) {
+            for (var i = 0; i < orgs.length; i++) {
+                var org = orgs[i];
+                var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + org.id);
+                var count = messages ? messages.length : 0;
+                var isActive = org.is_active !== false;
+                html += '<tr data-name="' + (org.name || '').toLowerCase() + '"><td><strong>' + (org.name || 'Без назви') + '</strong></td><td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + (isActive ? 'Активна' : 'Заморожена') + '</span></td><td>' + count + '</td><td><button class="btn btn-sm btn-teal" onclick="viewOwnerChat(\'' + org.id + '\', \'' + (org.name || 'Без назви') + '\')" title="Переглянути чат"><i class="fas fa-eye"></i></button></td></tr>';
             }
-        }
+        } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає організацій</td></tr>'; }
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('loadOwnerChat error:', error);
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження чатів</p></div>';
+    }
+}
 
-        function filterOwnerChatsTable() {
-            var q = (document.getElementById('ownerChatSearchInput').value || '').toLowerCase().trim();
-            var rows = document.querySelectorAll('#ownerChatsTableBody tr');
-            rows.forEach(function(row) {
-                var name = row.getAttribute('data-name') || '';
-                row.style.display = name.indexOf(q) !== -1 ? '' : 'none';
-            });
-        }
+function filterOwnerChatsTable() {
+    var searchInput = document.getElementById('ownerChatSearchInput');
+    if (!searchInput) return;
+    var query = searchInput.value.toLowerCase().trim();
+    var rows = document.querySelectorAll('#ownerChatsTableBody tr');
+    rows.forEach(function(row) {
+        var name = row.getAttribute('data-name') || '';
+        row.style.display = name.indexOf(query) !== -1 ? '' : 'none';
+    });
+}
 
-        async function viewOwnerChat(orgId, orgName) {
-            openModal('Чат: ' + orgName, '<p class="text-muted">Завантаження...</p>', true);
-            try {
-                var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + orgId + '&order=created_at.asc&limit=300');
-                var html = '<div style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.6rem;">';
-                if (messages && messages.length > 0) {
-                    for (var i = 0; i < messages.length; i++) {
-                        var m = messages[i];
-                        html += '<div style="padding:0.6rem 0.8rem;background:var(--ink-raised);border-radius:8px;">' +
-                            '<div style="font-size:0.75rem;color:var(--muted);margin-bottom:2px;">' + (m.sender_name || m.sender_id || '—') + ' · ' + formatDateTimeKyiv(m.created_at) + '</div>' +
-                            '<div>' + (m.message || '').replace(/</g, '&lt;') + '</div>' +
-                        '</div>';
-                    }
-                } else {
-                    html += '<p class="text-muted text-center">Немає повідомлень</p>';
-                }
-                html += '</div>';
-                document.getElementById('modalBody').innerHTML = html;
-            } catch (error) {
-                document.getElementById('modalBody').innerHTML = '<p class="text-danger">Помилка завантаження чату</p>';
-            }
+async function viewOwnerChat(orgId, orgName) {
+    openModal('Чат: ' + orgName, '<p class="text-muted">Завантаження...</p>', true);
+    try {
+        var messages = await db.supabaseQuery('org_chat_messages?organization_id=eq.' + orgId + '&order=created_at.asc&limit=50');
+        var container = document.getElementById('modalBody');
+        if (!messages || messages.length === 0) { container.innerHTML = '<p class="text-muted">Немає повідомлень</p>'; return; }
+        var users = await db.supabaseQuery('users?select=id,full_name,email');
+        var userMap = {};
+        if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Користувач'; } }
+        var html = '';
+        for (var i = 0; i < messages.length; i++) {
+            var msg = messages[i];
+            var userName = userMap[msg.user_id] || 'Невідомий користувач';
+            var isDeleted = msg.is_deleted === true;
+            var isCensored = msg.is_censored === true;
+            var bodyText = isCensored ? '<em style="opacity:0.8;">Повідомлення приховане модерацією</em>' : escapeHtml(msg.message || '');
+            html += '<div style="padding:0.75rem;border-bottom:1px solid var(--ink-line);' + (isDeleted ? 'opacity:0.55;' : '') + '"><div style="font-size:0.8rem;color:var(--gold);display:flex;justify-content:space-between;"><span><i class="fas fa-user"></i> ' + userName + '</span><span style="color:var(--muted);font-size:0.7rem;">' + formatDateTimeKyiv(msg.created_at) + '</span></div><div style="margin-top:0.4rem;font-size:0.95rem;">' + bodyText + '</div></div>';
         }
+        container.innerHTML = html;
+    } catch (error) { console.error('View chat error:', error); document.getElementById('modalBody').innerHTML = '<p class="text-danger">Помилка завантаження повідомлень</p>'; }
+}
+
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
         async function loadOrgs() {
             if (!checkOwnerAccess()) return;
