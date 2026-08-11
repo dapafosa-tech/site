@@ -319,7 +319,9 @@ style.textContent =
     '@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } ' +
     '@keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } } ' +
     '@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } ' +
-    '@keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }';
+    '@keyframes modalSlideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } } ' +
+    '@keyframes newMsgPopIn { 0% { opacity: 0; transform: translateY(-24px) scale(0.96); } 60% { opacity: 1; transform: translateY(4px) scale(1.01); } 100% { opacity: 1; transform: translateY(0) scale(1); } } ' +
+    '@keyframes newMsgPopOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-16px) scale(0.97); } }';
 document.head.appendChild(style);
 
 // ============================================================
@@ -457,7 +459,7 @@ async function markAllNotificationsRead() {
 }
 
 // ============================================================
-// ЗВУК СПОВІЩЕННЯ (Web Audio API, без потреби в mp3-файлі)
+// ЗВУК СПОВІЩЕННЯ (Web Audio API)
 // ============================================================
 
 var _notifAudioCtx = null;
@@ -488,12 +490,9 @@ function playNotificationSound() {
             osc.stop(now + start + duration + 0.03);
         }
 
-        // Приємний "дзінь-дон" з двох нот
         tone(880.0, 0, 0.16, 0.20);
         tone(1318.5, 0.11, 0.24, 0.15);
-    } catch (e) {
-        // Автовідтворення звуку заблоковане браузером до першої взаємодії - ігноруємо
-    }
+    } catch (e) {}
 }
 
 window.playNotificationSound = playNotificationSound;
@@ -508,7 +507,7 @@ function showNewMessagePopup(options) {
     var title = options.title || 'У вас нове повідомлення';
     var message = options.message || '';
     var link = options.link || null;
-    var duration = options.duration || 7000;
+    var duration = options.duration || 10000;
 
     var stack = document.getElementById('newMsgPopupStack');
     if (!stack) {
@@ -561,12 +560,13 @@ function showNewMessagePopup(options) {
     }
 
     stack.appendChild(popup);
+    playNotificationSound();
 }
 
 window.showNewMessagePopup = showNewMessagePopup;
 
 // ============================================================
-// СПОВІЩЕННЯ - REALTIME (бейдж + звук + попап)
+// СПОВІЩЕННЯ - REALTIME
 // ============================================================
 
 function setupNotificationsRealtime() {
@@ -595,6 +595,8 @@ function setupNotificationsRealtime() {
                 'system_alert': '⚠️',
                 'appeal_result': '⚖️',
                 'direct_message': '✉️',
+                'direct_message_response_required': '⏰',
+                'direct_message_no_response': '⚠️',
                 'ban_approval_needed': '🛑',
                 'ban_approved': '⛔',
                 'ban_rejected': '✅',
@@ -620,7 +622,6 @@ async function loadNotificationsPage(containerId) {
     var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
     if (!user) return;
     
-    // Зберігаємо стан, що ми на сторінці сповіщень
     sessionStorage.setItem('onNotificationsPage', 'true');
     
     try {
@@ -647,12 +648,14 @@ async function loadNotificationsPage(containerId) {
                     'support_escalation': 'fa-flag',
                     'system_alert': 'fa-shield-alt',
                     'appeal_result': 'fa-gavel',
+                    'direct_message': 'fa-envelope',
+                    'direct_message_response_required': 'fa-clock',
+                    'direct_message_no_response': 'fa-exclamation-triangle',
                     'default': 'fa-bell'
                 };
                 var icon = iconMap[n.type] || iconMap.default;
                 var link = n.link || '#';
                 
-                // Для згадувань в чаті - посилання на організацію
                 if (n.type === 'chat_mention' && n.organization_id) {
                     link = '/org?id=' + n.organization_id;
                 }
@@ -674,7 +677,6 @@ async function loadNotificationsPage(containerId) {
         
         container.innerHTML = html;
         
-        // Оновлюємо заголовок
         var pageTitle = document.getElementById('pageTitle');
         var pageSubtitle = document.getElementById('pageSubtitle');
         var pageEyebrow = document.getElementById('pageEyebrow');
@@ -685,7 +687,6 @@ async function loadNotificationsPage(containerId) {
         if (pageEyebrow) pageEyebrow.textContent = 'Сповіщення';
         if (pageActions) pageActions.style.display = 'none';
         
-        // Активуємо посилання на сповіщення
         document.querySelectorAll('.nav-menu a').forEach(function(a) {
             a.classList.remove('active');
         });
@@ -697,7 +698,6 @@ async function loadNotificationsPage(containerId) {
     }
 }
 
-// Функція для повернення до дашборду зі сповіщень
 function goBackToDashboard() {
     sessionStorage.removeItem('onNotificationsPage');
     if (typeof loadDashboardView === 'function') {
@@ -708,7 +708,7 @@ function goBackToDashboard() {
 }
 
 // ============================================================
-// REALTIME HELPER (Supabase Realtime)
+// REALTIME HELPER
 // ============================================================
 
 function subscribeRealtime(table, filter, onChange) {
@@ -730,6 +730,258 @@ function subscribeRealtime(table, filter, onChange) {
 function unsubscribeRealtime(channel) {
     if (!channel || !window.sb) return;
     try { window.sb.removeChannel(channel); } catch (e) {}
+}
+
+// ============================================================
+// СИСТЕМА ОСОБИСТИХ ПОВІДОМЛЕНЬ (UI)
+// ============================================================
+
+async function loadDirectMessages() {
+    var container = document.getElementById('orgsContainer');
+    if (!container) return;
+    
+    var user = auth.getCurrentUser();
+    if (!user) return;
+    
+    document.querySelectorAll('.nav-menu a').forEach(function(a) {
+        a.classList.remove('active');
+    });
+    var dmLink = document.querySelector('.nav-menu a[onclick*="loadDirectMessages()"]');
+    if (dmLink) dmLink.classList.add('active');
+
+    document.getElementById('pageEyebrow').textContent = 'Переписки';
+    document.getElementById('pageTitle').textContent = '💬 Переписки';
+    document.getElementById('pageSubtitle').textContent = 'Особисті повідомлення';
+    document.getElementById('pageActions').style.display = 'none';
+    
+    try {
+        var threads = await db.getMyDirectMessageThreads();
+        
+        var html = '<div class="card">';
+        html += '<div class="card-header"><h3 class="card-title">💬 Переписки</h3></div>';
+        
+        // Групуємо по користувачах
+        var chatMap = {};
+        for (var i = 0; i < threads.length; i++) {
+            var msg = threads[i];
+            var otherId = msg.sender_id === user.id ? msg.recipient_id : msg.sender_id;
+            if (!chatMap[otherId]) {
+                chatMap[otherId] = {
+                    lastMessage: msg,
+                    unread: msg.recipient_id === user.id && !msg.is_read
+                };
+            } else {
+                if (new Date(msg.created_at) > new Date(chatMap[otherId].lastMessage.created_at)) {
+                    chatMap[otherId].lastMessage = msg;
+                }
+                if (msg.recipient_id === user.id && !msg.is_read) {
+                    chatMap[otherId].unread = true;
+                }
+            }
+        }
+        
+        var userIds = Object.keys(chatMap);
+        if (userIds.length === 0) {
+            html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає повідомлень</p>';
+        } else {
+            var usersData = await db.supabaseQuery('users?id=in.(' + userIds.join(',') + ')&select=id,full_name,email,avatar_url,role');
+            var userMap = {};
+            for (var j = 0; j < usersData.length; j++) {
+                userMap[usersData[j].id] = usersData[j];
+            }
+            
+            for (var otherId in chatMap) {
+                var otherUser = userMap[otherId];
+                if (!otherUser) continue;
+                var chat = chatMap[otherId];
+                var lastMsg = chat.lastMessage;
+                var displayName = otherUser.full_name || otherUser.email || 'Невідомо';
+                var roleInfo = getRoleInfo(otherUser.role || 'user');
+                var isUnread = chat.unread;
+                
+                html += '<div class="dm-thread-item" style="padding:0.75rem;border-bottom:1px solid var(--ink-line);cursor:pointer;' + (isUnread ? 'background:rgba(242,169,59,0.06);border-left:3px solid var(--gold);' : '') + '" onclick="openDirectMessageThread(\'' + otherId + '\')">';
+                html += '<div style="display:flex;align-items:center;gap:0.75rem;">';
+                html += '<div class="avatar" style="width:40px;height:40px;border-radius:50%;background:' + (roleInfo.color || '#46C9B8') + '20;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;color:' + (roleInfo.color || '#46C9B8') + ';flex-shrink:0;">';
+                if (otherUser.avatar_url) {
+                    html += '<img src="' + otherUser.avatar_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+                } else {
+                    html += (displayName[0] || 'U').toUpperCase();
+                }
+                html += '</div>';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="font-weight:600;font-size:0.95rem;">' + displayName + ' <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">' + roleInfo.emoji + ' ' + roleInfo.label + '</span></div>';
+                html += '<div style="font-size:0.85rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (lastMsg.message || '') + '</div>';
+                html += '</div>';
+                html += '<div style="font-size:0.7rem;color:var(--muted-dim);text-align:right;flex-shrink:0;">';
+                html += formatTimeKyiv(lastMsg.created_at);
+                if (isUnread) {
+                    html += '<div style="color:var(--gold);font-weight:600;">● Нове</div>';
+                }
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            }
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження переписок: ' + error.message + '</p></div>';
+    }
+}
+
+async function openDirectMessageThread(otherUserId) {
+    var user = auth.getCurrentUser();
+    if (!user) return;
+    
+    try {
+        // Позначаємо повідомлення як прочитані
+        await db.markDirectMessagesRead(otherUserId);
+        if (window.updateNotificationBadge) updateNotificationBadge();
+        
+        var otherUser = await db.supabaseQuery('users?id=eq.' + otherUserId + '&select=id,full_name,email,avatar_url,role');
+        if (!otherUser || otherUser.length === 0) {
+            await showAlert('Користувача не знайдено', 'error');
+            return;
+        }
+        otherUser = otherUser[0];
+        
+        var messages = await db.getDirectMessageThread(otherUserId);
+        var displayName = otherUser.full_name || otherUser.email || 'Невідомо';
+        var roleInfo = getRoleInfo(otherUser.role || 'user');
+        
+        var html = '<div style="display:flex;flex-direction:column;height:60vh;max-height:500px;">';
+        html += '<div style="display:flex;align-items:center;gap:0.75rem;padding-bottom:0.75rem;border-bottom:1px solid var(--ink-line);">';
+        html += '<div class="avatar" style="width:36px;height:36px;border-radius:50%;background:' + (roleInfo.color || '#46C9B8') + '20;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:' + (roleInfo.color || '#46C9B8') + ';flex-shrink:0;">';
+        if (otherUser.avatar_url) {
+            html += '<img src="' + otherUser.avatar_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+        } else {
+            html += (displayName[0] || 'U').toUpperCase();
+        }
+        html += '</div>';
+        html += '<div><strong>' + displayName + '</strong><div style="font-size:0.75rem;color:var(--muted);">' + roleInfo.emoji + ' ' + roleInfo.label + ' · ' + (otherUser.email || '') + '</div></div>';
+        html += '</div>';
+        
+        html += '<div style="flex:1;overflow-y:auto;padding:0.5rem 0;display:flex;flex-direction:column;gap:0.4rem;">';
+        if (messages && messages.length > 0) {
+            for (var i = 0; i < messages.length; i++) {
+                var msg = messages[i];
+                var isOwn = msg.sender_id === user.id;
+                var senderName = isOwn ? 'Ви' : displayName;
+                html += '<div style="display:flex;' + (isOwn ? 'justify-content:flex-end;' : 'justify-content:flex-start;') + '">';
+                html += '<div style="max-width:78%;background:' + (isOwn ? 'var(--gold)' : 'var(--ink-raised)') + ';padding:0.5rem 0.85rem;border-radius:12px;' + (isOwn ? 'border-bottom-right-radius:4px;' : 'border-bottom-left-radius:4px;') + 'color:' + (isOwn ? 'var(--ink)' : 'var(--text-onink)') + ';">';
+                html += '<div style="font-size:0.7rem;opacity:0.7;display:flex;justify-content:space-between;gap:0.5rem;">';
+                html += '<span>' + senderName + '</span>';
+                html += '<span>' + formatTimeKyiv(msg.created_at) + '</span>';
+                html += '</div>';
+                html += '<div style="font-size:0.9rem;line-height:1.4;">' + (msg.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+                // Відображення дедлайну
+                if (msg.response_required && msg.response_deadline) {
+                    var deadline = new Date(msg.response_deadline);
+                    var now = new Date();
+                    var timeLeft = deadline - now;
+                    var isExpired = timeLeft < 0;
+                    html += '<div style="font-size:0.7rem;margin-top:0.3rem;color:' + (isExpired ? '#E2503E' : 'var(--teal)') + ';">';
+                    html += isExpired ? '⏰ Час на відповідь вийшов' : '⏳ Відповідь очікується до ' + formatDateTimeKyiv(msg.response_deadline);
+                    if (msg.response_required && !isExpired && !isOwn) {
+                        html += ' <span style="font-weight:600;">(потрібна відповідь)</span>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div></div>';
+            }
+        } else {
+            html += '<p class="text-muted text-center" style="padding:2rem 0;">Немає повідомлень</p>';
+        }
+        html += '</div>';
+        
+        html += '<form id="dmReplyForm" style="display:flex;gap:0.5rem;padding-top:0.75rem;border-top:1px solid var(--ink-line);">';
+        html += '<input type="text" class="form-control" id="dmReplyInput" placeholder="Написати повідомлення..." autocomplete="off">';
+        html += '<button type="submit" class="btn btn-gold" style="padding:0.6rem 1rem;"><i class="fas fa-paper-plane"></i></button>';
+        html += '</form>';
+        html += '</div>';
+        
+        openModal('💬 ' + displayName, html);
+        
+        document.getElementById('dmReplyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var input = document.getElementById('dmReplyInput');
+            var message = input.value.trim();
+            if (!message) return;
+            
+            try {
+                await db.sendDirectMessage(otherUserId, message, {
+                    senderName: user.full_name || user.email || 'Користувач',
+                    senderRole: user.role
+                });
+                input.value = '';
+                // Перезавантажуємо чат
+                openDirectMessageThread(otherUserId);
+                // Оновлюємо список переписок
+                if (typeof loadDirectMessages === 'function') {
+                    loadDirectMessages();
+                }
+            } catch (error) {
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
+        });
+        
+    } catch (error) {
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
+// ============================================================
+// REALTIME ДЛЯ ОСОБИСТИХ ПОВІДОМЛЕНЬ
+// ============================================================
+
+function setupRealtimeDirectMessages() {
+    var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
+    if (!user || !window.sb) return;
+    
+    if (window._dmChannel) {
+        try { window.sb.removeChannel(window._dmChannel); } catch(e) {}
+    }
+    
+    window._dmChannel = window.sb
+        .channel('dm-realtime')
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'direct_messages',
+            filter: 'recipient_id=eq.' + user.id
+        }, function(payload) {
+            var msg = payload.new;
+            updateNotificationBadge();
+            
+            // Перевіряємо чи ми на сторінці переписок
+            var onDmPage = sessionStorage.getItem('onDmPage') === 'true';
+            if (onDmPage) {
+                // Оновлюємо список
+                loadDirectMessages();
+            }
+            
+            // Показуємо сповіщення
+            playNotificationSound();
+            showNewMessagePopup({
+                icon: '✉️',
+                title: '📩 Нове повідомлення',
+                message: msg.sender_name + ': ' + (msg.message || '').slice(0, 100),
+                link: '/dashboard'
+            });
+            
+            // Якщо потрібна відповідь - додаємо окреме сповіщення
+            if (msg.response_required) {
+                showNewMessagePopup({
+                    icon: '⏰',
+                    title: '⏰ Потрібна відповідь',
+                    message: msg.sender_name + ' очікує на вашу відповідь до ' + formatDateTimeKyiv(msg.response_deadline),
+                    link: '/dashboard'
+                });
+            }
+        })
+        .subscribe();
 }
 
 // ============================================================
@@ -757,8 +1009,11 @@ window.markNotificationRead = markNotificationRead;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.setupNotificationsRealtime = setupNotificationsRealtime;
 window.loadNotificationsPage = loadNotificationsPage;
-// playNotificationSound та showNewMessagePopup вже експортовані вище
 window.goBackToDashboard = goBackToDashboard;
+
+window.loadDirectMessages = loadDirectMessages;
+window.openDirectMessageThread = openDirectMessageThread;
+window.setupRealtimeDirectMessages = setupRealtimeDirectMessages;
 
 window.subscribeRealtime = subscribeRealtime;
 window.unsubscribeRealtime = unsubscribeRealtime;
