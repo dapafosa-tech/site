@@ -3,6 +3,8 @@
 // Живий поллінг: бан, видалення профілю (public.users) і видалення
 // самого акаунту (auth.users) виб'ють юзера з акаунту майже одразу,
 // не чекаючи наступного переходу/перезавантаження сторінки.
+// 
+// Також перевіряє прострочені повідомлення з вимогою відповіді
 // ============================================
 
 var CHECK_AUTH_POLL_MS = 25000; // кожні 25 сек
@@ -20,6 +22,41 @@ async function _forceLogoutAccountGone(reasonMsg) {
     window.location.href = '/login';
 }
 
+// ============================================================
+// ПЕРЕВІРКА ПРОСТРОЧЕНИХ ПОВІДОМЛЕНЬ
+// ============================================================
+async function checkExpiredDirectMessages() {
+    try {
+        var user = auth.getCurrentUser();
+        if (!user) return;
+        
+        var expired = await db.getDirectMessagesWithResponseRequired(user.id);
+        if (expired && expired.length > 0) {
+            for (var i = 0; i < expired.length; i++) {
+                var msg = expired[i];
+                // Відправляємо сповіщення, що час вийшов
+                await db.createNotification({
+                    user_id: user.id,
+                    type: 'direct_message_no_response',
+                    title: '⏰ Час на відповідь вийшов',
+                    message: 'Ви не відповіли на повідомлення від ' + (msg.sender_name || 'Адміністрація') + ' вчасно.',
+                    link: '/dashboard'
+                });
+                // Позначаємо як прочитане, щоб більше не турбувати
+                await db.supabaseQuery('direct_messages?id=eq.' + msg.id, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_read: true })
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('checkExpiredDirectMessages error:', e);
+    }
+}
+
+// ============================================================
+// ОСНОВНА ПЕРЕВІРКА
+// ============================================================
 async function checkAuthAndBan() {
     try {
         var currentPath = window.location.pathname;
@@ -43,8 +80,6 @@ async function checkAuthAndBan() {
         var hadLocalProfile = !!getCurrentUser();
 
         // 1) Перевіряємо існування самого акаунту в auth.users НА СЕРВЕРІ
-        //    (getSession() бере дані з локального токена і не бачить,
-        //    що юзера видалили з auth.users - тому дзвонимо getUser()).
         var authGone = false;
         try {
             var check = await window.sb.auth.getUser();
@@ -63,9 +98,7 @@ async function checkAuthAndBan() {
             return;
         }
 
-        // 2) Перевіряємо, чи існує ще профіль у public.users.
-        //    allowCreate=false: якщо рядка нема - акаунт видалили з users,
-        //    нічого не відновлюємо, а виганяємо юзера.
+        // 2) Перевіряємо, чи існує ще профіль у public.users
         var user = await syncProfile(false);
         if (!user) {
             if (hadLocalProfile || PUBLIC_PAGES.indexOf(currentPath) === -1) {
@@ -101,12 +134,19 @@ async function checkAuthAndBan() {
     }
 }
 
+// ============================================================
+// ЗАПУСК
+// ============================================================
+
+// Перевіряємо при завантаженні
 checkAuthAndBan();
 
+// Перевіряємо прострочені повідомлення кожні 5 хвилин
+setInterval(checkExpiredDirectMessages, 5 * 60 * 1000);
+
+// Основний поллінг
 setInterval(function () {
     var currentPath = window.location.pathname;
-    // На публічних сторінках і на /banned живий поллінг не потрібен -
-    // там немає авторизованої сесії, яку можна забанити/видалити "на льоту".
     if (currentPath === '/banned' || PUBLIC_PAGES.indexOf(currentPath) !== -1) {
         return;
     }
