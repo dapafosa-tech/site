@@ -13,10 +13,16 @@
     --gold: #F2A93B;
     --gold-dim: #C98A2A;
     --teal: #46C9B8;
-    --ink: #14161c;
-    --success: #1CA893;
-    --warning: #F2A93B;
+    --ink: #0B0D11;
+    --ink-soft: #14171d;
+    --ink-raised: #1A1E26;
+    --ink-line: #262b35;
+    --success: #22C55E;
+    --warning: #F59E0B;
     --danger: #E2503E;
+    --text-onink: #EDEAE0;
+    --muted: #8B93A6;
+    --muted-dim: #5C6273;
     --gray-50: #F7F5EF;
     --gray-100: #F1EEE4;
     --gray-200: #E4E0D3;
@@ -34,8 +40,10 @@
     --shadow-xl: 0 20px 25px -5px rgb(20 22 28 / 0.12), 0 8px 10px -6px rgb(20 22 28 / 0.12);
     --radius: 10px;
     --radius-sm: 7px;
+    --radius-xs: 4px;
     --font-display: 'Space Grotesk', sans-serif;
     --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
 }
 
 * {
@@ -45,7 +53,7 @@
 }
 
 body {
-    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
     background: var(--gray-50);
     color: var(--gray-900);
     line-height: 1.6;
@@ -55,6 +63,9 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
 }
 
+/* ============================================================
+   КОНТЕЙНЕРИ
+   ============================================================ */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -66,6 +77,9 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0 2rem;
 }
 
+/* ============================================================
+   КАРТКИ
+   ============================================================ */
 .card {
     background: white;
     border-radius: var(--radius);
@@ -95,6 +109,9 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--gray-800);
 }
 
+/* ============================================================
+   КНОПКИ
+   ============================================================ */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -136,7 +153,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-success:hover {
-    background: #059669;
+    background: #16A34A;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
 .btn-danger {
@@ -145,7 +164,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-danger:hover {
-    background: #dc2626;
+    background: #DC2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(226, 80, 62, 0.3);
 }
 
 .btn-warning {
@@ -154,7 +175,29 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-warning:hover {
-    background: #d97706;
+    background: #D97706;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-gold {
+    background: var(--gold);
+    color: var(--ink);
+}
+
+.btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(242, 169, 59, 0.28);
+}
+
+.btn-teal {
+    background: var(--teal);
+    color: var(--ink);
+}
+
+.btn-teal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(70, 201, 184, 0.28);
 }
 
 .btn-outline {
@@ -183,6 +226,9 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center;
 }
 
+/* ============================================================
+   ФОРМИ - ТЕМНА ТЕМА (ДЛЯ АДМІН-ПАНЕЛІ)
+   ============================================================ */
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -203,6 +249,7 @@ h1, h2, h3, h4, h5, h6 {
     transition: all 0.3s ease;
     font-family: inherit;
     background: white;
+    color: var(--gray-900);
 }
 
 .form-control:focus {
@@ -216,6 +263,47 @@ h1, h2, h3, h4, h5, h6 {
     cursor: not-allowed;
 }
 
+/* ТЕМНА ТЕМА ДЛЯ ПОЛІВ ВВОДУ (адмін-панель, панель засновника) */
+.form-control-dark,
+.form-control.dark {
+    background: var(--ink) !important;
+    color: var(--text-onink) !important;
+    border-color: var(--ink-line) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.7rem 1rem !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.95rem !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.form-control-dark:focus,
+.form-control.dark:focus {
+    outline: none !important;
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 3px rgba(242, 169, 59, 0.15) !important;
+}
+
+.form-control-dark::placeholder,
+.form-control.dark::placeholder {
+    color: var(--muted-dim) !important;
+}
+
+textarea.form-control-dark,
+textarea.form-control.dark {
+    resize: vertical !important;
+    min-height: 80px !important;
+}
+
+select.form-control-dark,
+select.form-control.dark {
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B93A6' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 1rem center !important;
+    padding-right: 2.5rem !important;
+}
+
+/* Світла тема для форм (стандартна) */
 select.form-control {
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
@@ -229,6 +317,9 @@ textarea.form-control {
     min-height: 100px;
 }
 
+/* ============================================================
+   ТАБЛИЦІ
+   ============================================================ */
 .table-wrapper {
     overflow-x: auto;
 }
@@ -257,6 +348,9 @@ textarea.form-control {
     background: var(--gray-50);
 }
 
+/* ============================================================
+   АВАТАРИ
+   ============================================================ */
 .avatar {
     width: 40px;
     height: 40px;
@@ -282,6 +376,9 @@ textarea.form-control {
     font-size: 1.5rem;
 }
 
+/* ============================================================
+   БЕЙДЖІ
+   ============================================================ */
 .badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
@@ -290,6 +387,7 @@ textarea.form-control {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.025em;
+    font-family: var(--font-mono);
 }
 
 .badge-primary {
@@ -312,6 +410,24 @@ textarea.form-control {
     color: var(--warning);
 }
 
+.badge-gold {
+    background: rgba(242, 169, 59, 0.16);
+    color: var(--gold);
+}
+
+.badge-teal {
+    background: rgba(70, 201, 184, 0.16);
+    color: var(--teal);
+}
+
+.badge-secondary {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+/* ============================================================
+   АЛЕРТИ
+   ============================================================ */
 .alert {
     padding: 1rem 1.5rem;
     border-radius: var(--radius-sm);
@@ -343,6 +459,9 @@ textarea.form-control {
     color: #1e40af;
 }
 
+/* ============================================================
+   МОДАЛКИ
+   ============================================================ */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -414,6 +533,9 @@ textarea.form-control {
     justify-content: center;
 }
 
+/* ============================================================
+   TOAST СПОВІЩЕННЯ
+   ============================================================ */
 .toast-container {
     position: fixed;
     top: 1.5rem;
@@ -480,6 +602,9 @@ textarea.form-control {
     color: var(--gray-600);
 }
 
+/* ============================================================
+   СІТКИ
+   ============================================================ */
 .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -498,12 +623,21 @@ textarea.form-control {
     gap: 1.5rem;
 }
 
+/* ============================================================
+   СТАТИСТИКА
+   ============================================================ */
 .stat-card {
     background: white;
     padding: 1.5rem;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     border-left: 4px solid var(--primary);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-card .stat-value {
@@ -516,26 +650,24 @@ textarea.form-control {
     color: var(--gray-500);
     font-size: 0.9rem;
     margin-top: 0.25rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.text-center {
-    text-align: center;
-}
-.text-right {
-    text-align: right;
-}
-.text-muted {
-    color: var(--gray-500);
-}
-.text-primary {
-    color: var(--primary);
-}
-.text-success {
-    color: var(--success);
-}
-.text-danger {
-    color: var(--danger);
-}
+/* ============================================================
+   УТИЛІТИ
+   ============================================================ */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.text-muted { color: var(--gray-500); }
+.text-primary { color: var(--primary); }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+.text-warning { color: var(--warning); }
+.text-gold { color: var(--gold); }
+.text-teal { color: var(--teal); }
 
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
@@ -546,32 +678,31 @@ textarea.form-control {
 .mb-3 { margin-bottom: 1.5rem; }
 .mb-4 { margin-bottom: 2rem; }
 
-.d-flex {
-    display: flex;
-}
-.align-center {
-    align-items: center;
-}
-.justify-between {
-    justify-content: space-between;
-}
-.gap-1 {
-    gap: 0.5rem;
-}
-.gap-2 {
-    gap: 1rem;
-}
-.gap-3 {
-    gap: 1.5rem;
-}
-.flex-wrap {
-    flex-wrap: wrap;
-}
+.d-flex { display: flex; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.align-end { align-items: flex-end; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-1 { gap: 0.5rem; }
+.gap-2 { gap: 1rem; }
+.gap-3 { gap: 1.5rem; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-column { flex-direction: column; }
 
-.w-100 {
-    width: 100%;
-}
+.w-100 { width: 100%; }
+.w-50 { width: 50%; }
+.h-100 { height: 100%; }
 
+.position-relative { position: relative; }
+.position-absolute { position: absolute; }
+
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+
+/* ============================================================
+   АНІМАЦІЇ
+   ============================================================ */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -629,6 +760,15 @@ textarea.form-control {
     }
 }
 
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* ============================================================
+   СКРОЛ
+   ============================================================ */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -647,6 +787,9 @@ textarea.form-control {
     background: var(--gray-400);
 }
 
+/* ============================================================
+   АДАПТИВНІСТЬ
+   ============================================================ */
 @media (max-width: 992px) {
     .grid-3 {
         grid-template-columns: 1fr 1fr;
@@ -678,4 +821,275 @@ textarea.form-control {
     .stat-card .stat-value {
         font-size: 1.5rem;
     }
+
+    .table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-content {
+        max-height: 85dvh;
+        overflow-y: auto;
+    }
+
+    .form-control,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+    .card-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-filters {
+        flex-direction: column;
+    }
+    
+    .tab-nav button {
+        flex: 1;
+        text-align: center;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* ============================================================
+   ЧАТ (ДИНАМІЧНИЙ)
+   ============================================================ */
+.chat-card {
+    display: flex;
+    flex-direction: column;
+    height: 70vh;
+    max-height: 640px;
+    padding-bottom: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chat-empty {
+    margin: auto;
+    padding: 2rem 0;
+}
+
+.chat-row {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.chat-row-own {
+    justify-content: flex-end;
+}
+
+.chat-bubble {
+    max-width: 78%;
+    background: var(--ink);
+    color: var(--text-onink);
+    padding: 0.5rem 0.85rem;
+    border-radius: 12px;
+    border-bottom-left-radius: 4px;
+    border: 1px solid var(--ink-line);
+    word-break: break-word;
+}
+
+.chat-bubble-own {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-bubble-mention {
+    box-shadow: 0 0 0 2px var(--teal);
+}
+
+.chat-bubble-censored {
+    background: linear-gradient(135deg, rgba(226,80,62,0.18), rgba(242,169,59,0.18)) !important;
+    border: 1px solid rgba(226,80,62,0.4) !important;
+    color: var(--text-onink) !important;
+}
+
+.chat-bubble-meta {
+    font-size: 0.68rem;
+    opacity: 0.7;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-bubble-text {
+    font-size: 0.92rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+.chat-bubble-delete {
+    margin-top: 0.35rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.62rem;
+}
+
+.chat-form {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 0.25rem;
+    border-top: 1px solid var(--ink-line);
+    background: var(--bg-card, var(--ink-soft));
+    position: sticky;
+    bottom: 0;
+}
+
+.chat-form .form-control {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .chat-card {
+        height: calc(100dvh - 130px);
+        max-height: none;
+        border-radius: 10px;
+    }
+    .chat-bubble {
+        max-width: 88%;
+    }
+    .chat-form {
+        padding: 0.6rem;
+        gap: 0.4rem;
+    }
+    .chat-form .form-control {
+        font-size: 16px;
+    }
+}
+
+/* ============================================================
+   ПОВІДОМЛЕННЯ (СПОВІЩЕННЯ)
+   ============================================================ */
+.notification-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--ink-line);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.notification-item.unread {
+    background: rgba(242, 169, 59, 0.06);
+    border-left: 3px solid var(--gold);
+}
+
+.notification-item .notif-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.notification-item .notif-message {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+}
+
+.notification-item .notif-time {
+    font-size: 0.7rem;
+    color: var(--muted-dim);
+}
+
+.notification-item .notif-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    color: var(--gold);
+    margin-top: 0.2rem;
+}
+
+/* ============================================================
+   СКЕЛЕТОН (завантаження)
+   ============================================================ */
+.skeleton {
+    background: var(--ink-soft);
+    border: 1px solid var(--ink-line);
+    border-radius: var(--radius);
+    padding: 1.4rem;
+    min-height: 172px;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.035), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.6s infinite;
+}
+
+.skeleton .line {
+    height: 11px;
+    background: var(--ink-line);
+    border-radius: 4px;
+    margin-bottom: 0.6rem;
+}
+
+.skeleton .line.short {
+    width: 55%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+        animation: none;
+    }
+}
+
+/* ============================================================
+   ГЛОБАЛЬНІ ОГОЛОШЕННЯ
+   ============================================================ */
+.global-announcement {
+    background: rgba(242, 169, 59, 0.16);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.global-announcement .announcement-icon {
+    color: var(--gold);
+    flex-shrink: 0;
+}
+
+.global-announcement .announcement-text {
+    flex: 1;
+    font-size: 0.92rem;
+}
+
+.global-announcement .announcement-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 0.9rem;
+}
+
+.global-announcement .announcement-close:hover {
+    opacity: 1;
 }
