@@ -463,6 +463,115 @@ function filterUsersTable() {
     });
 }
 
+function canModerateAppeals(user) {
+    return user && (user.role === 'owner' || user.role === 'admin');
+}
+
+// Модератор не може банити на 5+ днів без форми
+function canBanWithoutForm(user, days) {
+    if (!user) return false;
+    if (user.role === 'owner' || user.role === 'admin') return true;
+    // Модератор може банити тільки до 5 днів
+    return days <= 5;
+}
+
+// Модератор не може відповідати на адмін-форми
+function canRespondToAdminForms(user) {
+    return user && (user.role === 'owner' || user.role === 'admin');
+}
+
+// Модератор не може схвалювати/відхиляти форми
+function canApproveAdminForms(user) {
+    return user && (user.role === 'owner' || user.role === 'admin');
+}
+
+async function banUser(userId) {
+    try {
+        var user = auth.getCurrentUser();
+        var targetRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=id,role,full_name,email');
+        var target = targetRows && targetRows[0];
+        if (!target) { await showAlert('Користувача не знайдено', 'error'); return; }
+        
+        if (user.role === 'moderator' && target.role !== 'user') {
+            await showAlert('Модератор може блокувати тільки звичайних користувачів', 'error');
+            return;
+        }
+
+        try {
+            var meRows = await db.supabaseQuery('users?id=eq.' + user.id + '&select=last_ban_action_at');
+            var lastBanAt = meRows && meRows[0] && meRows[0].last_ban_action_at;
+            if (lastBanAt) {
+                var cooldownMs = 60 * 1000;
+                var elapsedMs = Date.now() - new Date(lastBanAt).getTime();
+                if (elapsedMs < cooldownMs) {
+                    var secondsLeft = Math.ceil((cooldownMs - elapsedMs) / 1000);
+                    await showAlert('Зачекайте ще ' + secondsLeft + ' сек. перед наступним баном (кулдаун 1 хв між банами).', 'warning');
+                    return;
+                }
+            }
+        } catch (cooldownError) { console.warn('Ban cooldown check failed, skipping:', cooldownError.message); }
+
+        var reason = await showPrompt('Введіть причину блокування:', 'Порушення правил', 'Блокування користувача');
+        if (reason === null) return;
+        if (!reason || reason.trim() === '') { await showAlert('Введіть причину блокування', 'warning'); return; }
+
+        var daysInput = await showPrompt('На скільки днів заблокувати? (макс. 2000, залиште порожнім для безстрокового бану):', '', 'Строк блокування');
+        if (daysInput === null) return;
+        var banUntil = null;
+        var banDays = 0;
+        if (daysInput && daysInput.trim() !== '') {
+            var days = parseInt(daysInput.trim(), 10);
+            if (isNaN(days) || days <= 0) { await showAlert('Строк має бути додатним числом днів', 'warning'); return; }
+            if (days > 2000) { await showAlert('Максимальний строк - 2000 днів', 'warning'); return; }
+            banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            banDays = days;
+        } else {
+            banDays = 2000;
+        }
+
+        if (user.role === 'moderator' && banDays > 5) {
+            try {
+                await db.supabaseQuery('admin_forms', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        form_type: 'punishment',
+                        created_by: user.id,
+                        created_by_role: user.role,
+                        recipient_text: 'admin_team',
+                        subject: 'Форма покарання: бан ' + (target.full_name || target.email || 'користувача'),
+                        body: 'Бан на ' + (banUntil ? banDays + ' дн.' : 'назавжди') + '. Причина: ' + reason.trim(),
+                        target_user_id: userId,
+                        ban_days: banDays || 0,
+                        status: 'pending'
+                    })
+                });
+                await showToast('Створено форму покарання для затвердження адміністрацією', 'info');
+                return;
+            } catch (formError) { 
+                console.warn('Помилка створення форми покарання:', formError);
+                await showAlert('Помилка створення форми: ' + formError.message, 'error');
+                return;
+            }
+        }
+
+        var confirmed = await showConfirm('Ви впевнені, що хочете заблокувати цього користувача' + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' безстроково') + '?', 'Підтвердження');
+        if (!confirmed) return;
+
+        var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
+        if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
+        await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), banned_until: banUntil, role: 'user' }) });
+        try {
+            await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
+        } catch (e) { console.warn('Could not update last_ban_action_at:', e.message); }
+        await db.addLog('Заблоковано користувача', 'user', userId, { reason: reason.trim(), user_name: target.full_name || target.email || 'Користувач' });
+        await showToast('Користувача заблоковано!', 'success');
+        loadUsers();
+    } catch (error) {
+        console.error('banUser error:', error);
+        await showAlert('Помилка: ' + error.message, 'error');
+    }
+}
+
 async function changeUserRole(userId, newRole) {
     var user = auth.getCurrentUser();
     if (!canChangeRoles(user)) {
