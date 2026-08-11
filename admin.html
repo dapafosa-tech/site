@@ -1070,9 +1070,7 @@
                 if (!confirmed) return;
 
                 var banDays = daysInput ? parseInt(daysInput.trim(), 10) : 0;
-                var needsApproval = user.role === 'moderator' && (banDays >= 5 || !banUntil);
-
-                if (needsApproval) {
+                if (banDays >= 5 || !banUntil) {
                     try {
                         await db.supabaseQuery('admin_forms', {
                             method: 'POST',
@@ -1088,13 +1086,10 @@
                                 status: 'pending'
                             })
                         });
-                        await showToast('Бан на 5+ днів потребує затвердження засновником або адміністратором. Форму відправлено.', 'info');
-                        loadUsers();
+                        await showToast('Створено форму покарання для затвердження засновником', 'info');
                     } catch (formError) {
                         console.warn('Помилка створення форми покарання:', formError);
-                        await showAlert('Не вдалось створити форму покарання: ' + formError.message, 'error');
                     }
-                    return;
                 }
 
                 var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
