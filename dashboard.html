@@ -859,30 +859,6 @@
     </div>
 
     <!-- Модалка переписки (чат) -->
-    <div class="modal" id="dmChatModal">
-        <div class="modal-content wide">
-            <div class="modal-tag">TYPEBIZ // DIRECT MESSAGE</div>
-            <div class="modal-header">
-                <h2 id="dmChatTitle">💬 Чат</h2>
-                <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <button class="btn-back" onclick="closeModal('dmChatModal');loadDirectMessages();" title="Назад">
-                        <i class="fas fa-arrow-left"></i> Назад
-                    </button>
-                    <button class="modal-close" onclick="closeModal('dmChatModal');loadDirectMessages();">&times;</button>
-                </div>
-            </div>
-            <div id="dmChatBody" style="max-height:55vh;overflow-y:auto;margin-bottom:0.8rem;">
-                <p class="text-muted">Завантаження...</p>
-            </div>
-            <div style="display:flex;gap:0.6rem;">
-                <textarea class="form-control" id="dmMessageInput" rows="2" placeholder="Написати повідомлення..." style="flex:1;min-height:50px;"></textarea>
-                <button class="btn btn-gold" onclick="sendDmMessage()" style="align-self:flex-end;">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/db.js"></script>
     <script src="/js/auth.js"></script>
@@ -1021,7 +997,11 @@
             document.getElementById('pageEyebrow').textContent = 'Картотека організацій';
             document.getElementById('pageTitle').textContent = 'Мої організації';
             document.getElementById('pageSubtitle').textContent = 'Керуйте своїми організаціями та створюйте нові';
-            document.getElementById('pageActions').style.display = 'flex';
+            var orgActions = document.getElementById('pageActions');
+            orgActions.style.display = 'flex';
+            orgActions.innerHTML =
+                '<button class="btn btn-teal" onclick="openJoinOrg()"><i class="fas fa-sign-in-alt"></i> Приєднатися за кодом</button>' +
+                '<button class="btn btn-gold" onclick="openCreateOrg()"><i class="fas fa-plus"></i> Створити організацію</button>';
 
             await loadOrganizations();
         }
@@ -1179,7 +1159,9 @@
             document.getElementById('pageEyebrow').textContent = 'Особисті переписки';
             document.getElementById('pageTitle').textContent = '💬 Переписки';
             document.getElementById('pageSubtitle').textContent = 'Всі ваші особисті повідомлення';
-            document.getElementById('pageActions').style.display = 'none';
+            var dmActions = document.getElementById('pageActions');
+            dmActions.style.display = 'flex';
+            dmActions.innerHTML = '<button class="btn btn-teal" onclick="promptNewConversationById()"><i class="fas fa-user-plus"></i> Написати за ID</button>';
             
             try {
                 // Отримуємо всіх користувачів з якими є переписка
@@ -1210,9 +1192,12 @@
                 // Отримуємо останнє повідомлення для кожного
                 var conversations = [];
                 for (var uid of userIds) {
-                    // Отримуємо останнє повідомлення між двома конкретними користувачами
+                    var lastMessages = await db.supabaseQuery(
+                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
+                    );
+                    // Простіше: отримуємо всі повідомлення між двома користувачами
                     var msgs = await db.supabaseQuery(
-                        'direct_messages?or=(and(sender_id.eq.' + user.id + ',recipient_id.eq.' + uid + '),and(sender_id.eq.' + uid + ',recipient_id.eq.' + user.id + '))&order=created_at.desc&limit=1'
+                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
                     );
                     var lastMsg = msgs && msgs.length > 0 ? msgs[0] : null;
                     
@@ -1277,30 +1262,90 @@
             }
         }
 
+        // Написати новому користувачу за його ID
+        async function promptNewConversationById() {
+            var id = await showPrompt('Введіть ID (UUID) користувача, якому хочете написати:', '', 'Новий діалог за ID');
+            if (id === null) return;
+            id = id.trim();
+            if (!id) {
+                await showAlert('Введіть ID користувача', 'warning');
+                return;
+            }
+
+            var user = auth.getCurrentUser();
+            if (user && id === user.id) {
+                await showAlert('Не можна написати самому собі', 'warning');
+                return;
+            }
+
+            try {
+                var rows = await db.supabaseQuery('users?id=eq.' + encodeURIComponent(id) + '&select=id,full_name,email,avatar_url,role');
+                if (!rows || rows.length === 0) {
+                    await showAlert('Користувача з таким ID не знайдено', 'error');
+                    return;
+                }
+                var found = rows[0];
+                openDmChat(found.id, found.full_name || found.email || 'Користувач');
+            } catch (error) {
+                await showAlert('Некоректний ID або користувача не знайдено', 'error');
+            }
+        }
+
         // Відкрити чат з користувачем
         async function openDmChat(userId, userName) {
             currentDmUserId = userId;
-            document.getElementById('dmChatModal').classList.add('active');
-            document.getElementById('dmChatTitle').textContent = '💬 Чат з ' + (userName || 'Користувачем');
-            
+            sessionStorage.setItem('onDmPage', 'true');
+
+            document.querySelectorAll('.nav-menu a').forEach(function(a) {
+                a.classList.remove('active');
+            });
+            var dmLink = document.querySelector('.nav-menu a[onclick*="loadDirectMessages()"]');
+            if (dmLink) dmLink.classList.add('active');
+
+            document.getElementById('pageEyebrow').textContent = 'Переписки';
+            document.getElementById('pageTitle').textContent = '💬 ' + (userName || 'Користувач');
+            document.getElementById('pageSubtitle').textContent = 'Особисте листування';
+            var chatActions = document.getElementById('pageActions');
+            chatActions.style.display = 'flex';
+            chatActions.innerHTML = '<button class="btn-back" onclick="loadDirectMessages()" title="Назад до списку"><i class="fas fa-arrow-left"></i> Назад до переписок</button>';
+
+            var container = document.getElementById('orgsContainer');
+            if (!container) return;
+            container.innerHTML =
+                '<div class="card">' +
+                    '<div id="dmChatBody" style="max-height:60vh;min-height:220px;overflow-y:auto;margin-bottom:0.8rem;padding:0.25rem;">' +
+                        '<p class="text-muted">Завантаження...</p>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:0.6rem;">' +
+                        '<textarea class="form-control" id="dmMessageInput" rows="2" placeholder="Написати повідомлення..." style="flex:1;min-height:50px;"></textarea>' +
+                        '<button class="btn btn-gold" id="dmSendBtn" onclick="sendDmMessage()" style="align-self:flex-end;">' +
+                            '<i class="fas fa-paper-plane"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+
+            var input = document.getElementById('dmMessageInput');
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDmMessage();
+                }
+            });
+            input.focus();
+
             var body = document.getElementById('dmChatBody');
-            body.innerHTML = '<p class="text-muted">Завантаження...</p>';
             
             try {
                 var user = auth.getCurrentUser();
                 if (!user) return;
                 
                 // Позначаємо всі повідомлення від цього користувача як прочитані
-                await db.supabaseQuery(
-                    'direct_messages?recipient_id=eq.' + user.id + '&sender_id=eq.' + userId,
-                    { is_read: true },
-                    'PATCH'
-                );
+                await db.markDirectMessagesRead(userId);
                 await updateDmBadge();
                 
                 // Отримуємо історію повідомлень
                 var msgs = await db.supabaseQuery(
-                    'direct_messages?or=(and(sender_id.eq.' + user.id + ',recipient_id.eq.' + userId + '),and(sender_id.eq.' + userId + ',recipient_id.eq.' + user.id + '))&order=created_at.asc&limit=100'
+                    'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + userId + ',recipient_id.eq.' + userId + ')&order=created_at.asc&limit=100'
                 );
                 
                 if (!msgs || msgs.length === 0) {
@@ -1310,9 +1355,15 @@
                     for (var i = 0; i < msgs.length; i++) {
                         var msg = msgs[i];
                         var isOwn = msg.sender_id === user.id;
+                        // Показуємо роль відправника (Засновник/Адмін/Typebiz Bot і т.д.),
+                        // а не завжди його реальне ім'я
+                        var senderLabel = 'Ви';
+                        if (!isOwn) {
+                            senderLabel = isStaffRole(msg.sender_role) ? getRoleBadgeHtml(msg.sender_role) : (userName || 'Користувач');
+                        }
                         html += '<div class="dm-chat-message' + (isOwn ? ' own' : '') + '">';
-                        html += '<div class="dm-msg-top"><span>' + (isOwn ? 'Ви' : (userName || 'Користувач')) + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
-                        html += '<div class="dm-msg-body">' + msg.message + '</div>';
+                        html += '<div class="dm-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+                        html += '<div class="dm-msg-body">' + (msg.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
                         html += '</div>';
                     }
                     body.innerHTML = html;
@@ -1336,35 +1387,34 @@
             var user = auth.getCurrentUser();
             if (!user) return;
             
-            var btn = document.querySelector('#dmChatModal .btn-gold');
+            var btn = document.getElementById('dmSendBtn');
             if (btn) {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             }
             
             try {
-                await db.supabaseQuery('direct_messages', {
-                    sender_id: user.id,
-                    recipient_id: currentDmUserId,
-                    message: message,
-                    is_read: false,
-                    created_at: new Date().toISOString()
-                }, 'POST');
+                // ВАЖЛИВО: використовуємо готову функцію db.sendDirectMessage(),
+                // а не "сирий" db.supabaseQuery() з невірними аргументами
+                // (саме через це повідомлення раніше НЕ створювались у базі —
+                // POST фактично не відправлявся).
+                await db.sendDirectMessage(currentDmUserId, message, {
+                    senderName: user.full_name || user.email || 'Користувач',
+                    senderRole: user.role
+                });
                 
                 input.value = '';
+                input.focus();
                 
                 // Додаємо повідомлення в чат
                 var body = document.getElementById('dmChatBody');
-                var html = '<div class="dm-chat-message own">';
-                html += '<div class="dm-msg-top"><span>Ви</span><span>' + formatDateTimeKyiv(new Date().toISOString()) + '</span></div>';
-                html += '<div class="dm-msg-body">' + message + '</div>';
-                html += '</div>';
-                body.insertAdjacentHTML('beforeend', html);
-                body.scrollTop = body.scrollHeight;
-                
-                // Оновлюємо список переписок
-                if (sessionStorage.getItem('onDmPage') === 'true') {
-                    setTimeout(loadDirectMessages, 500);
+                if (body) {
+                    var html = '<div class="dm-chat-message own">';
+                    html += '<div class="dm-msg-top"><span>Ви</span><span>' + formatDateTimeKyiv(new Date().toISOString()) + '</span></div>';
+                    html += '<div class="dm-msg-body">' + message.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+                    html += '</div>';
+                    body.insertAdjacentHTML('beforeend', html);
+                    body.scrollTop = body.scrollHeight;
                 }
                 
             } catch (error) {
@@ -1376,19 +1426,6 @@
                 btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
             }
         }
-
-        // Натискання Enter для відправки
-        document.addEventListener('DOMContentLoaded', function() {
-            var input = document.getElementById('dmMessageInput');
-            if (input) {
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendDmMessage();
-                    }
-                });
-            }
-        });
 
         // Real-time для нових повідомлень в чаті
         function setupRealtimeDmChat(otherUserId) {
@@ -1414,15 +1451,16 @@
                     
                     // Якщо це відкритий чат з цим користувачем
                     if (currentDmUserId === msg.sender_id) {
+                        var senderLabel = isStaffRole(msg.sender_role) ? getRoleBadgeHtml(msg.sender_role) : (msg.sender_name || 'Користувач');
                         var html = '<div class="dm-chat-message">';
-                        html += '<div class="dm-msg-top"><span>' + (otherUserId === msg.sender_id ? 'Користувач' : 'Ви') + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
-                        html += '<div class="dm-msg-body">' + msg.message + '</div>';
+                        html += '<div class="dm-msg-top"><span>' + senderLabel + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
+                        html += '<div class="dm-msg-body">' + (msg.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
                         html += '</div>';
                         body.insertAdjacentHTML('beforeend', html);
                         body.scrollTop = body.scrollHeight;
                         
                         // Позначаємо як прочитане
-                        db.supabaseQuery('direct_messages?id=eq.' + msg.id, { is_read: true }, 'PATCH');
+                        db.markDirectMessagesRead(otherUserId);
                         updateDmBadge();
                     }
                 })
@@ -1884,9 +1922,6 @@
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     this.classList.remove('active');
-                    if (this.id === 'dmChatModal') {
-                        loadDirectMessages();
-                    }
                 }
             });
         });
@@ -1914,6 +1949,37 @@
         }
 
         // ============================================================
+        // МІНІ-ПРОФІЛЬ У САЙДБАРІ (окремо від loadDashboard,
+        // щоб він завантажувався на БУДЬ-ЯКІЙ вкладці, а не тільки
+        // на "Мої організації")
+        // ============================================================
+        function renderUserProfileSidebar(user) {
+            if (!user) return;
+            document.getElementById('userName').textContent = user.full_name || 'Користувач';
+            document.getElementById('userEmail').textContent = user.email;
+
+            var avatarEl = document.getElementById('userAvatar');
+            if (user.avatar_url) {
+                avatarEl.innerHTML = '<img src="' + user.avatar_url + '" alt="Аватар">';
+            } else {
+                avatarEl.textContent = (user.full_name || 'U')[0].toUpperCase();
+            }
+
+            var adminLink = document.getElementById('adminLink');
+            var ownerLink = document.getElementById('ownerLink');
+            if (user.role === 'owner') {
+                ownerLink.style.display = 'block';
+                adminLink.style.display = 'none';
+            } else if (user.role === 'admin' || user.role === 'moderator') {
+                adminLink.style.display = 'block';
+                ownerLink.style.display = 'none';
+            } else {
+                adminLink.style.display = 'none';
+                ownerLink.style.display = 'none';
+            }
+        }
+
+        // ============================================================
         // ІНІЦІАЛІЗАЦІЯ
         // ============================================================
         (async function init() {
@@ -1925,7 +1991,13 @@
                     window.location.href = '/banned';
                     return;
                 }
-                
+
+                // Завжди заповнюємо міні-профіль зліва, незалежно від того,
+                // яка вкладка відновлюється (раніше це робилось лише
+                // всередині loadDashboard(), тож на Сповіщеннях/Переписках
+                // профіль лишався "Завантаження...")
+                renderUserProfileSidebar(user);
+
                 var onNotificationsPage = sessionStorage.getItem('onNotificationsPage') === 'true';
                 var onDmPage = sessionStorage.getItem('onDmPage') === 'true';
                 
@@ -1943,20 +2015,6 @@
                     if (window.renderGlobalAnnouncements) {
                         renderGlobalAnnouncements();
                     }
-                }
-
-                // Якщо перейшли за посиланням на конкретну переписку (напр. з сповіщення
-                // "У вас нове повідомлення") - відкриваємо маленьке діалогове вікно чату,
-                // а не просто вантажимо дашборд.
-                var dmUserId = new URLSearchParams(window.location.search).get('dm');
-                if (dmUserId) {
-                    window.history.replaceState({}, '', window.location.pathname);
-                    var dmUserName = null;
-                    try {
-                        var dmProfileRows = await db.supabaseQuery('users?id=eq.' + dmUserId + '&select=full_name');
-                        dmUserName = dmProfileRows && dmProfileRows[0] ? dmProfileRows[0].full_name : null;
-                    } catch (e) {}
-                    openDmChat(dmUserId, dmUserName);
                 }
                 
                 if (window.setupNotificationsRealtime) {

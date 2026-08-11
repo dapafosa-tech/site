@@ -162,6 +162,15 @@
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="email" required>
             </div>
+            <div class="form-group">
+                <label class="form-label">Ваш ID <span style="font-weight:400;color:var(--muted);">(за ним вас можуть знайти для переписки)</span></label>
+                <div style="display:flex;gap:0.5rem;">
+                    <input type="text" class="form-control" id="userIdField" readonly disabled style="flex:1;font-family:monospace;font-size:0.85rem;opacity:0.85;cursor:default;">
+                    <button type="button" class="btn btn-teal" id="copyIdBtn" onclick="copyUserId()" style="flex-shrink:0;">
+                        <i class="fas fa-copy"></i> Копіювати
+                    </button>
+                </div>
+            </div>
             <button type="submit" class="btn btn-gold">
                 <i class="fas fa-save"></i> Зберегти
             </button>
@@ -238,6 +247,28 @@
             }
         }
 
+        async function copyUserId() {
+            var field = document.getElementById('userIdField');
+            var id = field.value;
+            if (!id) return;
+            var btn = document.getElementById('copyIdBtn');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(id);
+                } else {
+                    field.disabled = false;
+                    field.select();
+                    document.execCommand('copy');
+                    field.disabled = true;
+                }
+                var originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Скопійовано';
+                setTimeout(function() { btn.innerHTML = originalHtml; }, 1500);
+            } catch (error) {
+                showToast('Не вдалося скопіювати ID', 'error');
+            }
+        }
+
         (async function() {
             var isAuth = await auth.requireAuth();
             if (!isAuth) return;
@@ -246,6 +277,7 @@
             if (user) {
                 document.getElementById('fullName').value = user.full_name || '';
                 document.getElementById('email').value = user.email;
+                document.getElementById('userIdField').value = user.id || '';
                 renderAvatar(user);
             }
 
