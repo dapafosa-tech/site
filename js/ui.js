@@ -505,7 +505,7 @@ window.playNotificationSound = playNotificationSound;
 function showNewMessagePopup(options) {
     options = options || {};
     var icon = options.icon || '📬';
-    var title = options.title || 'Нове повідомлення';
+    var title = options.title || 'У вас нове повідомлення';
     var message = options.message || '';
     var link = options.link || null;
     var duration = options.duration || 7000;
@@ -594,6 +594,10 @@ function setupNotificationsRealtime() {
                 'support_escalation': '🔺',
                 'system_alert': '⚠️',
                 'appeal_result': '⚖️',
+                'direct_message': '✉️',
+                'ban_approval_needed': '🛑',
+                'ban_approved': '⛔',
+                'ban_rejected': '✅',
                 'default': '📬'
             };
             var icon = iconMap[n.type] || iconMap.default;
