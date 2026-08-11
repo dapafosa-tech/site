@@ -912,9 +912,6 @@
                         if (canDeleteTarget(user, u) && !isCurrentUser) {
                             actionsHtml += '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteUser(\'' + u.id + '\')" title="Видалити"><i class="fas fa-trash"></i></button>';
                         }
-                        if (user.role === 'owner' && !isCurrentUser && u.reg_ip) {
-                            actionsHtml += '<button class="btn btn-sm btn-warning" onclick="event.stopPropagation();banUserIp(\'' + u.reg_ip + '\')" title="Забанити IP"><i class="fas fa-network-wired"></i></button>';
-                        }
                         actionsHtml += '</div>';
                         var banStatusLabel = isUserBanned ? (u.banned_until ? 'До ' + formatDateKyiv(u.banned_until) : 'Назавжди') : 'Активний';
                         html += '<tr class="clickable-row" onclick="openUserProfileModal(\'' + u.id + '\')" data-name="' + (u.full_name || '').toLowerCase() + '" data-email="' + (u.email || '').toLowerCase() + '" data-role="' + (u.role || 'user') + '" data-status="' + (isUserBanned ? 'banned' : 'active') + '"><td><strong>' + (u.full_name || 'Без імені') + '</strong>' + (isCurrentUser ? ' (ви)' : '') + '</td><td>' + (u.email || '—') + '</td><td>' + (u.phone || '<span class="text-muted">—</span>') + '</td><td>' + (roleLabels[u.role] || roleLabels.user) + '</td><td><span class="badge ' + (isUserBanned ? 'badge-danger' : 'badge-success') + '" title="' + banStatusLabel + '">' + banStatusLabel + '</span></td><td style="font-size:0.8rem;white-space:nowrap;"><div title="IP реєстрації">' + (u.reg_ip || '—') + '</div><div class="text-muted" title="Останній вхід">' + (u.last_ip || '—') + '</div></td><td onclick="event.stopPropagation();">' + actionsHtml + '</td></tr>';
@@ -1004,33 +1001,6 @@
         // ============================================================
         // ДІЇ З КОРИСТУВАЧАМИ
         // ============================================================
-        async function banUserIp(ip) {
-            var user = auth.getCurrentUser();
-            if (!user || user.role !== 'owner') { await showAlert('Тільки засновник може банити по IP', 'error'); return; }
-            var daysInput = await showPrompt('На скільки днів заблокувати IP ' + ip + '? (макс. 2000, порожньо = назавжди):', '', 'Блокування IP');
-            if (daysInput === null) return;
-            var banUntil = null;
-            if (daysInput && daysInput.trim() !== '') {
-                var days = parseInt(daysInput.trim(), 10);
-                if (isNaN(days) || days <= 0) { await showAlert('Строк має бути додатним числом днів', 'warning'); return; }
-                if (days > 2000) { await showAlert('Максимальний строк - 2000 днів', 'warning'); return; }
-                banUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-            }
-            var reason = await showPrompt('Причина блокування IP:', 'Порушення правил', 'Блокування IP');
-            if (reason === null) return;
-            var confirmed = await showConfirm('Заблокувати реєстрацію з IP ' + ip + (banUntil ? ' на ' + daysInput.trim() + ' дн.' : ' назавжди') + '?', 'Підтвердження');
-            if (!confirmed) return;
-            try {
-                await db.supabaseQuery('banned_ips', {
-                    method: 'POST',
-                    body: JSON.stringify({ ip: ip, reason: (reason || '').trim() || null, banned_by: user.id, banned_until: banUntil })
-                });
-                await db.addLog('Заблоковано IP', 'ip', ip, { reason: reason, banned_until: banUntil });
-                await showToast('IP заблоковано', 'success');
-                loadUsers();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
-        }
-
         async function banUser(userId) {
             try {
                 var user = auth.getCurrentUser();
