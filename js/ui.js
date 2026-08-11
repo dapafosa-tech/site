@@ -1,5 +1,5 @@
 // ============================================
-// TYPEBIZ - UI КОМПОНЕНТИ (КАСТОМНІ МОДАЛКИ)
+// TYPEBIZ - UI КОМПОНЕНТИ (ПОВНА ВЕРСІЯ)
 // ============================================
 
 // ============= РОЛІ / РАНГИ =============
@@ -69,7 +69,7 @@ function formatTimeKyiv(dateValue) {
 }
 
 // ============================================================
-// SHORT ID ДЛЯ ТІКЕТІВ (як #00ee47a3)
+// SHORT ID ДЛЯ ТІКЕТІВ
 // ============================================================
 
 function getShortTicketId(fullId) {
@@ -323,7 +323,7 @@ style.textContent =
 document.head.appendChild(style);
 
 // ============================================================
-// СИСТЕМНІ НАЛАШТУВАННЯ: НАЗВА САЙТУ + ОГОЛОШЕННЯ
+// СИСТЕМНІ НАЛАШТУВАННЯ
 // ============================================================
 
 async function applySiteBranding() {
@@ -495,6 +495,9 @@ async function loadNotificationsPage(containerId) {
     var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
     if (!user) return;
     
+    // Зберігаємо стан, що ми на сторінці сповіщень
+    sessionStorage.setItem('onNotificationsPage', 'true');
+    
     try {
         var notifications = await db.supabaseQuery('notifications?user_id=eq.' + user.id + '&order=created_at.desc&limit=100');
         var unread = notifications ? notifications.filter(function(n) { return !n.is_read; }) : [];
@@ -524,7 +527,12 @@ async function loadNotificationsPage(containerId) {
                 var icon = iconMap[n.type] || iconMap.default;
                 var link = n.link || '#';
                 
-                html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';' + (n.link ? 'window.location.href=\'' + n.link + '\'' : '') + '">';
+                // Для згадувань в чаті - посилання на організацію
+                if (n.type === 'chat_mention' && n.organization_id) {
+                    link = '/org?id=' + n.organization_id;
+                }
+                
+                html += '<div class="notification-item' + (isUnread ? ' unread' : '') + '" onclick="' + (isUnread ? 'markNotificationRead(\'' + n.id + '\')' : '') + ';window.location.href=\'' + link + '\'">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
                 html += '<div class="notif-title"><i class="fas ' + icon + '" style="color:var(--gold);margin-right:0.5rem;"></i>' + n.title + '</div>';
                 html += '<span class="notif-time">' + formatDateTimeKyiv(n.created_at) + '</span>';
@@ -541,8 +549,36 @@ async function loadNotificationsPage(containerId) {
         
         container.innerHTML = html;
         
+        // Оновлюємо заголовок
+        var pageTitle = document.getElementById('pageTitle');
+        var pageSubtitle = document.getElementById('pageSubtitle');
+        var pageEyebrow = document.getElementById('pageEyebrow');
+        var pageActions = document.getElementById('pageActions');
+        
+        if (pageTitle) pageTitle.textContent = '📬 Сповіщення';
+        if (pageSubtitle) pageSubtitle.textContent = 'Всі ваші сповіщення';
+        if (pageEyebrow) pageEyebrow.textContent = 'Сповіщення';
+        if (pageActions) pageActions.style.display = 'none';
+        
+        // Активуємо посилання на сповіщення
+        document.querySelectorAll('.nav-menu a').forEach(function(a) {
+            a.classList.remove('active');
+        });
+        var notifLink = document.querySelector('.nav-menu a[onclick*="loadNotifications()"]');
+        if (notifLink) notifLink.classList.add('active');
+        
     } catch (error) {
-        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень</p></div>';
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
+    }
+}
+
+// Функція для повернення до дашборду зі сповіщень
+function goBackToDashboard() {
+    sessionStorage.removeItem('onNotificationsPage');
+    if (typeof loadDashboardView === 'function') {
+        loadDashboardView();
+    } else {
+        window.location.href = '/dashboard';
     }
 }
 
@@ -596,6 +632,7 @@ window.markNotificationRead = markNotificationRead;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.setupNotificationsRealtime = setupNotificationsRealtime;
 window.loadNotificationsPage = loadNotificationsPage;
+window.goBackToDashboard = goBackToDashboard;
 
 window.subscribeRealtime = subscribeRealtime;
 window.unsubscribeRealtime = unsubscribeRealtime;
