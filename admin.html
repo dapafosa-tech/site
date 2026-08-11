@@ -1070,11 +1070,8 @@
                 if (!confirmed) return;
 
                 var banDays = daysInput ? parseInt(daysInput.trim(), 10) : 0;
-                var isPermanentBan = !banUntil;
+                var needsApproval = user.role === 'moderator' && (banDays >= 5 || !banUntil);
 
-                // Модератор не може одразу банити на 5+ днів або безстроково —
-                // такий бан йде на розгляд адмін-форми, яку схвалює лише засновник/адміністратор.
-                var needsApproval = (user.role === 'moderator') && (banDays >= 5 || isPermanentBan);
                 if (needsApproval) {
                     try {
                         await db.supabaseQuery('admin_forms', {
@@ -1084,21 +1081,18 @@
                                 created_by: user.id,
                                 created_by_role: user.role,
                                 recipient_text: 'admin_team',
-                                subject: 'Запит на блокування: ' + (target.full_name || target.email || 'користувача'),
-                                body: 'Бан на ' + (isPermanentBan ? 'назавжди' : banDays + ' дн.') + '. Причина: ' + reason.trim(),
+                                subject: 'Форма покарання: бан ' + (target.full_name || target.email || 'користувача'),
+                                body: 'Бан на ' + (banUntil ? banDays + ' дн.' : 'назавжди') + '. Причина: ' + reason.trim(),
                                 target_user_id: userId,
-                                ban_days: isPermanentBan ? 0 : banDays,
+                                ban_days: banDays || 0,
                                 status: 'pending'
                             })
                         });
-                        try {
-                            await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
-                        } catch (e) { console.warn('Could not update last_ban_action_at:', e.message); }
-                        await db.addLog('Подано запит на блокування', 'user', userId, { reason: reason.trim(), days: isPermanentBan ? 'назавжди' : banDays, user_name: target.full_name || target.email || 'Користувач' });
-                        await showToast('Бан на 5+ днів потребує схвалення. Запит відправлено засновнику/адміністратору.', 'info');
+                        await showToast('Бан на 5+ днів потребує затвердження засновником або адміністратором. Форму відправлено.', 'info');
                         loadUsers();
                     } catch (formError) {
-                        await showAlert('Помилка створення запиту на блокування: ' + formError.message, 'error');
+                        console.warn('Помилка створення форми покарання:', formError);
+                        await showAlert('Не вдалось створити форму покарання: ' + formError.message, 'error');
                     }
                     return;
                 }
@@ -1832,10 +1826,6 @@ async function closeSupportTicket(ticketId) {
             var typeColors = { transfer: 'badge-primary', request: 'badge-warning', punishment: 'badge-danger' };
             var roleLabels = { ai: '🤖 ШІ', moderator: '🛡️ Модератор', admin: '⭐ Адмін', owner: '👑 Засновник' };
             var statusLabels = { pending: 'Очікує', answered: 'Відповіли', approved: 'Схвалено', rejected: 'Відхилено', closed: 'Закрито' };
-            var currentUser = auth.getCurrentUser();
-            // Схвалювати/відхиляти форми покарання й відповідати на форми може лише засновник або адміністратор.
-            // Модератор має лише перегляд.
-            var canRespond = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
             var filtered = adminFormsCache.filter(function(f) {
                 return (!typeFilter || f.form_type === typeFilter) && (!statusFilter || f.status === statusFilter);
@@ -1848,17 +1838,16 @@ async function closeSupportTicket(ticketId) {
                 var f = filtered[i];
                 var isAnswered = !!f.answered_at;
                 var fromName = adminFormsUserMapCache[f.created_by] || '—';
-                var banDaysLabel = f.form_type === 'punishment' ? (f.ban_days ? f.ban_days + ' дн.' : 'назавжди') : '';
                 html += '<div class="form-type-card' + (isAnswered ? ' answered' : '') + '">';
                 html += '<div class="flex justify-between items-center" style="margin-bottom:0.5rem;"><div><span class="badge ' + (typeColors[f.form_type] || 'badge-secondary') + '">' + (typeLabels[f.form_type] || f.form_type) + '</span> <span class="badge badge-secondary">' + (statusLabels[f.status] || f.status) + '</span></div><span class="text-muted" style="font-size:0.75rem;">' + formatDateTimeKyiv(f.created_at) + '</span></div>';
                 html += '<div style="font-size:0.9rem;"><strong>Кому:</strong> ' + (f.recipient_text || '—') + '</div>';
                 html += '<div style="font-size:0.9rem;margin-top:0.2rem;"><strong>Що:</strong> ' + (f.subject || '—') + '</div>';
                 if (f.body) html += '<div class="text-muted" style="font-size:0.85rem;margin-top:0.3rem;">' + f.body + '</div>';
-                if (f.form_type === 'punishment') html += '<div style="font-size:0.85rem;margin-top:0.3rem;"><strong>Строк бану:</strong> ' + banDaysLabel + (f.target_user_id ? ' · <a href="javascript:void(0)" onclick="openUserProfileModal(\'' + f.target_user_id + '\')" style="color:var(--gold);">переглянути ціль</a>' : '') + '</div>';
+                if (f.form_type === 'punishment') html += '<div style="font-size:0.85rem;margin-top:0.3rem;"><strong>Строк бану:</strong> ' + (f.ban_days || '—') + ' дн.' + (f.target_user_id ? ' · <a href="javascript:void(0)" onclick="openUserProfileModal(\'' + f.target_user_id + '\')" style="color:var(--gold);">переглянути ціль</a>' : '') + '</div>';
                 html += '<div class="text-muted" style="font-size:0.78rem;margin-top:0.3rem;">Від: ' + fromName + ' (' + (roleLabels[f.created_by_role] || f.created_by_role || '—') + ')</div>';
                 if (isAnswered) {
                     html += '<div style="margin-top:0.5rem;padding:0.6rem;background:var(--ink-raised);border-radius:6px;"><strong>Відповідь:</strong> ' + (f.response || '—') + '<div class="text-muted" style="font-size:0.72rem;margin-top:0.2rem;">' + formatDateTimeKyiv(f.answered_at) + ' — форму закрито, повторна відповідь неможлива</div></div>';
-                } else if (canRespond) {
+                } else {
                     html += '<div style="margin-top:0.6rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">';
                     html += '<input type="text" class="form-control" id="formResp_' + f.id + '" placeholder="Відповідь..." style="flex:1;min-width:180px;">';
                     if (f.form_type === 'punishment') {
@@ -1868,8 +1857,6 @@ async function closeSupportTicket(ticketId) {
                         html += '<button class="btn btn-sm btn-gold" onclick="respondAdminForm(\'' + f.id + '\', \'answered\')"><i class="fas fa-paper-plane"></i> Відповісти</button>';
                     }
                     html += '</div>';
-                } else {
-                    html += '<div class="text-muted" style="margin-top:0.6rem;font-size:0.8rem;"><i class="fas fa-eye"></i> Лише перегляд — рішення приймає засновник або адміністратор</div>';
                 }
                 html += '</div>';
             }
@@ -1877,14 +1864,10 @@ async function closeSupportTicket(ticketId) {
         }
 
         async function respondAdminForm(formId, newStatus) {
-            var user = auth.getCurrentUser();
-            if (!user || (user.role !== 'admin' && user.role !== 'owner')) {
-                await showAlert('Схвалювати або відхиляти форми може лише засновник або адміністратор', 'error');
-                return;
-            }
             var input = document.getElementById('formResp_' + formId);
             var response = input ? input.value.trim() : '';
             if (!response) { await showAlert('Введіть текст відповіді', 'warning'); return; }
+            var user = auth.getCurrentUser();
             try {
                 await db.supabaseQuery('admin_forms?id=eq.' + formId, {
                     method: 'PATCH',
@@ -1893,30 +1876,16 @@ async function closeSupportTicket(ticketId) {
 
                 var form = adminFormsCache.find(function(f) { return f.id === formId; });
                 if (form && form.form_type === 'punishment' && newStatus === 'approved' && form.target_user_id) {
-                    var days = form.ban_days || 0;
-                    var until = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
+                    var days = form.ban_days || 5;
+                    var until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
                     await db.supabaseQuery('users?id=eq.' + form.target_user_id, {
                         method: 'PATCH',
-                        body: JSON.stringify({ is_banned: true, ban_reason: '[Схвалено] ' + (form.subject || ''), banned_until: until })
+                        body: JSON.stringify({ is_banned: true, ban_reason: '[Форма #' + formId.substring(0,8) + '] ' + (form.subject || ''), banned_until: until })
                     });
-                    // Бан виконано — в історії він фіксується за модератором/ШІ, який його ініціював, а не за тим, хто схвалив
-                    var requesterName = adminFormsUserMapCache[form.created_by] || (form.created_by_role === 'ai' ? 'ШІ' : 'Модератор');
-                    await db.supabaseQuery('activity_logs', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            id: (window.generateUUID ? generateUUID() : (Date.now() + '-' + Math.random().toString(16).slice(2))),
-                            user_id: form.created_by || null,
-                            user_name: requesterName,
-                            action: 'Заблоковано користувача',
-                            entity_type: 'user',
-                            entity_id: form.target_user_id,
-                            details: { reason: form.subject, days: days || 'назавжди', approved_by: user.full_name || user.email, form_id: formId },
-                            created_at: new Date().toISOString()
-                        })
-                    });
+                    await db.addLog('Бан виконано за схваленою формою', 'user', form.target_user_id, { form_id: formId, days: days });
                 }
 
-                await db.addLog(newStatus === 'approved' ? 'Схвалено запит на блокування' : 'Відповідь на Адмін-Форму', 'admin_form', formId, { status: newStatus });
+                await db.addLog('Відповідь на Адмін-Форму', 'admin_form', formId, { status: newStatus });
                 await showToast('Форму оброблено', 'success');
                 loadAdminForms();
             } catch (error) { await showAlert('Помилка: ' + error.message + ' (форма могла бути вже оброблена іншим адміном)', 'error'); }
