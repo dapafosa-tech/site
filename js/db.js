@@ -999,7 +999,7 @@ async function sendDirectMessage(recipientId, message, opts) {
         id: generateUUID(),
         sender_id: opts.senderId || me.id,
         sender_role: opts.senderRole || (me && me.role) || 'user',
-        sender_name: opts.senderName || (me && (me.full_name || me.email)) || 'Адміністрація',
+        sender_name: opts.senderName || (me && (me.full_name || me.email)) || 'Юзер',
         recipient_id: recipientId,
         message: message,
         is_read: false,
