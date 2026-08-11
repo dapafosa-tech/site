@@ -1018,7 +1018,7 @@ async function sendDirectMessage(recipientId, message, opts) {
             user_id: recipientId,
             type: 'direct_message',
             title: 'У вас нове повідомлення',
-            message: (row.sender_name || 'Адміністрація') + ': ' + String(message).slice(0, 140),
+            message: (row.sender_name || 'Юзер') + ': ' + String(message).slice(0, 140),
             link: '/dashboard.html?dm=' + encodeURIComponent(row.sender_id || '')
         });
     } catch (e) {}
