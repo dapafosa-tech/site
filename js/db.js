@@ -1019,7 +1019,7 @@ async function sendDirectMessage(recipientId, message, opts) {
             type: 'direct_message',
             title: 'У вас нове повідомлення',
             message: (row.sender_name || 'Адміністрація') + ': ' + String(message).slice(0, 140),
-            link: '/dashboard.html?dm=' + encodeURIComponent(row.sender_id || '')
+            link: '/dashboard?dm=' + encodeURIComponent(row.sender_id || '')
         });
     } catch (e) {}
 
@@ -1056,6 +1056,18 @@ async function markDirectMessagesRead(otherUserId) {
             method: 'PATCH',
             body: JSON.stringify({ is_read: true, read_at: new Date().toISOString() })
         }
+    );
+}
+
+// Повідомлення з обов'язковою відповіддю, термін яких вийшов і які ще не оброблені
+async function getDirectMessagesWithResponseRequired(userId) {
+    if (!userId) return [];
+    var nowIso = new Date().toISOString();
+    return supabaseQuery(
+        'direct_messages?recipient_id=eq.' + userId +
+        '&response_required=eq.true' +
+        '&response_deadline=lt.' + nowIso +
+        '&is_read=eq.false'
     );
 }
 
@@ -2282,5 +2294,6 @@ window.db = {
     sendDirectMessage: sendDirectMessage,
     getDirectMessageThread: getDirectMessageThread,
     getMyDirectMessageThreads: getMyDirectMessageThreads,
-    markDirectMessagesRead: markDirectMessagesRead
+    markDirectMessagesRead: markDirectMessagesRead,
+    getDirectMessagesWithResponseRequired: getDirectMessagesWithResponseRequired
 };
