@@ -7,24 +7,33 @@ const supabase = createClient(
 );
 
 // ============================================================
-// ПРАВИЛА БАНУ ЗА РОЛЯМИ (без змін від попередньої версії)
-// - owner: ШІ НІКОЛИ не банить. Завжди ескалація до людини.
+// ПРАВИЛА БАНУ ЗА РОЛЯМИ
+// - owner: ШІ НІКОЛИ не банить сам. Завжди ескалація до людини.
 // - admin: бан можливий ЛИШЕ якщо є підтверджені докази:
 //     (a) масовий бан 10+ людей за останню 1 хвилину цим адміном, або
 //     (b) активна мультиакаунт-мітка на цього адміна (очікує розбору).
 //   Інакше — ескалація, а не бан.
-// - moderator / user: ШІ вирішує сам, як і раніше.
+// - moderator / user: ШІ вирішує сам.
 // ============================================================
 
 const MASS_BAN_THRESHOLD = 10;
 const MASS_BAN_WINDOW_MIN = 1;
 const DEFAULT_GRACE_MINUTES = 10;
+const INACTIVITY_AUTOCLOSE_DAYS = 3;
+
+// Текст-маркер привітального повідомлення ШІ. Використовується замість
+// окремої колонки message_kind, щоб не залежати від схеми БД.
+const GREETING_PREFIX = "Вітаю! Я передивився";
+
+const CLOSE_KEYWORDS = [
+  "закрий", "close", "заверши", "закривай", "досить",
+  "спасибо", "дякую", "закрито", "все, дякую", "розібрались", "розібралися"
+];
 
 // ============================================================
 // БАЗА ЗНАНЬ ПРО ФУНКЦІОНАЛ САЙТУ.
-// Без цього ШІ не міг відповісти навіть на прості питання типу
-// "як додати людину в організацію" чи "як змінити пошту" - він знав
-// лише те, що написано в самому тикеті, без жодного уявлення про сайт.
+// Дозволяє ШІ відповідати одразу на прості питання "як зробити X"
+// без грейс-періоду й без ескалації.
 // ============================================================
 const SITE_KNOWLEDGE = `
 ДОВІДКА ПО TYPEBIZ (використовуй це, щоб відповідати на "як зробити X" одразу,
@@ -46,7 +55,7 @@ const SITE_KNOWLEDGE = `
   і тип (ресторан, магазин, готель, клініка, школа, бібліотека, автосервіс,
   IT-компанія, нерухомість, логістика, салон краси, спортзал, тощо).
 - Вступити в існуючу організацію: кнопка "Приєднатися за кодом" на дашборді,
-  ввести 6-значний код, який дає керівник організації.
+  ввести 19-значний код(приклад: keag-lwsf-dojr-pwnu), який дає керівник організації.
 - Код організації: керівник бачить його в картці своєї організації, може
   поділитися з новими учасниками.
 - Ліміти: скільки організацій може створити один користувач і скільки учасників
@@ -85,10 +94,87 @@ const SITE_KNOWLEDGE = `
 
 Якщо питання користувача - просте "як зробити X" по темах вище, ти ЗНАЄШ
 відповідь з цієї довідки і маєш дати її одразу (requires_investigation: false,
-action: "close" або "reply"). Розслідування (requires_investigation: true)
-потрібне лише для скарг на когось, підозри на порушення, бану/розбану,
-багоюзу тощо - НЕ для звичайних питань "як користуватись сайтом".
+action: "close"). Розслідування (requires_investigation: true) потрібне лише
+для скарг на когось, підозри на порушення, бану/розбану, багоюзу тощо - НЕ
+для звичайних питань "як користуватись сайтом".
 `;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isStaffRole(role: string) {
+  return role === "owner" || role === "admin" || role === "moderator" || role === "bot";
+}
+
+function getShortTicketId(fullId: string): string {
+  if (!fullId) return "???????";
+  return "#" + fullId.replace(/-/g, "").slice(0, 8);
+}
+
+function isGreetingMessage(message: string | null | undefined): boolean {
+  return !!message && message.indexOf(GREETING_PREFIX) === 0;
+}
+
+function isCloseRequest(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return CLOSE_KEYWORDS.some((keyword) => lower.includes(keyword));
+}
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
+}
+
+async function getAiSupportSettings() {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("key, value")
+    .in("key", ["ai_support_enabled", "ai_support_grace_minutes"]);
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) map[row.key] = row.value;
+  return {
+    enabled: map["ai_support_enabled"] !== "false",
+    graceMinutes:
+      parseInt(map["ai_support_grace_minutes"] || String(DEFAULT_GRACE_MINUTES), 10) ||
+      DEFAULT_GRACE_MINUTES,
+  };
+}
+
+async function getTicketWithRetry(ticket_id: string, attempts = 3, delayMs = 400) {
+  let lastError: any = null;
+  for (let i = 0; i < attempts; i++) {
+    const { data: ticket, error } = await supabase
+      .from("support_tickets")
+      .select(`
+        *,
+        user:user_id (id, full_name, email, role, is_banned, ban_reason, banned_until, reg_ip, last_ip)
+      `)
+      .eq("id", ticket_id)
+      .single();
+
+    if (ticket) return { ticket, error: null };
+    lastError = error;
+
+    // PGRST116 = "не знайдено рядка" - може бути race condition одразу після insert
+    if (error?.code !== "PGRST116") break;
+
+    if (i < attempts - 1) {
+      console.log(`⏳ Тікет ${ticket_id} ще не видно (спроба ${i + 1}/${attempts}), повтор через ${delayMs}мс`);
+      await sleep(delayMs);
+    }
+  }
+  return { ticket: null, error: lastError };
+}
 
 async function hasMassBanEvidence(adminId: string): Promise<{ found: boolean; count: number }> {
   const since = new Date(Date.now() - MASS_BAN_WINDOW_MIN * 60000).toISOString();
@@ -115,19 +201,6 @@ async function hasPendingMultiAccountFlag(adminId: string): Promise<boolean> {
     if (accounts.includes(adminId)) return true;
   }
   return false;
-}
-
-async function getAiSupportSettings() {
-  const { data } = await supabase
-    .from("system_settings")
-    .select("key, value")
-    .in("key", ["ai_support_enabled", "ai_support_grace_minutes"]);
-  const map: Record<string, string> = {};
-  for (const row of data ?? []) map[row.key] = row.value;
-  return {
-    enabled: map["ai_support_enabled"] !== "false",
-    graceMinutes: parseInt(map["ai_support_grace_minutes"] || String(DEFAULT_GRACE_MINUTES), 10) || DEFAULT_GRACE_MINUTES,
-  };
 }
 
 // Дані про цільового користувача скарги (якщо тикет пов'язаний зі скаргою)
@@ -170,66 +243,224 @@ async function getTargetUserContext(relatedReportId: string | null) {
   return { report, target, banHistory: banHistory ?? [], ipMatches };
 }
 
+async function createAdminFormForEscalation(ticket: any, reason: string, targetUserId?: string) {
+  const shortId = getShortTicketId(ticket.id);
+  const formData = {
+    form_type: "request",
+    created_by: null,
+    created_by_role: "ai",
+    recipient_text: "admin_team",
+    subject: `Потрібен ручний розгляд тікета ${shortId}`,
+    body: `Тікет від ${ticket.user?.full_name || ticket.user?.email}: ${ticket.message}\n\nПричина ескалації: ${reason}`,
+    target_user_id: targetUserId || ticket.user_id,
+    status: "pending",
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    await supabase.from("admin_forms").insert(formData);
+    console.log(`✅ Адмін-форму створено для тікета ${shortId}`);
+  } catch (error) {
+    console.error("❌ Помилка створення адмін-форми:", error);
+  }
+}
+
+async function notifyStaffOfEscalation(ticket: any, shortId: string, reasonText: string) {
+  const { data: staff } = await supabase
+    .from("users")
+    .select("id")
+    .in("role", ["owner", "admin", "moderator"]);
+
+  for (const member of staff ?? []) {
+    try {
+      await supabase.from("notifications").insert({
+        user_id: member.id,
+        title: "🔺 Потрібен ручний розгляд тікета",
+        message: `Тікет ${shortId} від ${ticket.user?.full_name || ticket.user?.email}. ${reasonText}`,
+        type: "support_escalation",
+        link: "/admin",
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("❌ Помилка створення сповіщення:", error);
+    }
+  }
+}
+
+async function insertAiMessage(ticketId: string, message: string) {
+  await supabase.from("support_messages").insert({
+    ticket_id: ticketId,
+    sender_id: null,
+    sender_type: "ai",
+    message,
+    created_at: new Date().toISOString(),
+  });
+}
+
+async function closeTicket(ticketId: string) {
+  await supabase
+    .from("support_tickets")
+    .update({
+      status: "closed",
+      resolved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", ticketId);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    return new Response("ok", { headers: CORS_HEADERS });
   }
 
   try {
-    const { ticket_id } = await req.json();
-    if (!ticket_id) {
-      return new Response(JSON.stringify({ error: "ticket_id required" }), { status: 400 });
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error("❌ Помилка парсингу JSON:", e);
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
     }
+
+    const { ticket_id } = body;
+    if (!ticket_id) {
+      return jsonResponse({ error: "ticket_id required" }, 400);
+    }
+
+    console.log(`📥 Отримано запит на обробку тікета: ${ticket_id}`);
 
     const settings = await getAiSupportSettings();
     if (!settings.enabled) {
-      return new Response(JSON.stringify({ message: "AI support disabled" }), { status: 200 });
+      return jsonResponse({ message: "AI support disabled" });
     }
 
-    const { data: ticket, error } = await supabase
-      .from("support_tickets")
-      .select(`
-        *,
-        user:user_id (id, full_name, email, role, is_banned, ban_reason, banned_until, reg_ip)
-      `)
-      .eq("id", ticket_id)
-      .single();
-
+    const { ticket, error } = await getTicketWithRetry(ticket_id);
     if (error || !ticket) {
-      return new Response(JSON.stringify({ error: "Ticket not found" }), { status: 404 });
+      console.error("❌ Тікет не знайдено:", error);
+      return jsonResponse({ error: "Ticket not found" }, 404);
     }
 
     if (ticket.status === "closed" || ticket.status === "resolved") {
-      return new Response(JSON.stringify({ message: "Already closed" }), { status: 200 });
+      return jsonResponse({ message: "Already closed" });
     }
 
-    // Якщо в тикеті вже є повідомлення від людини-персоналу - ШІ не втручається
-    const { data: existingMessages } = await supabase
+    const shortId = getShortTicketId(ticket.id);
+    console.log(`✅ Тікет знайдено: ${shortId}`);
+
+    // ============================================================
+    // 1. ЧИ Є ВІДПОВІДЬ ВІД ЖИВОГО ПЕРСОНАЛУ - ШІ НЕ ВТРУЧАЄТЬСЯ
+    // ============================================================
+    const { data: allMessages } = await supabase
       .from("support_messages")
-      .select("sender_type")
-      .eq("ticket_id", ticket.id);
-    const humanStaffReplied = (existingMessages ?? []).some((m) =>
-      ["owner", "admin", "moderator"].includes(m.sender_type)
+      .select("sender_type, sender_id, message, created_at")
+      .eq("ticket_id", ticket.id)
+      .order("created_at", { ascending: false });
+
+    const messages = allMessages ?? [];
+
+    const hasStaffReply = messages.some(
+      (m) => isStaffRole(m.sender_type) && m.sender_type !== "ai"
     );
-    if (humanStaffReplied) {
-      return new Response(JSON.stringify({ message: "Human staff already handling" }), { status: 200 });
+    if (hasStaffReply) {
+      console.log("👨‍💼 В тікеті вже відповів персонал - ШІ не втручається");
+      return jsonResponse({ message: "Human staff already replied - AI will not interfere", action: "staff_handled" });
     }
 
+    const latestUserMessage = messages.find((m) => m.sender_type === "user");
+    const userRequestedClose =
+      isCloseRequest(ticket.message) || isCloseRequest(latestUserMessage?.message);
+
+    // ============================================================
+    // 2. ЗАСНОВНИК (owner) - ЗАКРИВАЄМО ТІКЕТ ПІСЛЯ ВІДПОВІДІ АБО ЗА ЗАПИТОМ
+    // ============================================================
+    const isOwner = ticket.user?.role === "owner";
+    if (isOwner) {
+      const hasAiReply = messages.some(
+        (m) => m.sender_type === "ai" && m.message?.length > 20 && !isGreetingMessage(m.message)
+      );
+
+      if (hasAiReply || userRequestedClose) {
+        await insertAiMessage(
+          ticket.id,
+          "👑 Тікет закрито для засновника. Якщо потрібна допомога - створіть новий тікет."
+        );
+        await closeTicket(ticket.id);
+        console.log(`✅ Тікет ${shortId} закрито для засновника`);
+        return jsonResponse({
+          success: true,
+          ticket_id: ticket.id,
+          short_id: shortId,
+          action: "closed_for_owner",
+          result: "Тікет закрито для засновника",
+        });
+      }
+    }
+
+    // ============================================================
+    // 3. КОРИСТУВАЧ ПРОСИТЬ ЗАКРИТИ ТІКЕТ
+    // ============================================================
+    if (userRequestedClose) {
+      await insertAiMessage(
+        ticket.id,
+        "✅ Тікет закрито за вашим запитом. Якщо матимете ще питання - створіть новий тікет."
+      );
+      await closeTicket(ticket.id);
+      return jsonResponse({
+        success: true,
+        ticket_id: ticket.id,
+        short_id: shortId,
+        action: "closed_by_user_request",
+        result: "Тікет закрито за запитом користувача",
+      });
+    }
+
+    // ============================================================
+    // 4. ТІКЕТ НЕАКТИВНИЙ 3+ ДНІ - АВТОЗАКРИТТЯ
+    // ============================================================
+    const lastActivity = new Date(ticket.updated_at || ticket.created_at);
+    const daysInactive = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (daysInactive >= INACTIVITY_AUTOCLOSE_DAYS) {
+      await insertAiMessage(
+        ticket.id,
+        `⏰ Тікет автоматично закрито через ${INACTIVITY_AUTOCLOSE_DAYS} дні бездіяльності. Якщо потрібна допомога - створіть новий тікет.`
+      );
+      await closeTicket(ticket.id);
+      return jsonResponse({
+        success: true,
+        ticket_id: ticket.id,
+        short_id: shortId,
+        action: "closed_inactive_3days",
+        result: `Тікет закрито через ${INACTIVITY_AUTOCLOSE_DAYS} дні бездіяльності`,
+      });
+    }
+
+    // ============================================================
+    // 5. ЗАХИСТ ВІД ПОВТОРНОЇ ОБРОБКИ: якщо останнє (не привітальне)
+    // повідомлення вже від ШІ, а користувач ще не відповів - чекаємо.
+    // ============================================================
+    const lastNonGreeting = messages.find((m) => !isGreetingMessage(m.message));
+    if (lastNonGreeting && lastNonGreeting.sender_type === "ai") {
+      return jsonResponse({
+        success: true,
+        ticket_id: ticket.id,
+        short_id: shortId,
+        action: "already_answered",
+        result: "ШІ вже відповів, очікується відповідь користувача",
+      });
+    }
+
+    // ============================================================
+    // 6. КОНТЕКСТ ДЛЯ ШІ
+    // ============================================================
     const targetCtx = await getTargetUserContext(ticket.related_report_id);
 
-    // Отримуємо організації автора тикету
     const { data: orgs } = await supabase
       .from("org_members")
       .select("organizations(name, type, status)")
       .eq("user_id", ticket.user_id);
 
-    // Історія самого автора тикету
     const { data: history } = await supabase
       .from("ai_actions_log")
       .select("*")
@@ -239,7 +470,7 @@ Deno.serve(async (req) => {
 
     const targetBlock = targetCtx
       ? `
-ЦЕЙ ТИКЕТ ПОВ'ЯЗАНИЙ ЗІ СКАРГОЮ. Дані ЦІЛЬОВОГО користувача скарги (не автора тикету):
+ЦЕЙ ТІКЕТ ПОВ'ЯЗАНИЙ ЗІ СКАРГОЮ. Дані ЦІЛЬОВОГО користувача скарги (не автора тікету):
 - Ім'я: ${targetCtx.target?.full_name || targetCtx.target?.email}
 - Роль: ${targetCtx.target?.role}
 - Причина скарги: ${targetCtx.report.reason}
@@ -248,25 +479,30 @@ Deno.serve(async (req) => {
 - last_ip: ${targetCtx.target?.last_ip || "немає"}
 - Акаунти з тим самим IP (reg_ip/last_ip): ${
           targetCtx.ipMatches.length
-            ? targetCtx.ipMatches.map((u: any) => `${u.full_name || u.email} (id:${u.id}${u.is_banned ? ", вже забанений" : ""})`).join("; ")
+            ? targetCtx.ipMatches
+                .map((u: any) => `${u.full_name || u.email} (id:${u.id}${u.is_banned ? ", вже забанений" : ""})`)
+                .join("; ")
             : "немає збігів"
         }
 - Історія дій ШІ проти цього користувача: ${
           targetCtx.banHistory.length
-            ? targetCtx.banHistory.map((h: any) => `${new Date(h.created_at).toLocaleString("uk-UA")}: ${h.action_type}`).join("; ")
+            ? targetCtx.banHistory
+                .map((h: any) => `${new Date(h.created_at).toLocaleString("uk-UA")}: ${h.action_type}`)
+                .join("; ")
             : "немає"
         }
 `
       : "";
 
     const context = `
-ТИКЕТ #${ticket.id}
+ТІКЕТ ${shortId}
 Від: ${ticket.user?.full_name || ticket.user?.email}
 Тема: ${ticket.subject}
 Повідомлення: ${ticket.message}
 Тип: ${ticket.type || "general"}
+Статус: ${ticket.status}
 
-ІНФО ПРО АВТОРА ТИКЕТУ:
+ІНФО ПРО АВТОРА ТІКЕТУ:
 - Роль: ${ticket.user?.role || "user"}
 - Забанений: ${ticket.user?.is_banned ? "Так" : "Ні"}
 - IP: ${ticket.user?.reg_ip || "Невідомо"}
@@ -278,7 +514,18 @@ ${orgs?.map((o: any) => `- ${o.organizations?.name || "Невідома"}`).join
 ${history?.map((h: any) => `- ${new Date(h.created_at).toLocaleString("uk-UA")}: ${h.action_type}`).join("\n") || "Немає"}
 ${targetBlock}
 ${SITE_KNOWLEDGE}
-ТИ АГЕНТ ПІДТРИМКИ. Спочатку визнач, чи цей тикет можна вирішити ОДРАЗУ (проста відповідь по системі - див. довідку вище, без потреби перевіряти людину/логи/IP/докази), чи потрібне РОЗСЛІДУВАННЯ (скарги на когось, підозра на порушення, багоюз, бан на 5+ днів тощо).
+ТИ АГЕНТ ПІДТРИМКИ TYPEBIZ. Спочатку визнач, чи цей тікет можна вирішити ОДРАЗУ
+(проста відповідь по системі - див. довідку вище, без потреби перевіряти
+людину/логи/IP/докази), чи потрібне РОЗСЛІДУВАННЯ (скарги на когось, підозра
+на порушення, багоюз, бан на кілька днів тощо).
+
+ВАЖЛИВО:
+1. Якщо питання просте і ти можеш дати повну відповідь одним повідомленням -
+   requires_investigation: false, action: "close" - тікет закриється одразу.
+2. Якщо потрібне втручання людини - action: "escalate".
+3. action: "reply" використовуй, лише якщо відповідаєш, але свідомо лишаєш
+   тікет відкритим для продовження розмови (тікет НЕ закриється).
+4. НІКОЛИ не показуй IP, паролі або особисті дані інших користувачів.
 
 ВІДПОВІДАЙ ТІЛЬКИ JSON:
 {
@@ -286,53 +533,76 @@ ${SITE_KNOWLEDGE}
   "action": "close|reply|ban|unban|escalate",
   "message": "відповідь користувачеві",
   "ban_days": число (якщо ban),
-  "reason": "коротка причина"
+  "reason": "коротка причина дії"
 }`;
 
     const groqKey = Deno.env.get("GROQ_API_KEY");
     if (!groqKey) {
-      throw new Error("GROQ_API_KEY not set");
+      console.error("❌ GROQ_API_KEY не налаштований");
+      return jsonResponse({ error: "GROQ_API_KEY not set" }, 500);
     }
 
+    console.log("🤖 Виклик Groq API...");
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${groqKey}`,
+        Authorization: `Bearer ${groqKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "system", content: "Ти агент підтримки Typebiz. У тебе є довідка про функціонал сайту в повідомленні користувача - користуйся нею для точних відповідей. Відповідай тільки JSON." },
-          { role: "user", content: context }
+          {
+            role: "system",
+            content:
+              "Ти агент підтримки Typebiz. У тебе є довідка про функціонал сайту в повідомленні користувача - користуйся нею для точних відповідей. Відповідай тільки JSON.",
+          },
+          { role: "user", content: context },
         ],
         temperature: 0.2,
         max_tokens: 400,
-        response_format: { type: "json_object" }
+        response_format: { type: "json_object" },
       }),
     });
 
+    if (!groqResponse.ok) {
+      const errorText = await groqResponse.text();
+      console.error("❌ Groq API помилка:", errorText);
+      throw new Error("Groq API error: " + errorText);
+    }
+
     const result = await groqResponse.json();
-    const decision = JSON.parse(result.choices[0].message.content);
+    let decision: any;
+    try {
+      decision = JSON.parse(result.choices[0].message.content);
+    } catch (e) {
+      console.error("❌ Помилка парсингу відповіді Groq:", e);
+      decision = {
+        requires_investigation: false,
+        action: "close",
+        message: "Ваше звернення оброблено. Тікет закрито.",
+        reason: "Оброблено ШІ (fallback)",
+      };
+    }
+
+    console.log("🤖 ШІ прийняв рішення:", decision);
 
     // ============================================================
-    // ФАЗА ВІТАННЯ: якщо тикет потребує розслідування, ще не було
-    // привітання, і грейс-період ще не вийшов - надсилаємо ТІЛЬКИ
-    // вітання і чекаємо. Ніяких дій (бан/закриття) не виконуємо.
+    // 7. ФАЗА ВІТАННЯ: якщо тікет потребує розслідування і ще не
+    // було привітання - надсилаємо ТІЛЬКИ вітання і чекаємо грейс-період.
+    // Прості питання (requires_investigation=false) обробляються одразу,
+    // без грейс-періоду і без вітання.
     // ============================================================
     const createdAt = new Date(ticket.created_at).getTime();
     const minutesSinceCreated = (Date.now() - createdAt) / 60000;
     const graceElapsed = minutesSinceCreated >= settings.graceMinutes;
 
     if (decision.requires_investigation && !ticket.ai_greeted) {
-      const greeting = `Вітаю! Я передивився ваш тикет і взявся за перевірку. Це вимагає додаткового розгляду (${targetCtx ? "перевірка користувача, IP, історії" : "деталей"}), тож зачекайте, будь ласка — я повернусь з відповіддю.`;
-      await supabase.from("support_messages").insert({
-        ticket_id: ticket.id,
-        sender_id: null,
-        sender_type: "ai",
-        message: greeting,
-        created_at: new Date().toISOString(),
-      });
+      const greeting = `${GREETING_PREFIX} ваш тикет і взявся за перевірку. Це вимагає додаткового розгляду (${
+        targetCtx ? "перевірка користувача, IP, історії" : "деталей"
+      }), тож зачекайте, будь ласка — я повернусь з відповіддю.`;
+
+      await insertAiMessage(ticket.id, greeting);
       await supabase
         .from("support_tickets")
         .update({ status: "in_progress", ai_greeted: true, updated_at: new Date().toISOString() })
@@ -343,37 +613,33 @@ ${SITE_KNOWLEDGE}
         target_user_id: ticket.user_id,
         related_ticket_id: ticket.id,
         related_report_id: ticket.related_report_id,
-        ai_reasoning: `[Тикет #${ticket.id}] Вітання надіслано, розслідування заплановане (грейс-період: ${settings.graceMinutes} хв.)`,
+        ai_reasoning: `[Тікет ${shortId}] Вітання надіслано, розслідування заплановане (грейс-період: ${settings.graceMinutes} хв.)`,
         action_taken: { ticket_id: ticket.id, phase: "greeting" },
       });
 
-      return new Response(JSON.stringify({
+      return jsonResponse({
         success: true,
         ticket_id: ticket.id,
+        short_id: shortId,
         action: "greeting",
-        result: "Вітання надіслано, очікує грейс-період"
-      }), { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+        result: "Вітання надіслано, очікує грейс-період",
+      });
     }
 
-    // Якщо потребує розслідування, вітання вже було, але грейс-період ще не минув - чекаємо далі
     if (decision.requires_investigation && ticket.ai_greeted && !graceElapsed) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         success: true,
         ticket_id: ticket.id,
+        short_id: shortId,
         action: "waiting",
-        result: `Очікування грейс-періоду (лишилось ~${Math.ceil(settings.graceMinutes - minutesSinceCreated)} хв.)`
-      }), { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+        result: `Очікування грейс-періоду (лишилось ~${Math.ceil(settings.graceMinutes - minutesSinceCreated)} хв.)`,
+      });
     }
 
-    // requires_investigation === false -> проста відповідь, можна відповісти і закрити одразу,
-    // навіть на першому виклику, без грейс-періоду і без вітання.
-
-    let actionResult = "";
+    // ============================================================
+    // 8. ЗАСТОСОВУЄМО РОЛЬОВІ ГАРАНТІЇ ПЕРЕД ВИКОНАННЯМ БАНУ
+    // ============================================================
     const targetRole = ticket.user?.role || "user";
-
-    // ============================================================
-    // ЗАСТОСОВУЄМО РОЛЬОВІ ГАРАНТІЇ ПЕРЕД ВИКОНАННЯМ БАНУ
-    // ============================================================
     let effectiveAction = decision.action;
     let guardNote = "";
 
@@ -397,52 +663,57 @@ ${SITE_KNOWLEDGE}
       }
     }
 
-    // Виконуємо дії
-    if (effectiveAction === "ban") {
+    // ============================================================
+    // 9. ВИКОНАННЯ ДІЇ
+    // ============================================================
+    let actionResult = "";
+    let finalMessage = decision.message || "Ваше звернення оброблено.";
+    let ticketClosed = false;
+
+    if (effectiveAction === "close") {
+      actionResult = `Тікет ${shortId} закрито`;
+    } else if (effectiveAction === "reply") {
+      actionResult = `Відповідь надіслана в тікет ${shortId}, тікет лишається відкритим`;
+    } else if (effectiveAction === "ban") {
       const days = decision.ban_days || 3;
       const until = new Date(Date.now() + days * 86400000).toISOString();
       await supabase
         .from("users")
-        .update({ is_banned: true, ban_reason: `[Тикет #${ticket.id}] ${decision.reason}`, banned_until: until })
+        .update({
+          is_banned: true,
+          ban_reason: `[Тікет ${shortId}] ${decision.reason || "Порушення правил"}`,
+          banned_until: until,
+        })
         .eq("id", ticket.user_id);
-      actionResult = `Заблоковано на ${days} днів (тикет #${ticket.id})`;
+      actionResult = `Заблоковано на ${days} днів (тікет ${shortId})`;
+      finalMessage = `Ваш акаунт заблоковано на ${days} днів. Причина: ${decision.reason || "Порушення правил"}`;
+      effectiveAction = "close"; // технічно закриваємо тікет після бану
     } else if (effectiveAction === "unban") {
       await supabase
         .from("users")
         .update({ is_banned: false, ban_reason: null, banned_until: null })
         .eq("id", ticket.user_id);
-      actionResult = `Розблоковано (тикет #${ticket.id})`;
+      actionResult = `Розблоковано (тікет ${shortId})`;
+      finalMessage = "Ваш акаунт розблоковано.";
+      effectiveAction = "close";
     } else if (effectiveAction === "escalate") {
-      const { data: staff } = await supabase
-        .from("users")
-        .select("id")
-        .in("role", ["owner", "admin"]);
-      for (const s of staff ?? []) {
-        await supabase.from("notifications").insert({
-          user_id: s.id,
-          title: "🔺 Потрібен ручний розгляд тикета",
-          message: `Тикет #${ticket.id} від ${ticket.user?.full_name || ticket.user?.email}. ${guardNote || decision.reason}`,
-          type: "system_alert",
-          link: `/tickets/${ticket.id}`,
-        });
-      }
-      actionResult = guardNote || "Ескальовано до людини";
+      const reasonText = guardNote || decision.reason || "Необхідне втручання людини";
+      await createAdminFormForEscalation(ticket, reasonText, ticket.user_id);
+      await notifyStaffOfEscalation(ticket, shortId, reasonText);
+      actionResult = `Передано в Адмін-Форми (тікет ${shortId})`;
+      finalMessage = decision.message || "Ваше звернення передано адміністрації для детального розгляду.";
     }
 
-    if (decision.message) {
-      await supabase.from("support_messages").insert({
-        ticket_id: ticket.id,
-        sender_id: null,
-        sender_type: "ai",
-        message: decision.message,
-        created_at: new Date().toISOString()
-      });
-    }
+    await insertAiMessage(ticket.id, finalMessage);
 
     if (effectiveAction === "close") {
+      await closeTicket(ticket.id);
+      ticketClosed = true;
+    } else {
+      // escalate / reply - лишаємо тікет активним
       await supabase
         .from("support_tickets")
-        .update({ status: "resolved", resolved_at: new Date().toISOString() })
+        .update({ status: "in_progress", updated_at: new Date().toISOString() })
         .eq("id", ticket.id);
     }
 
@@ -451,33 +722,31 @@ ${SITE_KNOWLEDGE}
       target_user_id: ticket.user_id,
       related_ticket_id: ticket.id,
       related_report_id: ticket.related_report_id,
-      ai_reasoning: `[Тикет #${ticket.id}] ${decision.reason || "Оброблено"}${guardNote ? " | " + guardNote : ""}`,
+      ai_reasoning: `[Тікет ${shortId}] Дія: ${effectiveAction}. Причина: ${decision.reason || "Немає"}${guardNote ? " | " + guardNote : ""}`,
       action_taken: {
         ticket_id: ticket.id,
+        short_id: shortId,
         requested_action: decision.action,
         action: effectiveAction,
         result: actionResult,
         target_role: targetRole,
         guard_applied: effectiveAction !== decision.action,
         used_target_context: !!targetCtx,
-      }
+      },
     });
 
-    return new Response(JSON.stringify({
+    console.log(`✅ Тікет ${shortId} оброблено. Дія: ${effectiveAction}. Закрито: ${ticketClosed}`);
+
+    return jsonResponse({
       success: true,
       ticket_id: ticket.id,
+      short_id: shortId,
       action: effectiveAction,
-      result: actionResult
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+      result: actionResult,
+      status: ticketClosed ? "closed" : "in_progress",
     });
-
   } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-    });
+    console.error("❌ Критична помилка:", error);
+    return jsonResponse({ error: (error as Error).message || "Internal server error" }, 500);
   }
 });
