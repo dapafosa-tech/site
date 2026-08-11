@@ -533,6 +533,71 @@
         .dm-chat-message .dm-msg-top{font-size:0.7rem;color:var(--muted);display:flex;justify-content:space-between;gap:0.5rem;}
         .dm-chat-message .dm-msg-body{font-size:0.9rem;margin-top:0.2rem;word-break:break-word;}
 
+        /* ==================== Переписка: гарне поле вводу під темну тему ==================== */
+        .dm-chat-card{
+            display:flex;
+            flex-direction:column;
+            padding:0;
+            overflow:hidden;
+        }
+        .dm-chat-body{
+            padding:1.1rem 1.1rem 0.6rem;
+            display:flex;
+            flex-direction:column;
+        }
+        .dm-chat-body::-webkit-scrollbar{width:8px;}
+        .dm-chat-body::-webkit-scrollbar-track{background:transparent;}
+        .dm-chat-body::-webkit-scrollbar-thumb{background:var(--ink-line);border-radius:8px;}
+        .dm-chat-body::-webkit-scrollbar-thumb:hover{background:var(--muted-dim);}
+        .dm-compose{
+            display:flex;
+            align-items:flex-end;
+            gap:0.7rem;
+            padding:0.9rem 1.1rem;
+            background:var(--ink-soft);
+            border-top:1px solid var(--ink-line);
+        }
+        .dm-compose-textarea{
+            flex:1;
+            resize:none;
+            min-height:46px;
+            max-height:160px;
+            padding:0.75rem 1rem;
+            background:var(--ink);
+            border:1px solid var(--ink-line);
+            border-radius:14px;
+            color:var(--text);
+            font-family:'IBM Plex Sans',sans-serif;
+            font-size:0.92rem;
+            line-height:1.4;
+            transition:border-color .15s ease, box-shadow .15s ease;
+        }
+        .dm-compose-textarea::placeholder{color:var(--muted-dim);}
+        .dm-compose-textarea:focus{
+            outline:none;
+            border-color:var(--teal);
+            box-shadow:0 0 0 3px var(--teal-glow);
+        }
+        .dm-send-btn{
+            flex-shrink:0;
+            width:44px;
+            height:44px;
+            border-radius:50%;
+            border:none;
+            background:var(--gold);
+            color:var(--ink);
+            font-size:1rem;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+            box-shadow:0 6px 16px rgba(242,169,59,0.25);
+        }
+        .dm-send-btn:hover:not(:disabled){transform:translateY(-2px) scale(1.03);box-shadow:0 10px 22px rgba(242,169,59,0.35);}
+        .dm-send-btn:active:not(:disabled){transform:translateY(0) scale(0.97);}
+        .dm-send-btn:disabled{opacity:0.55;cursor:not-allowed;box-shadow:none;}
+
         @media(max-width:768px){
             .mobile-topbar{
                 display:flex; align-items:center; justify-content:space-between;
@@ -1192,14 +1257,13 @@
                 // Отримуємо останнє повідомлення для кожного
                 var conversations = [];
                 for (var uid of userIds) {
-                    var lastMessages = await db.supabaseQuery(
-                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
-                    );
-                    // Простіше: отримуємо всі повідомлення між двома користувачами
-                    var msgs = await db.supabaseQuery(
-                        'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + uid + ',recipient_id.eq.' + uid + ')&order=created_at.desc&limit=1'
-                    );
-                    var lastMsg = msgs && msgs.length > 0 ? msgs[0] : null;
+                    // ВАЖЛИВО: правильний фільтр листування між двома користувачами -
+                    // (sender=я AND recipient=він) OR (sender=він AND recipient=я).
+                    // Раніше тут стояв фільтр, який логічно НІКОЛИ не міг знайти
+                    // жодного повідомлення (вимагав sender_id = recipient_id одночасно) —
+                    // тому переписка виглядала порожньою після перезаходу.
+                    var msgs = await db.getDirectMessageThread(uid);
+                    var lastMsg = msgs && msgs.length > 0 ? msgs[msgs.length - 1] : null;
                     
                     // Рахуємо непрочитані
                     var unread = await db.supabaseQuery(
@@ -1312,13 +1376,13 @@
             var container = document.getElementById('orgsContainer');
             if (!container) return;
             container.innerHTML =
-                '<div class="card">' +
-                    '<div id="dmChatBody" style="max-height:60vh;min-height:220px;overflow-y:auto;margin-bottom:0.8rem;padding:0.25rem;">' +
+                '<div class="card dm-chat-card">' +
+                    '<div id="dmChatBody" class="dm-chat-body" style="max-height:60vh;min-height:220px;overflow-y:auto;">' +
                         '<p class="text-muted">Завантаження...</p>' +
                     '</div>' +
-                    '<div style="display:flex;gap:0.6rem;">' +
-                        '<textarea class="form-control" id="dmMessageInput" rows="2" placeholder="Написати повідомлення..." style="flex:1;min-height:50px;"></textarea>' +
-                        '<button class="btn btn-gold" id="dmSendBtn" onclick="sendDmMessage()" style="align-self:flex-end;">' +
+                    '<div class="dm-compose">' +
+                        '<textarea class="dm-compose-textarea" id="dmMessageInput" rows="1" placeholder="Напишіть повідомлення..."></textarea>' +
+                        '<button type="button" class="dm-send-btn" id="dmSendBtn" onclick="sendDmMessage()" title="Надіслати">' +
                             '<i class="fas fa-paper-plane"></i>' +
                         '</button>' +
                     '</div>' +
@@ -1330,6 +1394,10 @@
                     e.preventDefault();
                     sendDmMessage();
                 }
+            });
+            input.addEventListener('input', function() {
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 160) + 'px';
             });
             input.focus();
 
@@ -1343,10 +1411,8 @@
                 await db.markDirectMessagesRead(userId);
                 await updateDmBadge();
                 
-                // Отримуємо історію повідомлень
-                var msgs = await db.supabaseQuery(
-                    'direct_messages?or=(sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id + ')&and=(sender_id.eq.' + userId + ',recipient_id.eq.' + userId + ')&order=created_at.asc&limit=100'
-                );
+                // Отримуємо історію повідомлень (правильний фільтр листування)
+                var msgs = await db.getDirectMessageThread(userId, 100);
                 
                 if (!msgs || msgs.length === 0) {
                     body.innerHTML = '<p class="text-muted text-center" style="padding:2rem 0;">Немає повідомлень. Почніть спілкування!</p>';
