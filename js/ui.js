@@ -456,6 +456,119 @@ async function markAllNotificationsRead() {
     } catch (e) {}
 }
 
+// ============================================================
+// ЗВУК СПОВІЩЕННЯ (Web Audio API, без потреби в mp3-файлі)
+// ============================================================
+
+var _notifAudioCtx = null;
+
+function playNotificationSound() {
+    try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!_notifAudioCtx) _notifAudioCtx = new AudioCtx();
+        if (_notifAudioCtx.state === 'suspended') {
+            _notifAudioCtx.resume().catch(function () {});
+        }
+
+        var ctx = _notifAudioCtx;
+        var now = ctx.currentTime;
+
+        function tone(freq, start, duration, peakGain) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + start);
+            gain.gain.setValueAtTime(0, now + start);
+            gain.gain.linearRampToValueAtTime(peakGain, now + start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + start);
+            osc.stop(now + start + duration + 0.03);
+        }
+
+        // Приємний "дзінь-дон" з двох нот
+        tone(880.0, 0, 0.16, 0.20);
+        tone(1318.5, 0.11, 0.24, 0.15);
+    } catch (e) {
+        // Автовідтворення звуку заблоковане браузером до першої взаємодії - ігноруємо
+    }
+}
+
+window.playNotificationSound = playNotificationSound;
+
+// ============================================================
+// КАСТОМНИЙ ПОПАП ПРО НОВЕ ПОВІДОМЛЕННЯ
+// ============================================================
+
+function showNewMessagePopup(options) {
+    options = options || {};
+    var icon = options.icon || '📬';
+    var title = options.title || 'Нове повідомлення';
+    var message = options.message || '';
+    var link = options.link || null;
+    var duration = options.duration || 7000;
+
+    var stack = document.getElementById('newMsgPopupStack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'newMsgPopupStack';
+        stack.style.cssText =
+            'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000000;' +
+            'display:flex;flex-direction:column;gap:10px;width:100%;max-width:420px;padding:0 12px;pointer-events:none;';
+        document.body.appendChild(stack);
+    }
+
+    var popup = document.createElement('div');
+    popup.className = 'new-msg-popup';
+    popup.style.cssText =
+        'background:linear-gradient(135deg, var(--ink-soft), var(--ink-raised));border:1px solid var(--gold);' +
+        'border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;' +
+        'box-shadow:0 20px 50px rgba(0,0,0,0.55);animation:newMsgPopIn 0.35s cubic-bezier(.2,1,.3,1);' +
+        'pointer-events:auto;cursor:' + (link ? 'pointer' : 'default') + ';color:var(--text-onink);font-family:"IBM Plex Sans",sans-serif;';
+
+    popup.innerHTML =
+        '<span style="font-size:1.6rem;line-height:1;flex-shrink:0;">' + icon + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:600;font-size:0.92rem;margin-bottom:2px;color:var(--gold);">' + title + '</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-onink);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + message + '</div>' +
+        '</div>' +
+        '<button type="button" class="new-msg-popup-close" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px 4px;flex-shrink:0;">' +
+            '<i class="fas fa-times"></i>' +
+        '</button>';
+
+    function dismiss() {
+        clearTimeout(timeoutId);
+        if (!popup.parentElement) return;
+        popup.style.animation = 'newMsgPopOut 0.25s ease forwards';
+        setTimeout(function () {
+            if (popup.parentElement) popup.remove();
+        }, 250);
+    }
+
+    var timeoutId = setTimeout(dismiss, duration);
+
+    popup.querySelector('.new-msg-popup-close').addEventListener('click', function (e) {
+        e.stopPropagation();
+        dismiss();
+    });
+
+    if (link) {
+        popup.addEventListener('click', function () {
+            window.location.href = link;
+        });
+    }
+
+    stack.appendChild(popup);
+}
+
+window.showNewMessagePopup = showNewMessagePopup;
+
+// ============================================================
+// СПОВІЩЕННЯ - REALTIME (бейдж + звук + попап)
+// ============================================================
+
 function setupNotificationsRealtime() {
     var user = window.auth && auth.getCurrentUser ? auth.getCurrentUser() : null;
     if (!user || !window.sb) return;
@@ -483,7 +596,15 @@ function setupNotificationsRealtime() {
                 'appeal_result': '⚖️',
                 'default': '📬'
             };
-            showToast((iconMap[n.type] || iconMap.default) + ' ' + n.title + ': ' + n.message, 'info');
+            var icon = iconMap[n.type] || iconMap.default;
+
+            playNotificationSound();
+            showNewMessagePopup({
+                icon: icon,
+                title: n.title,
+                message: n.message,
+                link: n.link || null
+            });
         })
         .subscribe();
 }
@@ -632,6 +753,7 @@ window.markNotificationRead = markNotificationRead;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.setupNotificationsRealtime = setupNotificationsRealtime;
 window.loadNotificationsPage = loadNotificationsPage;
+// playNotificationSound та showNewMessagePopup вже експортовані вище
 window.goBackToDashboard = goBackToDashboard;
 
 window.subscribeRealtime = subscribeRealtime;

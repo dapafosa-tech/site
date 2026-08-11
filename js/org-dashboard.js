@@ -166,6 +166,8 @@ async function init() {
     var isAuth = await auth.requireAuth();
     if (!isAuth) return;
     if (window.renderGlobalAnnouncements) renderGlobalAnnouncements();
+    if (window.setupNotificationsRealtime) setupNotificationsRealtime();
+    if (window.updateNotificationBadge) updateNotificationBadge();
     await loadOrganization();
 }
 
@@ -5414,6 +5416,8 @@ function setupRealtimeChat(orgId) {
             
             var container = document.getElementById('chatMessages');
             if (!container) return;
+
+            if (window.playNotificationSound) playNotificationSound();
             
             getChatMemberProfiles(orgId).then(function(memberData) {
                 var profile = memberData.profiles[newMsg.user_id];

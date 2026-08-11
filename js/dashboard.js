@@ -653,6 +653,8 @@ function setupRealtimeSupportChat(ticketId) {
             
             var container = document.getElementById('supportTicketModalBody');
             if (!container) return;
+
+            if (window.playNotificationSound) playNotificationSound();
             
             // Додаємо повідомлення
             var isStaff = isStaffRole(msg.sender_type);
