@@ -1,6 +1,6 @@
-// ============================================================
-// TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ З ВИПРАВЛЕННЯМИ)
-// ============================================================
+// ============================================
+// TYPEBIZ - ДАШБОРД (ПОВНА ВЕРСІЯ)
+// ============================================
 
 // ============================================================
 // БАЗОВІ ФУНКЦІЇ
@@ -54,40 +54,8 @@ function formatDateTimeKyiv(d) {
     try { return new Date(d).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' }); } catch { return ''; }
 }
 
-function getShortTicketId(id) {
-    if (!id) return '---';
-    return id.slice(0, 8);
-}
-
-function isStaffRole(type) {
-    return type === 'admin' || type === 'moderator' || type === 'owner' || type === 'bot' || type === 'ai';
-}
-
-function getRoleBadgeHtml(type) {
-    var labels = { 'admin': '🛡️ Адмін', 'support': '🛟 Підтримка', 'moderator': '⚖️ Модератор', 'owner': '👑 Власник', 'bot': '🤖 Бот', 'ai': '🤖 Typebiz Bot' };
-    return labels[type] || type;
-}
-
 // ============================================================
-// ЗБЕРІГАННЯ АКТИВНОЇ ВКЛАДКИ (ДЛЯ ВИПРАВЛЕННЯ БАГУ)
-// ============================================================
-
-function saveActiveSection(section) {
-    try {
-        sessionStorage.setItem('dashboardActiveSection', section);
-    } catch (e) {}
-}
-
-function getActiveSection() {
-    try {
-        return sessionStorage.getItem('dashboardActiveSection') || 'organizations';
-    } catch (e) {
-        return 'organizations';
-    }
-}
-
-// ============================================================
-// ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ
+// ДАШБОРД - МОЇ ОРГАНІЗАЦІЇ (З ВИПРАВЛЕНИМ БАГОМ)
 // ============================================================
 
 async function loadDashboard() {
@@ -97,10 +65,8 @@ async function loadDashboard() {
         return;
     }
 
-    // Очищаємо флаги сторінок
+    // Очищаємо флаг, що ми на сторінці сповіщень
     sessionStorage.removeItem('onNotificationsPage');
-    sessionStorage.removeItem('onDmPage');
-    saveActiveSection('organizations');
 
     document.getElementById('userName').textContent = user.full_name || 'Користувач';
     document.getElementById('userEmail').textContent = user.email;
@@ -286,9 +252,8 @@ async function loadNotifications() {
     var user = auth.getCurrentUser();
     if (!user) return;
     
-    // Зберігаємо флаг і активну секцію
+    // Зберігаємо флаг, що ми на сторінці сповіщень
     sessionStorage.setItem('onNotificationsPage', 'true');
-    saveActiveSection('notifications');
     
     // Активуємо посилання на сповіщення
     document.querySelectorAll('.nav-menu a').forEach(function(a) {
@@ -365,385 +330,6 @@ async function loadNotifications() {
     } catch (error) {
         container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження сповіщень: ' + error.message + '</p></div>';
     }
-}
-
-// ============================================================
-// ПЕРЕПИСКИ (ВИПРАВЛЕНА ВЕРСІЯ)
-// ============================================================
-
-var dmChannel = null;
-var currentDmUserId = null;
-
-async function loadDirectMessages() {
-    sessionStorage.setItem('onDmPage', 'true');
-    saveActiveSection('directmessages');
-    
-    var container = document.getElementById('orgsContainer');
-    if (!container) return;
-    
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    
-    document.querySelectorAll('.nav-menu a').forEach(function(a) {
-        a.classList.remove('active');
-    });
-    var dmLink = document.querySelector('.nav-menu a[onclick*="loadDirectMessages()"]');
-    if (dmLink) dmLink.classList.add('active');
-
-    document.getElementById('pageEyebrow').textContent = 'Особисті переписки';
-    document.getElementById('pageTitle').textContent = '💬 Переписки';
-    document.getElementById('pageSubtitle').textContent = 'Всі ваші особисті повідомлення';
-    document.getElementById('pageActions').style.display = 'none';
-    
-    try {
-        // Отримуємо всіх користувачів з якими є переписка
-        var userIds = new Set();
-        
-        // Отримуємо повідомлення де ми відправник
-        var { data: sent, error: sentError } = await window.sb
-            .from('direct_messages')
-            .select('recipient_id')
-            .eq('sender_id', user.id);
-            
-        if (sentError) console.warn('Помилка отримання відправлених:', sentError);
-        if (sent && sent.length > 0) {
-            sent.forEach(function(m) {
-                if (m.recipient_id) userIds.add(m.recipient_id);
-            });
-        }
-        
-        // Отримуємо повідомлення де ми отримувач
-        var { data: received, error: receivedError } = await window.sb
-            .from('direct_messages')
-            .select('sender_id')
-            .eq('recipient_id', user.id);
-            
-        if (receivedError) console.warn('Помилка отримання отриманих:', receivedError);
-        if (received && received.length > 0) {
-            received.forEach(function(m) {
-                if (m.sender_id) userIds.add(m.sender_id);
-            });
-        }
-        
-        if (userIds.size === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-envelope"></i></div>
-                    <h3>Немає переписок</h3>
-                    <p>У вас ще немає особистих повідомлень. Почніть спілкуватися з учасниками ваших організацій!</p>
-                </div>
-            `;
-            return;
-        }
-        
-        var ids = Array.from(userIds);
-        var profiles = [];
-        
-        // Отримуємо профілі користувачів
-        if (ids.length > 0) {
-            var { data: profilesData, error: profilesError } = await window.sb
-                .from('users')
-                .select('id, full_name, email, avatar_url, role')
-                .in('id', ids);
-                
-            if (profilesError) {
-                console.warn('Помилка отримання профілів:', profilesError);
-                // Fallback - отримуємо по одному
-                for (var i = 0; i < ids.length; i++) {
-                    var { data: singleUser } = await window.sb
-                        .from('users')
-                        .select('id, full_name, email, avatar_url, role')
-                        .eq('id', ids[i]);
-                    if (singleUser && singleUser.length > 0) {
-                        profiles.push(singleUser[0]);
-                    }
-                }
-            } else {
-                profiles = profilesData || [];
-            }
-        }
-        
-        var userMap = {};
-        profiles.forEach(function(p) { userMap[p.id] = p; });
-        
-        // Отримуємо останнє повідомлення для кожного та кількість непрочитаних
-        var conversations = [];
-        for (var uid of userIds) {
-            try {
-                // Останнє повідомлення між двома користувачами
-                var { data: lastMsgData } = await window.sb
-                    .from('direct_messages')
-                    .select('*')
-                    .or('sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id)
-                    .or('sender_id.eq.' + uid + ',recipient_id.eq.' + uid)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-                    
-                var lastMsg = lastMsgData && lastMsgData.length > 0 ? lastMsgData[0] : null;
-                
-                // Непрочитані повідомлення від цього користувача
-                var { data: unreadData } = await window.sb
-                    .from('direct_messages')
-                    .select('id')
-                    .eq('recipient_id', user.id)
-                    .eq('sender_id', uid)
-                    .eq('is_read', false);
-                    
-                var unreadCount = unreadData ? unreadData.length : 0;
-                
-                var profile = userMap[uid] || { full_name: 'Користувач', avatar_url: null };
-                conversations.push({
-                    user_id: uid,
-                    full_name: profile.full_name || 'Користувач',
-                    avatar_url: profile.avatar_url,
-                    last_message: lastMsg ? lastMsg.message : '...',
-                    last_time: lastMsg ? lastMsg.created_at : null,
-                    unread: unreadCount
-                });
-            } catch (e) {
-                console.warn('Помилка обробки користувача', uid, e);
-            }
-        }
-        
-        // Сортуємо за часом останнього повідомлення
-        conversations.sort(function(a, b) {
-            return new Date(b.last_time || 0) - new Date(a.last_time || 0);
-        });
-        
-        var html = '<div style="max-height:600px;overflow-y:auto;">';
-        for (var i = 0; i < conversations.length; i++) {
-            var conv = conversations[i];
-            var isUnread = conv.unread > 0;
-            var initial = (conv.full_name || 'U')[0].toUpperCase();
-            var safeName = conv.full_name.replace(/'/g, "\\'");
-            html += '<div class="dm-item' + (isUnread ? ' unread' : '') + '" onclick="openDmChat(\'' + conv.user_id + '\', \'' + safeName + '\')">';
-            html += '<div class="dm-top">';
-            html += '<div style="display:flex;align-items:center;gap:0.6rem;">';
-            html += '<div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;color:var(--ink);font-weight:600;font-size:0.8rem;overflow:hidden;flex-shrink:0;">';
-            if (conv.avatar_url) {
-                html += '<img src="' + conv.avatar_url + '" style="width:100%;height:100%;object-fit:cover;">';
-            } else {
-                html += initial;
-            }
-            html += '</div>';
-            html += '<span class="dm-user">' + conv.full_name + '</span>';
-            if (isUnread) {
-                html += '<span class="dm-badge">' + conv.unread + '</span>';
-            }
-            html += '</div>';
-            html += '<span class="dm-time">' + (conv.last_time ? formatDateTimeKyiv(conv.last_time) : '') + '</span>';
-            html += '</div>';
-            html += '<div class="dm-preview">' + (conv.last_message || '') + '</div>';
-            html += '</div>';
-        }
-        html += '</div>';
-        container.innerHTML = html;
-        
-        // Оновлюємо бейдж
-        await updateDmBadge();
-        
-        // Налаштовуємо реальний час для нових повідомлень
-        setupRealtimeDm();
-        
-    } catch (error) {
-        console.error('loadDirectMessages error:', error);
-        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження переписок: ' + error.message + '</p></div>';
-    }
-}
-
-// Відкрити чат з користувачем
-async function openDmChat(userId, userName) {
-    currentDmUserId = userId;
-    document.getElementById('dmChatModal').classList.add('active');
-    document.getElementById('dmChatTitle').textContent = '💬 Чат з ' + (userName || 'Користувачем');
-    
-    var body = document.getElementById('dmChatBody');
-    body.innerHTML = '<p class="text-muted">Завантаження...</p>';
-    
-    try {
-        var user = auth.getCurrentUser();
-        if (!user) return;
-        
-        // Позначаємо всі повідомлення від цього користувача як прочитані
-        await window.sb
-            .from('direct_messages')
-            .update({ is_read: true })
-            .eq('recipient_id', user.id)
-            .eq('sender_id', userId);
-            
-        await updateDmBadge();
-        
-        // Отримуємо історію повідомлень
-        var { data: msgs, error: msgsError } = await window.sb
-            .from('direct_messages')
-            .select('*')
-            .or('sender_id.eq.' + user.id + ',recipient_id.eq.' + user.id)
-            .or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId)
-            .order('created_at', { ascending: true })
-            .limit(100);
-            
-        if (msgsError) throw new Error(msgsError.message);
-        
-        if (!msgs || msgs.length === 0) {
-            body.innerHTML = '<p class="text-muted text-center" style="padding:2rem 0;">Немає повідомлень. Почніть спілкування!</p>';
-        } else {
-            var html = '';
-            for (var i = 0; i < msgs.length; i++) {
-                var msg = msgs[i];
-                var isOwn = msg.sender_id === user.id;
-                html += '<div class="dm-chat-message' + (isOwn ? ' own' : '') + '">';
-                html += '<div class="dm-msg-top"><span>' + (isOwn ? 'Ви' : (userName || 'Користувач')) + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
-                html += '<div class="dm-msg-body">' + msg.message + '</div>';
-                html += '</div>';
-            }
-            body.innerHTML = html;
-            body.scrollTop = body.scrollHeight;
-        }
-        
-        // Підписуємося на нові повідомлення в реальному часі
-        setupRealtimeDmChat(userId);
-        
-    } catch (error) {
-        body.innerHTML = '<p class="text-danger">Помилка: ' + error.message + '</p>';
-    }
-}
-
-// Відправити повідомлення
-async function sendDmMessage() {
-    var input = document.getElementById('dmMessageInput');
-    var message = input.value.trim();
-    if (!message || !currentDmUserId) return;
-    
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    
-    var btn = document.querySelector('#dmChatModal .btn-gold');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    }
-    
-    try {
-        await window.sb
-            .from('direct_messages')
-            .insert({
-                sender_id: user.id,
-                recipient_id: currentDmUserId,
-                message: message,
-                is_read: false,
-                created_at: new Date().toISOString()
-            });
-        
-        input.value = '';
-        
-        // Додаємо повідомлення в чат
-        var body = document.getElementById('dmChatBody');
-        var html = '<div class="dm-chat-message own">';
-        html += '<div class="dm-msg-top"><span>Ви</span><span>' + formatDateTimeKyiv(new Date().toISOString()) + '</span></div>';
-        html += '<div class="dm-msg-body">' + message + '</div>';
-        html += '</div>';
-        body.insertAdjacentHTML('beforeend', html);
-        body.scrollTop = body.scrollHeight;
-        
-        // Оновлюємо список переписок
-        if (sessionStorage.getItem('onDmPage') === 'true') {
-            setTimeout(loadDirectMessages, 500);
-        }
-        
-    } catch (error) {
-        showAlert('Помилка: ' + error.message, 'error');
-    }
-    
-    if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-    }
-}
-
-// Натискання Enter для відправки
-document.addEventListener('DOMContentLoaded', function() {
-    var input = document.getElementById('dmMessageInput');
-    if (input) {
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendDmMessage();
-            }
-        });
-    }
-});
-
-// Real-time для нових повідомлень в чаті
-function setupRealtimeDmChat(otherUserId) {
-    if (dmChannel) {
-        try { window.sb.removeChannel(dmChannel); } catch(e) {}
-        dmChannel = null;
-    }
-    
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    
-    dmChannel = window.sb
-        .channel('dm-chat-realtime-' + user.id + '-' + otherUserId)
-        .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'direct_messages',
-            filter: 'sender_id=eq.' + otherUserId + ',recipient_id=eq.' + user.id
-        }, function(payload) {
-            var msg = payload.new;
-            var body = document.getElementById('dmChatBody');
-            if (!body) return;
-            
-            // Якщо це відкритий чат з цим користувачем
-            if (currentDmUserId === msg.sender_id) {
-                var html = '<div class="dm-chat-message">';
-                html += '<div class="dm-msg-top"><span>' + (otherUserId === msg.sender_id ? 'Користувач' : 'Ви') + '</span><span>' + formatDateTimeKyiv(msg.created_at) + '</span></div>';
-                html += '<div class="dm-msg-body">' + msg.message + '</div>';
-                html += '</div>';
-                body.insertAdjacentHTML('beforeend', html);
-                body.scrollTop = body.scrollHeight;
-                
-                // Позначаємо як прочитане
-                window.sb
-                    .from('direct_messages')
-                    .update({ is_read: true })
-                    .eq('id', msg.id);
-                updateDmBadge();
-            }
-        })
-        .subscribe();
-}
-
-// Real-time для оновлення списку переписок
-function setupRealtimeDm() {
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    // Вже є інтервал в init
-}
-
-// Оновлюємо badge для непрочитаних особистих повідомлень
-async function updateDmBadge() {
-    var user = auth.getCurrentUser();
-    if (!user) return;
-    try {
-        var { data: unread, error } = await window.sb
-            .from('direct_messages')
-            .select('id')
-            .eq('recipient_id', user.id)
-            .eq('is_read', false);
-            
-        var count = unread ? unread.length : 0;
-        var badge = document.getElementById('dmBadge');
-        if (badge) {
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-    } catch (e) {}
 }
 
 // ============================================================
@@ -1118,35 +704,8 @@ function setupRealtimeSupportChat(ticketId) {
 }
 
 // ============================================================
-// ІНІЦІАЛІЗАЦІЯ (З ВИПРАВЛЕННЯМ БАГУ ЗБЕРЕЖЕННЯ ВКЛАДОК)
+// ІНІЦІАЛІЗАЦІЯ
 // ============================================================
-
-// Функція для відновлення збереженої вкладки
-function restoreActiveSection() {
-    var section = getActiveSection();
-    switch(section) {
-        case 'notifications':
-            if (typeof loadNotifications === 'function') {
-                loadNotifications();
-                return true;
-            }
-            break;
-        case 'directmessages':
-            if (typeof loadDirectMessages === 'function') {
-                loadDirectMessages();
-                return true;
-            }
-            break;
-        case 'organizations':
-        default:
-            if (typeof loadDashboard === 'function') {
-                loadDashboard();
-                return true;
-            }
-            break;
-    }
-    return false;
-}
 
 (async function init() {
     try {
@@ -1158,19 +717,22 @@ function restoreActiveSection() {
             return;
         }
         
-        // Відновлюємо збережену вкладку
-        var restored = restoreActiveSection();
-        if (!restored) {
-            // Якщо не вдалося відновити - завантажуємо дашборд
+        // Перевіряємо чи ми повертаємось зі сповіщень
+        var onNotificationsPage = sessionStorage.getItem('onNotificationsPage') === 'true';
+        if (onNotificationsPage) {
+            // Якщо ми на сторінці сповіщень - завантажуємо їх
+            await loadNotifications();
+            // Оновлюємо бейдж
+            if (window.updateNotificationBadge) {
+                updateNotificationBadge();
+            }
+        } else {
+            // Інакше - завантажуємо дашборд
             await loadDashboard();
-        }
-        
-        // Завантажуємо кастомні типи
-        loadCustomOrgTypes();
-        
-        // Глобальні оголошення
-        if (window.renderGlobalAnnouncements) {
-            renderGlobalAnnouncements();
+            loadCustomOrgTypes();
+            if (window.renderGlobalAnnouncements) {
+                renderGlobalAnnouncements();
+            }
         }
         
         // Налаштовуємо реальний час для сповіщень
@@ -1180,26 +742,6 @@ function restoreActiveSection() {
         if (window.updateNotificationBadge) {
             updateNotificationBadge();
         }
-        
-        // Оновлюємо бейдж переписок
-        await updateDmBadge();
-        
-        // Періодичне оновлення бейджів
-        setInterval(updateDmBadge, 30000);
-        
-        // Зберігаємо поточну вкладку при переході
-        document.querySelectorAll('.nav-menu a').forEach(function(link) {
-            link.addEventListener('click', function() {
-                var onclick = this.getAttribute('onclick') || '';
-                if (onclick.includes('loadNotifications()')) {
-                    saveActiveSection('notifications');
-                } else if (onclick.includes('loadDirectMessages()')) {
-                    saveActiveSection('directmessages');
-                } else if (onclick.includes('loadDashboardView()') || onclick.includes('loadDashboard()')) {
-                    saveActiveSection('organizations');
-                }
-            });
-        });
         
     } catch (error) {
         console.error('Dashboard initialization error:', error);
