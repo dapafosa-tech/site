@@ -2883,12 +2883,46 @@ async function loadAiModerationManageTab() {
             }
         }
 
-        // ============================================================
-// РУЧНИЙ ЗАПУСК ПЕРЕВІРКИ АКАУНТІВ З ДЕТАЛЬНИМ ВИВОДОМ
+// ============================================================
+// УПРАВЛІННЯ ЛОГАМИ (НЕ ОЧИЩУЮТЬСЯ ПРИ ОНОВЛЕННІ)
 // ============================================================
 
+// Зберігаємо логи в глобальній змінній, щоб не втрачати при оновленні
+var _scanLogs = [];
+var _scanRunning = false;
+
+function clearScanLogs() {
+    var progressEl = document.getElementById('scanProgress');
+    if (progressEl) {
+        progressEl.innerHTML = '';
+        progressEl.style.display = 'none';
+    }
+    var statusEl = document.getElementById('scanStatus');
+    if (statusEl) {
+        statusEl.textContent = 'Готово до запуску';
+        statusEl.style.color = 'var(--muted)';
+    }
+    _scanLogs = [];
+}
+
+function toggleScanLogs() {
+    var progressEl = document.getElementById('scanProgress');
+    if (!progressEl) return;
+    
+    if (progressEl.style.display === 'none' || progressEl.style.display === '') {
+        progressEl.style.display = 'block';
+        // Відновлюємо збережені логи
+        if (_scanLogs.length > 0) {
+            progressEl.innerHTML = _scanLogs.join('');
+            progressEl.scrollTop = progressEl.scrollHeight;
+        }
+    } else {
+        progressEl.style.display = 'none';
+    }
+}
+
 // ============================================================
-// РУЧНИЙ ЗАПУСК ПЕРЕВІРКИ АКАУНТІВ З ДЕТАЛЬНИМ ВИВОДОМ
+// РУЧНИЙ ЗАПУСК ПЕРЕВІРКИ АКАУНТІВ (З ЗБЕРЕЖЕННЯМ ЛОГІВ)
 // ============================================================
 
 async function runModerationScan() {
@@ -2896,10 +2930,14 @@ async function runModerationScan() {
     var statusEl = document.getElementById('scanStatus');
     var progressEl = document.getElementById('scanProgress');
     
-    if (!btn) return;
+    if (!btn || _scanRunning) return;
     
+    _scanRunning = true;
+    
+    // Показуємо прогрес і очищаємо старі логи ТІЛЬКИ при новому запуску
     progressEl.style.display = 'block';
     progressEl.innerHTML = '';
+    _scanLogs = [];
     
     function logMessage(msg, type) {
         var colors = {
@@ -2918,7 +2956,9 @@ async function runModerationScan() {
             'gold': '⭐'
         };
         var em = emoji[type] || '•';
-        progressEl.innerHTML += '<div style="color:' + color + ';padding:0.15rem 0;border-bottom:1px solid rgba(255,255,255,0.03);">' + em + ' ' + msg + '</div>';
+        var html = '<div style="color:' + color + ';padding:0.15rem 0;border-bottom:1px solid rgba(255,255,255,0.03);">' + em + ' ' + msg + '</div>';
+        progressEl.innerHTML += html;
+        _scanLogs.push(html);
         progressEl.scrollTop = progressEl.scrollHeight;
     }
     
@@ -2933,20 +2973,8 @@ async function runModerationScan() {
     try {
         logMessage('📡 Виклик ШІ-модерації...', 'info');
         
-        // ============================================================
-        // ОТРИМУЄМО ТОКЕН
-        // ============================================================
         var { data: sessionData } = await window.sb.auth.getSession();
         var token = sessionData?.session?.access_token || '';
-        
-        if (!token) {
-            logMessage('❌ Немає токена авторизації! Увійдіть в акаунт.', 'error');
-            statusEl.textContent = '❌ Немає авторизації';
-            statusEl.style.color = 'var(--danger)';
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
-            return;
-        }
         
         var response = await fetch(
             'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/enforce-moderation-deadlines',
@@ -2967,6 +2995,7 @@ async function runModerationScan() {
             logMessage('❌ Не вдалося розпарсити JSON: ' + text.substring(0, 200), 'error');
             statusEl.textContent = '❌ Помилка парсингу';
             statusEl.style.color = 'var(--danger)';
+            _scanRunning = false;
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
             return;
@@ -3045,10 +3074,11 @@ async function runModerationScan() {
         statusEl.style.color = 'var(--danger)';
     }
     
+    _scanRunning = false;
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
 }
-
+        
         // ============================================================
         // REALTIME ДЛЯ ЗАПИТІВ ДО ШІ
         // ============================================================
