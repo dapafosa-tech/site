@@ -3044,8 +3044,6 @@ async function runModerationScan() {
                 _aiRequestsRealtimeEnabled = false;
             }
             
-            console.log('🟢 Створюємо Realtime канал для запитів ШІ...');
-            
             _aiRequestsChannel = window.sb
                 .channel('ai-requests-realtime')
                 .on('postgres_changes', {
@@ -3053,7 +3051,6 @@ async function runModerationScan() {
                     schema: 'public',
                     table: 'ai_owner_requests'
                 }, function(payload) {
-                    console.log('📬 Realtime зміна:', payload);
                     
                     var container = document.getElementById('aiTabContent_requests');
                     if (container && container.classList.contains('active')) {
@@ -3078,7 +3075,6 @@ async function runModerationScan() {
                     updateAiRequestsBadge();
                 })
                 .subscribe(function(status) {
-                    console.log('📡 Realtime статус:', status);
                     if (status === 'SUBSCRIBED') {
                         _aiRequestsRealtimeEnabled = true;
                         if (_aiRequestsPollInterval) {
@@ -3106,19 +3102,16 @@ async function runModerationScan() {
                     loadAiModerationRequestsTab();
                 }
             }, 5000);
-            console.log('🔄 Polling запущено (кожні 5 сек)');
         }
 
         function stopAiRequestsPolling() {
             if (_aiRequestsPollInterval) {
                 clearInterval(_aiRequestsPollInterval);
                 _aiRequestsPollInterval = null;
-                console.log('⏹ Polling зупинено');
             }
         }
 
         function reconnectAiRequestsRealtime() {
-            console.log('🔄 Перепідключення Realtime...');
             if (_aiRequestsPollInterval) {
                 clearInterval(_aiRequestsPollInterval);
                 _aiRequestsPollInterval = null;
