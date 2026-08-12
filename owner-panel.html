@@ -2898,7 +2898,6 @@ async function runModerationScan() {
     
     if (!btn) return;
     
-    // Показуємо прогрес
     progressEl.style.display = 'block';
     progressEl.innerHTML = '';
     
@@ -2932,15 +2931,21 @@ async function runModerationScan() {
     logMessage('⏱️ ' + new Date().toLocaleString('uk-UA'), 'info');
     
     try {
-        // Викликаємо Edge Function
         logMessage('📡 Виклик ШІ-модерації...', 'info');
+        
+        // ============================================================
+        // ОТРИМУЄМО ТОКЕН І ДОДАЄМО В ЗАГОЛОВОК
+        // ============================================================
+        var { data: sessionData } = await window.sb.auth.getSession();
+        var token = sessionData?.session?.access_token || '';
         
         var response = await fetch(
             'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/enforce-moderation-deadlines',
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
                 }
             }
         );
@@ -2953,14 +2958,10 @@ async function runModerationScan() {
             logMessage('✅ Перевірка завершена!', 'success');
             logMessage('⏱️ ' + new Date(result.timestamp).toLocaleString('uk-UA'), 'info');
             
-            // ============================================================
-            // ДЕТАЛЬНІ РЕЗУЛЬТАТИ
-            // ============================================================
             logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
             logMessage('📊 РЕЗУЛЬТАТИ ПЕРЕВІРКИ:', 'gold');
             logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
             
-            // Геолокація
             logMessage('🔍 Перевірено геолокацію: ' + (results.geo_checked || 0) + ' акаунтів', 'info');
             if (results.geo_changed > 0) {
                 logMessage('🚨 Виявлено зміну геолокації: ' + results.geo_changed + ' акаунтів → надіслано запит верифікації', 'warning');
@@ -2968,8 +2969,6 @@ async function runModerationScan() {
                 logMessage('✅ Змін геолокації не виявлено', 'success');
             }
             
-            // Ім'я
-            logMessage('📝 Перевірено імена: ' + (results.name_checked || results.geo_checked || 0) + ' акаунтів', 'info');
             if (results.name_bans > 0) {
                 logMessage('🚫 Заблоковано за некоректне ім\'я: ' + results.name_bans + ' акаунтів', 'error');
             }
@@ -2977,7 +2976,6 @@ async function runModerationScan() {
                 logMessage('✅ Попередження знято (ім\'я виправлено): ' + results.name_cleared + ' акаунтів', 'success');
             }
             
-            // Верифікація
             if (results.identity_bans > 0) {
                 logMessage('🔒 Заблоковано за непідтверджену особу: ' + results.identity_bans + ' акаунтів', 'error');
             }
@@ -2985,7 +2983,6 @@ async function runModerationScan() {
                 logMessage('🔐 Запити верифікації надіслано: ' + results.hijack_flags + ' акаунтам', 'warning');
             }
             
-            // Підсумок
             var totalActions = (results.geo_changed || 0) + (results.name_bans || 0) + (results.identity_bans || 0) + (results.hijack_flags || 0);
             logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
             logMessage('📌 ВСЬОГО ДІЙ: ' + totalActions, 'gold');
@@ -3000,12 +2997,15 @@ async function runModerationScan() {
             statusEl.innerHTML = '✅ Готово! Дій: ' + totalActions;
             statusEl.style.color = 'var(--teal)';
             
-            // Оновлюємо логи
             logMessage('🔄 Оновлюю логи...', 'info');
             await loadAiModerationManageTab();
             await loadAiModerationRequestsTab();
             logMessage('✅ Логи оновлено', 'success');
             
+        } else if (response.status === 403) {
+            logMessage('❌ ПОМИЛКА 403 - ДОСТУП ТІЛЬКИ ДЛЯ ЗАСНОВНИКА!', 'error');
+            statusEl.textContent = '❌ 403 - Доступ тільки для засновника';
+            statusEl.style.color = 'var(--danger)';
         } else {
             logMessage('❌ Помилка: ' + (result.error || 'Невідома помилка'), 'error');
             statusEl.textContent = '❌ Помилка: ' + (result.error || 'Невідома помилка');
