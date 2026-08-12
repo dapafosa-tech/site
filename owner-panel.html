@@ -2940,7 +2940,7 @@ async function runModerationScan() {
     
     _scanRunning = true;
     
-    // Показуємо прогрес і очищаємо старі логи ТІЛЬКИ при новому запуску
+    // ПОКАЗУЄМО ПРОГРЕС І ОЧИЩУЄМО СТАРІ ЛОГИ
     progressEl.style.display = 'block';
     progressEl.innerHTML = '';
     _scanLogs = [];
@@ -3083,6 +3083,14 @@ async function runModerationScan() {
     _scanRunning = false;
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
+    
+    // ============================================================
+    // ВАЖЛИВО: ПЕРЕКОНУЄМОСЬ, ЩО ЛОГИ ВИДНІ ПІСЛЯ ЗАВЕРШЕННЯ
+    // ============================================================
+    if (progressEl) {
+        progressEl.style.display = 'block';
+        progressEl.scrollTop = progressEl.scrollHeight;
+    }
 }
         
         // ============================================================
