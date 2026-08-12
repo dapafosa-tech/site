@@ -2933,10 +2933,6 @@ function toggleScanLogs() {
     }
 }
 
-// ============================================================
-// РУЧНИЙ ЗАПУСК ПЕРЕВІРКИ АКАУНТІВ (З ЗБЕРЕЖЕННЯМ ЛОГІВ)
-// ============================================================
-
 async function runModerationScan() {
     var btn = document.getElementById('runScanBtn');
     var statusEl = document.getElementById('scanStatus');
@@ -2946,7 +2942,6 @@ async function runModerationScan() {
     
     _scanRunning = true;
     
-    // ПОКАЗУЄМО ПРОГРЕС І ОЧИЩУЄМО СТАРІ ЛОГИ
     progressEl.style.display = 'block';
     progressEl.innerHTML = '';
     _scanLogs = [];
@@ -3004,7 +2999,7 @@ async function runModerationScan() {
         try {
             result = JSON.parse(text);
         } catch (parseError) {
-            logMessage('❌ Не вдалося розпарсити JSON: ' + text.substring(0, 200), 'error');
+            logMessage('❌ Не вдалося розпарсити JSON', 'error');
             statusEl.textContent = '❌ Помилка парсингу';
             statusEl.style.color = 'var(--danger)';
             _scanRunning = false;
@@ -3013,74 +3008,50 @@ async function runModerationScan() {
             return;
         }
         
+        // ОТРИМУЄМО РЕЗУЛЬТАТИ
+        var results = result?.results || {};
+        var totalActions = (results.geo_changed || 0) + (results.name_bans || 0) + (results.identity_bans || 0) + (results.hijack_flags || 0);
+        
+        // ПОКАЗУЄМО РЕЗУЛЬТАТИ
         if (response.ok && result.done) {
-            var results = result.results || {};
-            
             logMessage('✅ Перевірка завершена!', 'success');
-            logMessage('⏱️ ' + new Date(result.timestamp).toLocaleString('uk-UA'), 'info');
-            
             logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-            logMessage('📊 РЕЗУЛЬТАТИ ПЕРЕВІРКИ:', 'gold');
-            logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            logMessage('🔍 Перевірено геолокацію: ' + (results.geo_checked || 0), 'info');
             
-            logMessage('🔍 Перевірено геолокацію: ' + (results.geo_checked || 0) + ' акаунтів', 'info');
             if (results.geo_changed > 0) {
-                logMessage('🚨 Виявлено зміну геолокації: ' + results.geo_changed + ' акаунтів → надіслано запит верифікації', 'warning');
-            } else {
-                logMessage('✅ Змін геолокації не виявлено', 'success');
+                logMessage('🚨 Зміна геолокації: ' + results.geo_changed, 'warning');
             }
-            
             if (results.name_bans > 0) {
-                logMessage('🚫 Заблоковано за некоректне ім\'я: ' + results.name_bans + ' акаунтів', 'error');
+                logMessage('🚫 Бан за ім\'я: ' + results.name_bans, 'error');
             }
-            if (results.name_cleared > 0) {
-                logMessage('✅ Попередження знято (ім\'я виправлено): ' + results.name_cleared + ' акаунтів', 'success');
-            }
-            
             if (results.identity_bans > 0) {
-                logMessage('🔒 Заблоковано за непідтверджену особу: ' + results.identity_bans + ' акаунтів', 'error');
+                logMessage('🔒 Бан за верифікацію: ' + results.identity_bans, 'error');
             }
             if (results.hijack_flags > 0) {
-                logMessage('🔐 Запити верифікації надіслано: ' + results.hijack_flags + ' акаунтам', 'warning');
+                logMessage('🔐 Запити верифікації: ' + results.hijack_flags, 'warning');
             }
             
-            var totalActions = (results.geo_changed || 0) + (results.name_bans || 0) + (results.identity_bans || 0) + (results.hijack_flags || 0);
             logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
             logMessage('📌 ВСЬОГО ДІЙ: ' + totalActions, 'gold');
             
             if (totalActions === 0) {
-                logMessage('✅ Всі акаунти в порядку, порушень не виявлено', 'success');
-            } else {
-                logMessage('⚠️ Виконано ' + totalActions + ' дій. Перегляньте логи вище.', 'warning');
+                logMessage('✅ Всі акаунти в порядку!', 'success');
             }
-            logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
             
             statusEl.innerHTML = '✅ Готово! Дій: ' + totalActions;
             statusEl.style.color = 'var(--teal)';
             
-            logMessage('🔄 Оновлюю логи...', 'info');
-            await loadAiModerationManageTab();
-            await loadAiModerationRequestsTab();
-            logMessage('✅ Логи оновлено', 'success');
-            
-        } else if (response.status === 401) {
-            logMessage('❌ ПОМИЛКА 401 - Немає авторизації!', 'error');
-            logMessage('💡 Переконайтеся, що ви увійшли в акаунт', 'warning');
-            statusEl.textContent = '❌ 401 - Немає авторизації';
-            statusEl.style.color = 'var(--danger)';
-        } else if (response.status === 403) {
-            logMessage('❌ ПОМИЛКА 403 - Доступ заборонено!', 'error');
-            logMessage('💡 Тільки засновник може використовувати цю функцію', 'warning');
-            statusEl.textContent = '❌ 403 - Доступ тільки для засновника';
-            statusEl.style.color = 'var(--danger)';
         } else {
-            logMessage('❌ Помилка: ' + (result?.error || result?.message || 'Невідома помилка'), 'error');
-            statusEl.textContent = '❌ Помилка: ' + (result?.error || result?.message || 'Невідома помилка');
+            logMessage('❌ Помилка: ' + (result?.error || 'Невідома'), 'error');
+            statusEl.textContent = '❌ Помилка';
             statusEl.style.color = 'var(--danger)';
         }
         
+        // ОНОВЛЮЄМО ТІЛЬКИ ЛОГИ, НЕ ПЕРЕМАЛЬОВУЄМО ВЕСЬ КОНТЕЙНЕР
+        // ОНОВЛЮЄМО СТАТИСТИКУ ВРУЧНУ
+        await updateAiStatsOnly();
+        
     } catch (error) {
-        console.error('❌ Помилка запуску скану:', error);
         logMessage('❌ Критична помилка: ' + error.message, 'error');
         statusEl.textContent = '❌ Помилка: ' + error.message;
         statusEl.style.color = 'var(--danger)';
@@ -3090,13 +3061,27 @@ async function runModerationScan() {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
     
-    // ============================================================
-    // ВАЖЛИВО: ПЕРЕКОНУЄМОСЬ, ЩО ЛОГИ ВИДНІ ПІСЛЯ ЗАВЕРШЕННЯ
-    // ============================================================
-    if (progressEl) {
-        progressEl.style.display = 'block';
-        progressEl.scrollTop = progressEl.scrollHeight;
-    }
+    // ЛОГИ ЗАЛИШАЮТЬСЯ ВІДКРИТИМИ
+    progressEl.style.display = 'block';
+    progressEl.scrollTop = progressEl.scrollHeight;
+}
+
+// ============================================================
+// ОНОВЛЕННЯ ТІЛЬКИ СТАТИСТИКИ (БЕЗ ПЕРЕМАЛЬОВУВАННЯ ВСЬОГО)
+// ============================================================
+async function updateAiStatsOnly() {
+    try {
+        var aiLogs = await db.getAiActionsLog({ limit: 100 });
+        
+        var statCards = document.querySelectorAll('#aiTabContent_manage .stat-card .stat-value');
+        if (statCards.length >= 4) {
+            statCards[0].textContent = aiLogs ? aiLogs.length : 0;
+            var bans = aiLogs ? aiLogs.filter(function(l){ return (l.action_type||'').indexOf('ban') !== -1; }).length : 0;
+            statCards[1].textContent = bans;
+            var supportReplies = aiLogs ? aiLogs.filter(function(l){ return l.action_type === 'support_reply'; }).length : 0;
+            statCards[2].textContent = supportReplies;
+        }
+    } catch (e) {}
 }
         
         // ============================================================
