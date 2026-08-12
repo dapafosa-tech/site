@@ -2933,33 +2933,39 @@ async function runModerationScan() {
     try {
         logMessage('📡 Виклик ШІ-модерації...', 'info');
         
+        // ============================================================
+        // ОТРИМУЄМО ТОКЕН
+        // ============================================================
+        var { data: sessionData } = await window.sb.auth.getSession();
+        var token = sessionData?.session?.access_token || '';
+        
+        if (!token) {
+            logMessage('❌ Немає токена авторизації! Увійдіть в акаунт.', 'error');
+            statusEl.textContent = '❌ Немає авторизації';
+            statusEl.style.color = 'var(--danger)';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
+            return;
+        }
+        
         var response = await fetch(
             'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/enforce-moderation-deadlines',
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
                 }
             }
         );
         
-        // ============================================================
-        // ДЕТАЛЬНА ОБРОБКА ВІДПОВІДІ
-        // ============================================================
-        logMessage('📊 Статус відповіді: ' + response.status + ' ' + response.statusText, 'info');
-        
-        // Спроба прочитати відповідь як текст (не як JSON)
         var text = await response.text();
-        logMessage('📄 Тіло відповіді: ' + text.substring(0, 500), 'info');
-        
-        // Спроба розпарсити JSON
         var result = null;
         try {
             result = JSON.parse(text);
         } catch (parseError) {
-            logMessage('❌ Не вдалося розпарсити JSON: ' + parseError.message, 'error');
-            logMessage('📄 Отримано: ' + text, 'error');
-            statusEl.textContent = '❌ Помилка: невірний формат відповіді';
+            logMessage('❌ Не вдалося розпарсити JSON: ' + text.substring(0, 200), 'error');
+            statusEl.textContent = '❌ Помилка парсингу';
             statusEl.style.color = 'var(--danger)';
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
@@ -3026,11 +3032,6 @@ async function runModerationScan() {
             logMessage('💡 Тільки засновник може використовувати цю функцію', 'warning');
             statusEl.textContent = '❌ 403 - Доступ тільки для засновника';
             statusEl.style.color = 'var(--danger)';
-        } else if (response.status === 500) {
-            logMessage('❌ ПОМИЛКА 500 - Внутрішня помилка сервера!', 'error');
-            logMessage('💡 Перевірте логи Supabase: ' + (result?.error || 'немає деталей'), 'warning');
-            statusEl.textContent = '❌ 500 - Помилка сервера';
-            statusEl.style.color = 'var(--danger)';
         } else {
             logMessage('❌ Помилка: ' + (result?.error || result?.message || 'Невідома помилка'), 'error');
             statusEl.textContent = '❌ Помилка: ' + (result?.error || result?.message || 'Невідома помилка');
@@ -3040,7 +3041,6 @@ async function runModerationScan() {
     } catch (error) {
         console.error('❌ Помилка запуску скану:', error);
         logMessage('❌ Критична помилка: ' + error.message, 'error');
-        logMessage('📄 Деталі: ' + (error.stack || 'немає стеку'), 'error');
         statusEl.textContent = '❌ Помилка: ' + error.message;
         statusEl.style.color = 'var(--danger)';
     }
