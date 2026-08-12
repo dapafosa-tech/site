@@ -2583,63 +2583,93 @@ async function closeSupportTicket(ticketId) {
             if (contentRequests) contentRequests.classList.toggle('active', tab === 'requests');
         }
 
-        async function loadAiModerationManageTab() {
-            var container = document.getElementById('aiTabContent_manage');
-            if (!container) return;
-            try {
-                var settings = await db.getSystemSettings();
-                var aiEnabled = settings['ai_moderation_enabled'] !== 'false';
-                var aiSupportEnabled = settings['ai_support_enabled'] !== 'false';
-                var aiLogs = await db.getAiActionsLog({ limit: 100 });
+async function loadAiModerationManageTab() {
+    var container = document.getElementById('aiTabContent_manage');
+    if (!container) return;
+    try {
+        var settings = await db.getSystemSettings();
+        var aiEnabled = settings['ai_moderation_enabled'] !== 'false';
+        var aiSupportEnabled = settings['ai_support_enabled'] !== 'false';
+        var aiLogs = await db.getAiActionsLog({ limit: 100 });
 
-                var html = '';
-                html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
-                html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + (aiLogs ? aiLogs.length : 0) + '</div><div class="stat-label">Дій ШІ (останні 100)</div></div>';
-                html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + (aiLogs ? aiLogs.filter(function(l){return (l.action_type||'').indexOf('ban')!==-1;}).length : 0) + '</div><div class="stat-label">Банів/censor ШІ</div></div>';
-                html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + (aiLogs ? aiLogs.filter(function(l){return l.action_type==='support_reply';}).length : 0) + '</div><div class="stat-label">Відповідей в підтримку</div></div>';
-                html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + (aiEnabled ? 'Увімк.' : 'Вимк.') + '</div><div class="stat-label">Модерація ШІ</div></div>';
-                html += '</div>';
+        var html = '';
+        
+        // ============================================================
+        // КНОПКА РУЧНОГО ЗАПУСКУ З СТАТУСОМ
+        // ============================================================
+        html += '<div class="card" style="border-color: var(--gold); background: rgba(242,169,59,0.05); margin-bottom:1.5rem;">';
+        html += '<div class="card-header">';
+        html += '<h3 class="card-title" style="color: var(--gold);"><i class="fas fa-play"></i> Ручна перевірка акаунтів</h3>';
+        html += '</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;margin-bottom:0.75rem;">';
+        html += '<button class="btn btn-gold" onclick="runModerationScan()" id="runScanBtn">';
+        html += '<i class="fas fa-play"></i> Запустити перевірку';
+        html += '</button>';
+        html += '<span id="scanStatus" style="color:var(--muted);font-size:0.85rem;">Готово до запуску</span>';
+        html += '</div>';
+        html += '<div id="scanProgress" style="display:none;margin-top:0.5rem;padding:0.75rem;background:var(--ink);border-radius:6px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.8rem;color:var(--text-onink);"></div>';
+        html += '</div>';
+        
+        // ============================================================
+        // СТАТИСТИКА
+        // ============================================================
+        html += '<div class="grid-4" style="margin-bottom:1.5rem;">';
+        html += '<div class="stat-card" style="border-color:#8B5CF6;"><div class="stat-value" style="color:#8B5CF6;">' + (aiLogs ? aiLogs.length : 0) + '</div><div class="stat-label">Дій ШІ (останні 100)</div></div>';
+        html += '<div class="stat-card" style="border-color:#E2503E;"><div class="stat-value" style="color:#E2503E;">' + (aiLogs ? aiLogs.filter(function(l){return (l.action_type||'').indexOf('ban')!==-1;}).length : 0) + '</div><div class="stat-label">Банів/censor ШІ</div></div>';
+        html += '<div class="stat-card" style="border-color:#46C9B8;"><div class="stat-value" style="color:#46C9B8;">' + (aiLogs ? aiLogs.filter(function(l){return l.action_type==='support_reply';}).length : 0) + '</div><div class="stat-label">Відповідей в підтримку</div></div>';
+        html += '<div class="stat-card" style="border-color:#F59E0B;"><div class="stat-value" style="color:#F59E0B;">' + (aiEnabled ? 'Увімк.' : 'Вимк.') + '</div><div class="stat-label">Модерація ШІ</div></div>';
+        html += '</div>';
 
-                html += '<div class="card"><div class="card-header"><h3 class="card-title">⚙️ Налаштування ШІ</h3></div>';
-                html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
-                html += '<span>🤖 Модерація повідомлень</span>';
-                html += '<button class="btn btn-sm ' + (aiEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiModeration(' + (!aiEnabled) + ')">' + (aiEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
-                html += '</div>';
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
-                html += '<span>💬 Автовідповіді в підтримку</span>';
-                html += '<button class="btn btn-sm ' + (aiSupportEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiSupport(' + (!aiSupportEnabled) + ')">' + (aiSupportEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
-                html += '</div>';
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;">';
-                html += '<span>⏳ Час очікування ШІ перед першою відповіддю в тікеті</span>';
-                html += '<span><strong>' + (settings['ai_support_grace_minutes'] || '10') + ' хв.</strong> <button class="btn btn-sm btn-primary" onclick="changeAiGrace()"><i class="fas fa-edit"></i></button></span>';
-                html += '</div>';
-                html += '</div></div>';
+        // ============================================================
+        // НАЛАШТУВАННЯ
+        // ============================================================
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">⚙️ Налаштування ШІ</h3></div>';
+        html += '<div style="display:flex;flex-direction:column;gap:0.75rem;">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
+        html += '<span>🤖 Модерація повідомлень</span>';
+        html += '<button class="btn btn-sm ' + (aiEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiModeration(' + (!aiEnabled) + ')">' + (aiEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
+        html += '</div>';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--ink-line);">';
+        html += '<span>💬 Автовідповіді в підтримку</span>';
+        html += '<button class="btn btn-sm ' + (aiSupportEnabled ? 'btn-danger' : 'btn-gold') + '" onclick="toggleAiSupport(' + (!aiSupportEnabled) + ')">' + (aiSupportEnabled ? '❌ Вимкнути' : '✅ Ввімкнути') + '</button>';
+        html += '</div>';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;">';
+        html += '<span>⏳ Час очікування ШІ перед першою відповіддю в тікеті</span>';
+        html += '<span><strong>' + (settings['ai_support_grace_minutes'] || '10') + ' хв.</strong> <button class="btn btn-sm btn-primary" onclick="changeAiGrace()"><i class="fas fa-edit"></i></button></span>';
+        html += '</div>';
+        html += '</div></div>';
 
-                html += '<div class="card"><div class="card-header"><h3 class="card-title">📜 Логи дій ШІ</h3><span class="badge badge-primary">' + (aiLogs ? aiLogs.length : 0) + '</span></div>';
-                html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Тип дії</th><th>Ціль</th><th>Обґрунтування ШІ</th></tr></thead><tbody>';
-                if (aiLogs && aiLogs.length > 0) {
-                    var actionLabels = {
-                        'censor_and_ban': '🚫 Цензура + Бан', 'censor_only': '✏️ Цензура', 'ban': '⛔ Бан', 'unban': '✅ Розбан',
-                        'role_change': '🔧 Зміна ролі', 'support_reply': '💬 Відповідь в підтримку',
-                        'multi_account_detected': '🔍 Мультиакаунтинг', 'multi_account_ban': '🚫 Бан мультиакаунтів',
-                        'report_review': '📋 Аналіз скарги', 'appeal_review': '⚖️ Розгляд апеляції', 'support_ticket': '🎫 Тикет підтримки',
-                        'owner_request': '👑 Запит засновника', 'owner_console_request': '👑 Запит засновника', 'freeze_org': '🧊 Заморозка організації', 'unfreeze_org': '▶️ Розморозка організації'
-                    };
-                    for (var i = 0; i < aiLogs.length; i++) {
-                        var l = aiLogs[i];
-                        var reasoning = l.ai_reasoning || l.reasoning || '—';
-                        if (reasoning && reasoning.length > 140) reasoning = reasoning.slice(0, 140) + '…';
-                        html += '<tr><td style="white-space:nowrap;">' + formatDateTimeKyiv(l.created_at) + '</td><td><span class="badge badge-warning">' + (actionLabels[l.action_type] || l.action_type) + '</span></td><td>' + (l.target_user_id ? '<a href="javascript:void(0)" onclick="openUserProfileModal(\'' + l.target_user_id + '\')" style="color:var(--gold);">переглянути</a>' : '—') + '</td><td style="font-size:0.82rem;">' + reasoning + '</td></tr>';
-                    }
-                } else { html += '<tr><td colspan="4" class="text-center text-muted">Логів дій ШІ ще немає</td></tr>'; }
-                html += '</tbody></table></div></div>';
-
-                container.innerHTML = html;
-            } catch (error) {
-                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження: ' + error.message + '</p></div>';
+        // ============================================================
+        // ЛОГИ
+        // ============================================================
+        html += '<div class="card"><div class="card-header"><h3 class="card-title">📜 Логи дій ШІ</h3><span class="badge badge-primary">' + (aiLogs ? aiLogs.length : 0) + '</span></div>';
+        html += '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Тип дії</th><th>Ціль</th><th>Обґрунтування ШІ</th></tr></thead><tbody>';
+        if (aiLogs && aiLogs.length > 0) {
+            var actionLabels = {
+                'censor_and_ban': '🚫 Цензура + Бан', 'censor_only': '✏️ Цензура', 'ban': '⛔ Бан', 'unban': '✅ Розбан',
+                'role_change': '🔧 Зміна ролі', 'support_reply': '💬 Відповідь в підтримку',
+                'multi_account_detected': '🔍 Мультиакаунтинг', 'multi_account_ban': '🚫 Бан мультиакаунтів',
+                'report_review': '📋 Аналіз скарги', 'appeal_review': '⚖️ Розгляд апеляції', 'support_ticket': '🎫 Тикет підтримки',
+                'owner_request': '👑 Запит засновника', 'owner_console_request': '👑 Запит засновника', 'freeze_org': '🧊 Заморозка організації', 'unfreeze_org': '▶️ Розморозка організації',
+                'identity_verify_request': '🔐 Запит верифікації особи', 'identity_verify_expired': '⏰ Прострочена верифікація → Бан',
+                'identity_verify_confirmed': '✅ Підтверджено особу', 'identity_verify_failed_ban': '❌ Не підтверджено → Бан',
+                'name_warning_sent': '⚠️ Попередження про ім\'я', 'name_ban': '🚫 Бан за некоректне ім\'я',
+                'name_warning_resolved': '✅ Ім\'я виправлено', 'name_warning_reminder': '⏳ Нагадування про ім\'я'
+            };
+            for (var i = 0; i < aiLogs.length; i++) {
+                var l = aiLogs[i];
+                var reasoning = l.ai_reasoning || l.reasoning || '—';
+                if (reasoning && reasoning.length > 140) reasoning = reasoning.slice(0, 140) + '…';
+                html += '<tr><td style="white-space:nowrap;">' + formatDateTimeKyiv(l.created_at) + '</td><td><span class="badge badge-warning">' + (actionLabels[l.action_type] || l.action_type) + '</span></td><td>' + (l.target_user_id ? '<a href="javascript:void(0)" onclick="openUserProfileModal(\'' + l.target_user_id + '\')" style="color:var(--gold);">переглянути</a>' : '—') + '</td><td style="font-size:0.82rem;">' + reasoning + '</td></tr>';
             }
-        }
+        } else { html += '<tr><td colspan="4" class="text-center text-muted">Логів дій ШІ ще немає</td></tr>'; }
+        html += '</tbody></table></div></div>';
+
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження: ' + error.message + '</p></div>';
+    }
+}
 
         async function loadAiModerationRequestsTab() {
             var container = document.getElementById('aiTabContent_requests');
@@ -2852,6 +2882,142 @@ async function closeSupportTicket(ticketId) {
                 await showAlert('Помилка: ' + error.message, 'error');
             }
         }
+
+        // ============================================================
+// РУЧНИЙ ЗАПУСК ПЕРЕВІРКИ АКАУНТІВ З ДЕТАЛЬНИМ ВИВОДОМ
+// ============================================================
+
+async function runModerationScan() {
+    var btn = document.getElementById('runScanBtn');
+    var statusEl = document.getElementById('scanStatus');
+    var progressEl = document.getElementById('scanProgress');
+    
+    if (!btn) return;
+    
+    // Показуємо прогрес
+    progressEl.style.display = 'block';
+    progressEl.innerHTML = '';
+    
+    function logMessage(msg, type) {
+        var colors = {
+            'info': 'var(--teal)',
+            'warning': 'var(--warning)',
+            'error': 'var(--danger)',
+            'success': '#22C55E',
+            'gold': 'var(--gold)'
+        };
+        var color = colors[type] || 'var(--text-onink)';
+        var emoji = {
+            'info': 'ℹ️',
+            'warning': '⚠️',
+            'error': '❌',
+            'success': '✅',
+            'gold': '⭐'
+        };
+        var em = emoji[type] || '•';
+        progressEl.innerHTML += '<div style="color:' + color + ';padding:0.15rem 0;border-bottom:1px solid rgba(255,255,255,0.03);">' + em + ' ' + msg + '</div>';
+        progressEl.scrollTop = progressEl.scrollHeight;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Виконується...';
+    statusEl.textContent = '⏳ Запуск...';
+    statusEl.style.color = 'var(--warning)';
+    
+    logMessage('🚀 Запуск перевірки акаунтів...', 'gold');
+    logMessage('⏱️ ' + new Date().toLocaleString('uk-UA'), 'info');
+    
+    try {
+        // Викликаємо Edge Function
+        logMessage('📡 Виклик ШІ-модерації...', 'info');
+        
+        var response = await fetch(
+            'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/enforce-moderation-deadlines',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        
+        var result = await response.json();
+        
+        if (response.ok && result.done) {
+            var results = result.results || {};
+            
+            logMessage('✅ Перевірка завершена!', 'success');
+            logMessage('⏱️ ' + new Date(result.timestamp).toLocaleString('uk-UA'), 'info');
+            
+            // ============================================================
+            // ДЕТАЛЬНІ РЕЗУЛЬТАТИ
+            // ============================================================
+            logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            logMessage('📊 РЕЗУЛЬТАТИ ПЕРЕВІРКИ:', 'gold');
+            logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            
+            // Геолокація
+            logMessage('🔍 Перевірено геолокацію: ' + (results.geo_checked || 0) + ' акаунтів', 'info');
+            if (results.geo_changed > 0) {
+                logMessage('🚨 Виявлено зміну геолокації: ' + results.geo_changed + ' акаунтів → надіслано запит верифікації', 'warning');
+            } else {
+                logMessage('✅ Змін геолокації не виявлено', 'success');
+            }
+            
+            // Ім'я
+            logMessage('📝 Перевірено імена: ' + (results.name_checked || results.geo_checked || 0) + ' акаунтів', 'info');
+            if (results.name_bans > 0) {
+                logMessage('🚫 Заблоковано за некоректне ім\'я: ' + results.name_bans + ' акаунтів', 'error');
+            }
+            if (results.name_cleared > 0) {
+                logMessage('✅ Попередження знято (ім\'я виправлено): ' + results.name_cleared + ' акаунтів', 'success');
+            }
+            
+            // Верифікація
+            if (results.identity_bans > 0) {
+                logMessage('🔒 Заблоковано за непідтверджену особу: ' + results.identity_bans + ' акаунтів', 'error');
+            }
+            if (results.hijack_flags > 0) {
+                logMessage('🔐 Запити верифікації надіслано: ' + results.hijack_flags + ' акаунтам', 'warning');
+            }
+            
+            // Підсумок
+            var totalActions = (results.geo_changed || 0) + (results.name_bans || 0) + (results.identity_bans || 0) + (results.hijack_flags || 0);
+            logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            logMessage('📌 ВСЬОГО ДІЙ: ' + totalActions, 'gold');
+            
+            if (totalActions === 0) {
+                logMessage('✅ Всі акаунти в порядку, порушень не виявлено', 'success');
+            } else {
+                logMessage('⚠️ Виконано ' + totalActions + ' дій. Перегляньте логи вище.', 'warning');
+            }
+            logMessage('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+            
+            statusEl.innerHTML = '✅ Готово! Дій: ' + totalActions;
+            statusEl.style.color = 'var(--teal)';
+            
+            // Оновлюємо логи
+            logMessage('🔄 Оновлюю логи...', 'info');
+            await loadAiModerationManageTab();
+            await loadAiModerationRequestsTab();
+            logMessage('✅ Логи оновлено', 'success');
+            
+        } else {
+            logMessage('❌ Помилка: ' + (result.error || 'Невідома помилка'), 'error');
+            statusEl.textContent = '❌ Помилка: ' + (result.error || 'Невідома помилка');
+            statusEl.style.color = 'var(--danger)';
+        }
+        
+    } catch (error) {
+        console.error('❌ Помилка запуску скану:', error);
+        logMessage('❌ Критична помилка: ' + error.message, 'error');
+        statusEl.textContent = '❌ Помилка: ' + error.message;
+        statusEl.style.color = 'var(--danger)';
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
+}
 
         // ============================================================
         // REALTIME ДЛЯ ЗАПИТІВ ДО ШІ
