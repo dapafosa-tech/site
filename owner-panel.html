@@ -2933,24 +2933,38 @@ async function runModerationScan() {
     try {
         logMessage('📡 Виклик ШІ-модерації...', 'info');
         
-        // ============================================================
-        // ОТРИМУЄМО ТОКЕН І ДОДАЄМО В ЗАГОЛОВОК
-        // ============================================================
-        var { data: sessionData } = await window.sb.auth.getSession();
-        var token = sessionData?.session?.access_token || '';
-        
         var response = await fetch(
             'https://iazzgxacdwhaxujoxtaz.supabase.co/functions/v1/enforce-moderation-deadlines',
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
+                    'Content-Type': 'application/json'
                 }
             }
         );
         
-        var result = await response.json();
+        // ============================================================
+        // ДЕТАЛЬНА ОБРОБКА ВІДПОВІДІ
+        // ============================================================
+        logMessage('📊 Статус відповіді: ' + response.status + ' ' + response.statusText, 'info');
+        
+        // Спроба прочитати відповідь як текст (не як JSON)
+        var text = await response.text();
+        logMessage('📄 Тіло відповіді: ' + text.substring(0, 500), 'info');
+        
+        // Спроба розпарсити JSON
+        var result = null;
+        try {
+            result = JSON.parse(text);
+        } catch (parseError) {
+            logMessage('❌ Не вдалося розпарсити JSON: ' + parseError.message, 'error');
+            logMessage('📄 Отримано: ' + text, 'error');
+            statusEl.textContent = '❌ Помилка: невірний формат відповіді';
+            statusEl.style.color = 'var(--danger)';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play"></i> Запустити перевірку';
+            return;
+        }
         
         if (response.ok && result.done) {
             var results = result.results || {};
@@ -3002,19 +3016,31 @@ async function runModerationScan() {
             await loadAiModerationRequestsTab();
             logMessage('✅ Логи оновлено', 'success');
             
+        } else if (response.status === 401) {
+            logMessage('❌ ПОМИЛКА 401 - Немає авторизації!', 'error');
+            logMessage('💡 Переконайтеся, що ви увійшли в акаунт', 'warning');
+            statusEl.textContent = '❌ 401 - Немає авторизації';
+            statusEl.style.color = 'var(--danger)';
         } else if (response.status === 403) {
-            logMessage('❌ ПОМИЛКА 403 - ДОСТУП ТІЛЬКИ ДЛЯ ЗАСНОВНИКА!', 'error');
+            logMessage('❌ ПОМИЛКА 403 - Доступ заборонено!', 'error');
+            logMessage('💡 Тільки засновник може використовувати цю функцію', 'warning');
             statusEl.textContent = '❌ 403 - Доступ тільки для засновника';
             statusEl.style.color = 'var(--danger)';
+        } else if (response.status === 500) {
+            logMessage('❌ ПОМИЛКА 500 - Внутрішня помилка сервера!', 'error');
+            logMessage('💡 Перевірте логи Supabase: ' + (result?.error || 'немає деталей'), 'warning');
+            statusEl.textContent = '❌ 500 - Помилка сервера';
+            statusEl.style.color = 'var(--danger)';
         } else {
-            logMessage('❌ Помилка: ' + (result.error || 'Невідома помилка'), 'error');
-            statusEl.textContent = '❌ Помилка: ' + (result.error || 'Невідома помилка');
+            logMessage('❌ Помилка: ' + (result?.error || result?.message || 'Невідома помилка'), 'error');
+            statusEl.textContent = '❌ Помилка: ' + (result?.error || result?.message || 'Невідома помилка');
             statusEl.style.color = 'var(--danger)';
         }
         
     } catch (error) {
         console.error('❌ Помилка запуску скану:', error);
         logMessage('❌ Критична помилка: ' + error.message, 'error');
+        logMessage('📄 Деталі: ' + (error.stack || 'немає стеку'), 'error');
         statusEl.textContent = '❌ Помилка: ' + error.message;
         statusEl.style.color = 'var(--danger)';
     }
