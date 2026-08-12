@@ -2605,6 +2605,12 @@ async function loadAiModerationManageTab() {
         html += '<button class="btn btn-gold" onclick="runModerationScan()" id="runScanBtn">';
         html += '<i class="fas fa-play"></i> Запустити перевірку';
         html += '</button>';
+        html += '<button class="btn btn-sm btn-primary" onclick="toggleScanLogs()" title="Показати/приховати логи">';
+        html += '<i class="fas fa-eye"></i> Показати логи';
+        html += '</button>';
+        html += '<button class="btn btn-sm btn-danger" onclick="clearScanLogs()" title="Очистити логи">';
+        html += '<i class="fas fa-trash"></i> Очистити';
+        html += '</button>';
         html += '<span id="scanStatus" style="color:var(--muted);font-size:0.85rem;">Готово до запуску</span>';
         html += '</div>';
         html += '<div id="scanProgress" style="display:none;margin-top:0.5rem;padding:0.75rem;background:var(--ink);border-radius:6px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.8rem;color:var(--text-onink);"></div>';
