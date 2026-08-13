@@ -61,15 +61,19 @@ async function getClientIp() {
     }
 }
 
+// Прапорець в пам'яті скрипта (НЕ sessionStorage): він скидається щоразу,
+// коли скрипти сторінки завантажуються заново - тобто щоразу, коли юзер
+// відкриває/перезавантажує будь-яку сторінку сайту. Це дозволяє оновлювати
+// last_ip при кожному заході на сайт, а не лише один раз за вкладку.
+var _ipTrackedThisPageLoad = null;
+
 async function trackVisitIp(profile) {
     if (!profile || !profile.id) return;
-    try {
-        if (sessionStorage.getItem('ipTrackedFor') === profile.id && profile.reg_ip) return;
-    } catch (e) {}
+    if (_ipTrackedThisPageLoad === profile.id) return;
     try {
         var ip = await getClientIp();
         if (!ip) return;
-        try { sessionStorage.setItem('ipTrackedFor', profile.id); } catch (e) {}
+        _ipTrackedThisPageLoad = profile.id;
         var patch = {};
         if (profile.last_ip !== ip) patch.last_ip = ip;
         if (!profile.reg_ip) patch.reg_ip = ip;
