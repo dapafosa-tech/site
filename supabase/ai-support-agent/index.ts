@@ -683,6 +683,7 @@ ${SITE_KNOWLEDGE}
           is_banned: true,
           ban_reason: `[Тікет ${shortId}] ${decision.reason || "Порушення правил"}`,
           banned_until: until,
+          banned_at: new Date().toISOString(),
         })
         .eq("id", ticket.user_id);
       actionResult = `Заблоковано на ${days} днів (тікет ${shortId})`;

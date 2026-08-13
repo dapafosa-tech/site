@@ -650,7 +650,16 @@
             container.innerHTML = '<p class="text-muted">Завантаження...</p>';
 
             try {
-                var appeals = await db.supabaseQuery('appeals?user_id=eq.' + userId + '&order=created_at.desc&limit=1');
+                // Так само, як і в checkExistingAppeal() - беремо апеляцію лише
+                // від поточного бану, а не будь-яку останню з минулого.
+                var userRows = await db.supabaseQuery('users?id=eq.' + userId + '&select=banned_at');
+                var bannedAt = userRows && userRows[0] && userRows[0].banned_at;
+
+                var query = 'appeals?user_id=eq.' + userId + '&order=created_at.desc&limit=1';
+                if (bannedAt) {
+                    query += '&created_at=gte.' + encodeURIComponent(bannedAt);
+                }
+                var appeals = await db.supabaseQuery(query);
                 
                 if (appeals && appeals.length > 0) {
                     currentAppeal = appeals[0];

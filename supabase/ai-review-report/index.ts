@@ -104,7 +104,7 @@ IP (reg/last): ${target.reg_ip ?? "?"} / ${target.last_ip ?? "?"}
       const banDays = Math.min(Math.max(decision.ban_days ?? 1, 1), 3);
       const banUntil = new Date(Date.now() + banDays * 86400000).toISOString();
       await supabase.from("users")
-        .update({ is_banned: true, ban_reason: `[ШІ, за скаргою] ${decision.reasoning}`, banned_until: banUntil })
+        .update({ is_banned: true, ban_reason: `[ШІ, за скаргою] ${decision.reasoning}`, banned_until: banUntil, banned_at: new Date().toISOString() })
         .eq("id", report.target_user_id);
     }
 

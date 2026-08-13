@@ -559,7 +559,7 @@ async function banUser(userId) {
 
         var members = await db.supabaseQuery('org_members?user_id=eq.' + userId);
         if (members && members.length > 0) { for (var i = 0; i < members.length; i++) { await db.removeMemberFromOrganization(members[i].id); } }
-        await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), banned_until: banUntil, role: 'user' }) });
+        await db.supabaseQuery('users?id=eq.' + userId, { method: 'PATCH', body: JSON.stringify({ is_banned: true, ban_reason: reason.trim(), banned_until: banUntil, banned_at: new Date().toISOString(), role: 'user' }) });
         try {
             await db.supabaseQuery('users?id=eq.' + user.id, { method: 'PATCH', body: JSON.stringify({ last_ban_action_at: new Date().toISOString() }) });
         } catch (e) { console.warn('Could not update last_ban_action_at:', e.message); }
@@ -629,6 +629,7 @@ async function banUser(userId) {
             body: JSON.stringify({ 
                 is_banned: true, 
                 ban_reason: reason.trim(),
+                banned_at: new Date().toISOString(),
                 role: 'user'
             })
         });
