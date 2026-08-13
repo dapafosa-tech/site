@@ -141,10 +141,23 @@ async function loginUser(email, password, fullName) {
             return { success: false, error: 'Акаунт заблоковано', banned: true };
         }
 
-        // Записуємо сесію
+        // Записуємо сесію + ОНОВЛЮЄМО поточний IP користувача.
+        // Раніше last_ip виставлявся лише один раз при реєстрації і більше
+        // ніколи не оновлювався - через це перевірка розбіжності IP
+        // (компрометація акаунту) не мала сенсу, бо "поточний" IP був
+        // назавжди застиглим на моменті реєстрації.
         try {
             var ip = await getClientIp();
             await recordUserSession(profile.id, data.session.access_token, ip, navigator.userAgent);
+            if (ip && profile.last_ip !== ip) {
+                await supabaseQuery('users?id=eq.' + profile.id, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ last_ip: ip })
+                });
+                profile.last_ip = ip;
+                localStorage.setItem('userData', JSON.stringify(profile));
+                currentUser = profile;
+            }
         } catch (e) {
             console.warn('Failed to record session:', e);
         }
