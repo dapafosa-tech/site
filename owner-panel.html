@@ -1458,41 +1458,54 @@
 
         async function manageEmailDomains() {
             try {
-                var domains = await db.supabaseQuery('email_domains?order=domain.asc');
-                var html = '<div style="margin-bottom:1rem;"><div style="display:flex;gap:0.5rem;margin-bottom:1rem;"><input type="text" class="form-control" id="newDomain" placeholder="gmail.com" style="flex:1;"><select class="form-control" id="domainType" style="width:150px;"><option value="allow">✅ Дозволений</option><option value="block">🚫 Заборонений</option></select><button class="btn btn-teal" onclick="addEmailDomain()"><i class="fas fa-plus"></i> Додати</button></div><div style="max-height:300px;overflow-y:auto;"><table class="table"><thead><tr><th>Домен</th><th>Тип</th><th>Дії</th></tr></thead><tbody>';
+                var domains = await db.supabaseQuery('email_domains?type=eq.block&order=domain.asc');
+                var html = '<div style="margin-bottom:1rem;">';
+                html += '<div style="padding:0.9rem 1rem;margin-bottom:1rem;border-radius:8px;background:rgba(70,201,184,0.08);border:1px solid rgba(70,201,184,0.25);">';
+                html += '<strong>📧 Логіка Email</strong><div style="margin-top:0.35rem;color:var(--muted);font-size:0.85rem;">Реєстрація дозволена з усіма Email, крім адрес і доменів, які знаходяться у цьому списку.</div></div>';
+                html += '<div style="display:flex;gap:0.5rem;margin-bottom:1rem;"><input type="text" class="form-control" id="newDomain" placeholder="gmail.com або user@gmail.com" style="flex:1;"><button class="btn btn-danger" onclick="addEmailDomain()"><i class="fas fa-ban"></i> Заборонити</button></div>';
+                html += '<div style="max-height:350px;overflow-y:auto;"><table class="table"><thead><tr><th>Email / домен</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
                 if (domains && domains.length > 0) {
                     for (var i = 0; i < domains.length; i++) {
-                        var typeLabel = domains[i].type === 'allow' ? '✅ Дозволений' : '🚫 Заборонений';
-                        html += '<tr><td><code>' + domains[i].domain + '</code></td><td>' + typeLabel + '</td><td><button class="btn btn-sm btn-danger" onclick="deleteEmailDomain(\'' + domains[i].id + '\')"><i class="fas fa-trash"></i></button></td></tr>';
+                        var d = domains[i];
+                        html += '<tr><td><code>' + escapeHtml(d.domain || '') + '</code></td><td><span class="badge badge-danger">🚫 Заборонений</span></td><td><button class="btn btn-sm btn-danger" onclick="deleteEmailDomain(\'' + d.id + '\')" title="Зняти заборону"><i class="fas fa-trash"></i></button></td></tr>';
                     }
-                } else { html += '<tr><td colspan="3" class="text-center text-muted">Немає доменів</td></tr>'; }
+                } else { html += '<tr><td colspan="3" class="text-center text-muted">Немає заборонених Email або доменів</td></tr>'; }
                 html += '</tbody></table></div></div>';
-                openModal('Email домени', html);
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+                openModal('🚫 Заборонені Email та домени', html, true);
+            } catch (error) { await showAlert('Помилка завантаження списку Email: ' + error.message, 'error'); }
         }
 
         async function addEmailDomain() {
             var input = document.getElementById('newDomain');
-            var typeSelect = document.getElementById('domainType');
             if (!input) return;
-            var domain = input.value.trim().toLowerCase();
-            if (!domain) { await showAlert('Введіть домен', 'warning'); return; }
-            var type = typeSelect ? typeSelect.value : 'allow';
+            var value = input.value.trim().toLowerCase().replace(/\s+/g, '');
+            if (value.charAt(0) === '@') value = value.substring(1);
+            if (!value) { await showAlert('Введіть Email або домен', 'warning'); return; }
+            var isEmail = value.indexOf('@') !== -1;
+            if (isEmail) {
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { await showAlert('Некоректний Email', 'warning'); return; }
+            } else {
+                if (!/^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i.test(value)) { await showAlert('Некоректний домен. Наприклад: gmail.com', 'warning'); return; }
+            }
             try {
-                await db.supabaseQuery('email_domains', { method: 'POST', body: JSON.stringify({ domain: domain, type: type }) });
-                await db.addLog('Додано email домен', 'system', null, { domain: domain });
-                await showToast('Домен додано!', 'success');
+                await db.supabaseQuery('email_domains', { method: 'POST', body: JSON.stringify({ domain: value, type: 'block' }) });
+                await db.addLog('Додано заборону Email', 'system', null, { email_or_domain: value, type: 'block' });
+                await showToast('🚫 Email/домен додано до списку заборонених!', 'success');
+                input.value = '';
                 manageEmailDomains();
-            } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
+            } catch (error) {
+                if (error.message && /duplicate|unique/i.test(error.message)) { await showAlert('Цей Email або домен уже є у списку заборонених.', 'warning'); return; }
+                await showAlert('Помилка: ' + error.message, 'error');
+            }
         }
 
         async function deleteEmailDomain(id) {
-            var confirmed = await showConfirm('Видалити домен?', 'Підтвердження');
+            var confirmed = await showConfirm('Видалити цей Email/домен зі списку заборонених? Після видалення реєстрація з цією адресою знову буде дозволена.', 'Зняти заборону');
             if (!confirmed) return;
             try {
-                await db.supabaseQuery('email_domains?id=eq.' + id, { method: 'DELETE' });
-                await db.addLog('Видалено email домен', 'system', null, { id: id });
-                await showToast('Домен видалено!', 'success');
+                await db.supabaseQuery('email_domains?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+                await db.addLog('Знято заборону Email', 'system', null, { id: id });
+                await showToast('✅ Заборону знято!', 'success');
                 manageEmailDomains();
             } catch (error) { await showAlert('Помилка: ' + error.message, 'error'); }
         }
@@ -2060,51 +2073,8 @@
             var container = document.getElementById('ownerContent');
             var html = '';
             html += '<div class="card"><div class="card-header"><h3 class="card-title">🔐 Налаштування безпеки</h3></div><button class="btn btn-gold" onclick="securitySettings()"><i class="fas fa-shield-alt"></i> Налаштування безпеки</button></div>';
-            html += '<div class="card"><div class="card-header"><h3 class="card-title">📝 Управління реєстрацією</h3></div><button class="btn btn-warning" onclick="toggleRegistration()"><i class="fas fa-user-plus"></i> Управління реєстрацією</button></div>';
             html += '<div class="card"><div class="card-header"><h3 class="card-title">🖥️ Активні сесії</h3></div><button class="btn btn-primary" onclick="manageSessions()"><i class="fas fa-desktop"></i> Керування сесіями</button></div>';
             container.innerHTML = html;
-        }
-
-        async function toggleRegistration() {
-            try {
-                var settings = await db.getSystemSettings();
-                var current = settings['allow_registration'] !== 'false';
-                
-                var html = '<div style="display:flex;flex-direction:column;gap:1rem;">';
-                html += '<p>Статус реєстрації: <strong>' + (current ? '✅ Дозволена' : '❌ Заборонена') + '</strong></p>';
-                html += '<p style="color:var(--muted);font-size:0.85rem;">Заборона реєстрації зупинить створення нових акаунтів. Існуючі користувачі зможуть входити.</p>';
-                html += '<button class="btn ' + (current ? 'btn-danger' : 'btn-gold') + '" onclick="setRegistrationStatus(' + (!current) + ')">';
-                html += (current ? '❌ Заборонити реєстрацію' : '✅ Дозволити реєстрацію');
-                html += '</button></div>';
-                
-                openModal('Управління реєстрацією', html);
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
-        }
-
-        async function setRegistrationStatus(enabled) {
-            try {
-                var existing = await db.supabaseQuery('system_settings?key=eq.allow_registration');
-                if (existing && existing.length > 0) {
-                    await db.supabaseQuery('system_settings?id=eq.' + existing[0].id, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ value: enabled ? 'true' : 'false' })
-                    });
-                } else {
-                    await db.supabaseQuery('system_settings', {
-                        method: 'POST',
-                        body: JSON.stringify({ key: 'allow_registration', value: enabled ? 'true' : 'false' })
-                    });
-                }
-                await db.addLog('Змінено налаштування реєстрації', 'system', null, { enabled: enabled });
-                db.clearSystemSettingsCache();
-                await showToast('Налаштування збережено!', 'success');
-                closeModal();
-                loadSecurityManagement();
-            } catch (error) {
-                await showAlert('Помилка: ' + error.message, 'error');
-            }
         }
 
         async function securitySettings() {
