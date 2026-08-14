@@ -459,6 +459,7 @@
         .chat-bubble{padding:0.8rem 1rem;border-radius:10px;margin-bottom:0.7rem;max-width:85%;}
         .chat-bubble.owner{background:var(--gold-glow);margin-left:auto;border:1px solid rgba(242,169,59,0.3);}
         .chat-bubble.ai{background:var(--ink);border:1px solid var(--ink-line);}
+        .ai-response-text{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;line-height:1.6;margin-top:0.45rem;font-family:'IBM Plex Sans',sans-serif;}
         .form-type-card{background:var(--ink);border:1px solid var(--ink-line);border-radius:var(--radius-sm);padding:1rem;margin-bottom:0.8rem;}
         .form-type-card.answered{opacity:0.65;}
         .form-type-badge{font-family:'IBM Plex Mono';font-size:0.65rem;padding:0.15rem 0.55rem;border-radius:6px;text-transform:uppercase;letter-spacing:0.04em;}
@@ -2829,6 +2830,50 @@ async function loadAiModerationManageTab() {
     }
 }
 
+        // ============================================================
+        // ФОРМАТУВАННЯ ВІДПОВІДЕЙ ШІ
+        // ============================================================
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function cleanAiResponseText(value) {
+            var text = String(value == null ? '' : value)
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .trim();
+
+            text = text.replace(/^```(?:json|text|plaintext|markdown)?\s*\n?/i, '');
+            text = text.replace(/\n?```\s*$/i, '');
+
+            var internalMarkers = [
+                'Ви ШІ-консоль для засновника Typebiz',
+                'КОНТЕКСТ ЦЬОГО ЗАПИТУ',
+                'Використовуй надані інструменти',
+                'Для update_user_profile',
+                'Для get_platform_stats',
+                'НІКОЛИ не вигадуй власний ідентифікатор'
+            ];
+
+            for (var i = 0; i < internalMarkers.length; i++) {
+                if (text.indexOf(internalMarkers[i]) !== -1) {
+                    return '⚠️ Внутрішній контекст ШІ не відображається.';
+                }
+            }
+            return text.trim();
+        }
+
+        function renderAiResponse(value) {
+            var cleaned = cleanAiResponseText(value);
+            if (!cleaned) return '';
+            return '<div class=\"ai-response-text\">' + escapeHtml(cleaned) + '</div>';
+        }
+
         async function loadAiModerationRequestsTab() {
             var container = document.getElementById('aiTabContent_requests');
             if (!container) return;
@@ -2862,15 +2907,15 @@ async function loadAiModerationManageTab() {
                         var r = requests[i];
                         var fromName = userMap[r.requested_by] || 'Невідомо';
                         var isAnswered = r.status === 'done' || r.status === 'error' || r.status === 'failed';
-                        html += '<div class="chat-bubble owner"><strong>👑 ' + fromName + ':</strong> ' + r.prompt + '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.2rem;"><span class="badge ' + (statusColors[r.status] || 'badge-secondary') + '">' + (statusLabels[r.status] || r.status) + '</span><span class="text-muted" style="font-size:0.72rem;">' + formatDateTimeKyiv(r.created_at) + '</span></div></div>';
+                        html += '<div class="chat-bubble owner"><strong>👑 ' + escapeHtml(fromName) + ':</strong> ' + escapeHtml(r.prompt || '') + '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.2rem;"><span class="badge ' + (statusColors[r.status] || 'badge-secondary') + '">' + escapeHtml(statusLabels[r.status] || r.status) + '</span><span class="text-muted" style="font-size:0.72rem;">' + formatDateTimeKyiv(r.created_at) + '</span></div></div>';
                         if (r.greeting) {
-                            html += '<div class="chat-bubble ai"><strong>🤖 ШІ:</strong> ' + r.greeting + '</div>';
+                            html += '<div class="chat-bubble ai"><strong>🤖 ШІ:</strong>' + renderAiResponse(r.greeting) + '</div>';
                         }
                         if (r.response) {
-                            html += '<div class="chat-bubble ai"><strong>🤖 ШІ (результат):</strong> ' + r.response + '</div>';
+                            html += '<div class="chat-bubble ai"><strong>🤖 ШІ (результат):</strong>' + renderAiResponse(r.response) + '</div>';
                         }
                         if (isAnswered && !r.response && !r.greeting) {
-                            html += '<div class="chat-bubble ai"><strong>🤖 ШІ:</strong> <span class="text-muted">Запит оброблено</span></div>';
+                            html += '<div class="chat-bubble ai"><strong>🤖 ШІ:</strong><div class="ai-response-text"><span class="text-muted">Запит оброблено</span></div></div>';
                         }
                     }
                 } else {
