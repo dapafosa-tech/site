@@ -220,6 +220,97 @@ async function getUserName(userId) {
     }
 }
 
+// ============================================================
+// РОЗПОДІЛ ЛОГІВ: "Логи" (дії користувачів на сайті) та
+// "Адмін Логи" (адміністрування/модерація: бани, ролі, найм/звільнення,
+// дії в організаціях — посади, учасники, співробітники, відділи,
+// заявки на вступ, скарги, апеляції, адмін-форми, запити до ШІ).
+// ============================================================
+var ADMIN_LOG_ACTIONS = [
+    'Оновлено користувача',
+    'Видалено користувача',
+    'Змінено роль користувача',
+    'Змінено статус апеляції',
+    'Створено організацію',
+    'Оновлено організацію',
+    'Видалено організацію',
+    'Створено посаду',
+    'Оновлено посаду',
+    'Видалено посаду',
+    'Додано учасника до організації',
+    'Оновлено посаду учасника',
+    'Видалено учасника з організації',
+    'Оновлено заявку на вступ',
+    'Створено співробітника',
+    'Оновлено співробітника',
+    'Видалено співробітника',
+    'Створено відділ',
+    'Оновлено відділ',
+    'Видалено відділ',
+    'Призначено співробітника у відділ',
+    'Видалено співробітника з відділу',
+    'Видалено повідомлення в чаті',
+    'Оновлено статус скарги',
+    'Видалено скаргу',
+    'Створено адмін-форму',
+    'Бан виконано за схваленою формою',
+    'Відповідь на адмін-форму',
+    'Відповідь на Адмін-Форму',
+    'Видалено адмін-форму',
+    'Створено запит до ШІ',
+    // --- Модерація / адміністрування сайту (з admin.html / owner-panel.html) ---
+    'Заблоковано користувача',
+    'Розблоковано користувача',
+    'Заморожено організацію',
+    'Розморожено організацію',
+    'Зацензуровано повідомлення',
+    'Розцензуровано повідомлення',
+    'Приховано повідомлення (модерація)',
+    'Остаточно видалено повідомлення',
+    'Відповідь в підтримку',
+    'Закрито заявку в підтримку',
+    'Масове призначення ролей',
+    'Змінено налаштування системи',
+    'Додано тип організації',
+    'Видалено тип організації',
+    'Додано email домен',
+    'Видалено email домен',
+    'Створено оголошення',
+    'Змінено статус оголошення',
+    'Видалено оголошення',
+    'Створено резервну копію',
+    'Вирішено скаргу',
+    'Відхилено скаргу',
+    'Додано заборонене слово',
+    'Видалено заборонене слово',
+    'Додано IP до заблокованих',
+    'Відповідь в апеляції',
+    'Відхилено апеляцію',
+    'Експорт даних',
+    'Змінено налаштування реєстрації',
+    'Змінено налаштування безпеки',
+    'Завершено сесію',
+    'Завершено всі сесії',
+    'Змінено налаштування ШІ модерації',
+    'Змінено налаштування ШІ підтримки',
+    'Змінено час очікування ШІ'
+];
+
+// Деякі дії формуються динамічно (напр. з іменем користувача та номером
+// апеляції всередині рядка) — для них перевіряємо префікс.
+var ADMIN_LOG_ACTION_PREFIXES = [
+    'Розблоковано користувача '
+];
+
+function isAdminLogAction(action) {
+    if (!action) return false;
+    if (ADMIN_LOG_ACTIONS.indexOf(action) !== -1) return true;
+    for (var i = 0; i < ADMIN_LOG_ACTION_PREFIXES.length; i++) {
+        if (action.indexOf(ADMIN_LOG_ACTION_PREFIXES[i]) === 0) return true;
+    }
+    return false;
+}
+
 async function addLog(action, entityType, entityId, details) {
     try {
         var user = getCurrentUser();
@@ -240,6 +331,93 @@ async function addLog(action, entityType, entityId, details) {
         });
     } catch (e) {
         return null;
+    }
+}
+
+/**
+ * "Логи" — дії користувачів на сайті самому (не адміністрування).
+ * Не включає бани, зміни ролей, дії в організаціях (посади, учасники,
+ * співробітники, відділи), адмін-форми, статуси скарг/апеляцій тощо —
+ * все це в "Адмін Логах" (getAdminLogs).
+ */
+async function getUserActivityLogs(limit) {
+    if (limit === undefined) limit = 200;
+    try {
+        var raw = await supabaseQuery('activity_logs?order=created_at.desc&limit=1000');
+        var filtered = (raw || []).filter(function (l) { return !isAdminLogAction(l.action); });
+        return filtered.slice(0, limit);
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
+ * "Адмін Логи" — адміністрування, модерація: адміни, модератори, засновник.
+ * Бани, зміни ролей, все, що стосується керування організаціями
+ * (найм/звільнення, призначення посад, виключення учасників), адмін-форми,
+ * рішення по скаргах/апеляціях + дії ШІ (ai_actions_log).
+ */
+async function getAdminLogs(limit) {
+    if (limit === undefined) limit = 200;
+    var raw = await supabaseQuery('activity_logs?order=created_at.desc&limit=1000');
+    var adminLogs = (raw || []).filter(function (l) { return isAdminLogAction(l.action); });
+    var aiLogs = await getAiActionsLog({ limit: limit });
+    var actionLabels = {
+        'censor_and_ban': '🚫 ШІ: Цензура + Бан',
+        'censor_only': '✏️ ШІ: Цензура',
+        'ban': '⛔ ШІ: Бан',
+        'unban': '✅ ШІ: Розбан',
+        'role_change': '🔧 ШІ: Зміна ролі',
+        'support_reply': '💬 ШІ: Відповідь в підтримку',
+        'multi_account_detected': '🔍 ШІ: Виявлено мультиакаунтинг',
+        'multi_account_ban': '🚫 ШІ: Бан мультиакаунтів',
+        'report_review': '📋 ШІ: Аналіз скарги',
+        'appeal_review': '⚖️ ШІ: Розгляд апеляції',
+        'support_ticket': '🎫 ШІ: Тикет підтримки',
+        'owner_request': '👑 ШІ: Виконано запит засновника',
+        'freeze_org': '🧊 ШІ: Заморозка організації',
+        'unfreeze_org': '▶️ ШІ: Розморозка організації'
+    };
+    var combined = (adminLogs || []).map(function (l) {
+        return {
+            created_at: l.created_at,
+            user_name: l.user_name || 'Система',
+            action: l.action || '—',
+            entity_type: l.entity_type || '—',
+            source: 'admin'
+        };
+    });
+    (aiLogs || []).forEach(function (l) {
+        combined.push({
+            created_at: l.created_at,
+            user_name: '🤖 Typebiz Bot',
+            action: actionLabels[l.action_type] || ('ШІ: ' + l.action_type),
+            entity_type: l.target_user_id ? 'user' : 'ai',
+            source: 'ai'
+        });
+    });
+    combined.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+    return combined.slice(0, limit);
+}
+
+/**
+ * "А-Переписки" (тільки панель засновника) — всі особисті повідомлення
+ * між людьми на сайті, з можливістю фільтрувати від кого/кому/за час.
+ * Особисті повідомлення НЕ пишуться у звичайні логи (addLog не викликається
+ * при відправці — див. sendDirectMessage).
+ */
+async function getAllDirectMessagesForOwner(filters) {
+    filters = filters || {};
+    var query = 'direct_messages?order=created_at.desc';
+    if (filters.senderId) query += '&sender_id=eq.' + encodeURIComponent(filters.senderId);
+    if (filters.recipientId) query += '&recipient_id=eq.' + encodeURIComponent(filters.recipientId);
+    if (filters.dateFrom) query += '&created_at=gte.' + encodeURIComponent(filters.dateFrom);
+    if (filters.dateTo) query += '&created_at=lte.' + encodeURIComponent(filters.dateTo);
+    query += '&limit=' + (filters.limit || 500);
+    try {
+        return await supabaseQuery(query);
+    } catch (e) {
+        return [];
     }
 }
 
@@ -1027,11 +1205,9 @@ async function sendDirectMessage(recipientId, message, opts) {
         });
     } catch (e) {}
 
-    if (me) {
-        await addLog('Особисте повідомлення користувачу', 'direct_message', recipientId, {
-            preview: String(message).slice(0, 80)
-        });
-    }
+    // ВАЖЛИВО: особисті повідомлення НЕ пишуться у логи (ні "Логи", ні
+    // "Адмін Логи") як "хтось написав повідомлення комусь" — вони видні
+    // тільки засновнику у вкладці "А-Переписки" (getAllDirectMessagesForOwner).
 
     return result;
 }
@@ -1597,45 +1773,9 @@ async function getAiActionsLog(filters) {
  * і можна просто й далі викликати supabaseQuery('activity_logs?...').
  */
 async function getCombinedLogs(limit) {
-    if (limit === undefined) limit = 200;
-    var adminLogs = await supabaseQuery('activity_logs?order=created_at.desc&limit=' + limit);
-    var aiLogs = await getAiActionsLog({ limit: limit });
-    var actionLabels = {
-        'censor_and_ban': '🚫 ШІ: Цензура + Бан',
-        'censor_only': '✏️ ШІ: Цензура',
-        'ban': '⛔ ШІ: Бан',
-        'unban': '✅ ШІ: Розбан',
-        'role_change': '🔧 ШІ: Зміна ролі',
-        'support_reply': '💬 ШІ: Відповідь в підтримку',
-        'multi_account_detected': '🔍 ШІ: Виявлено мультиакаунтинг',
-        'multi_account_ban': '🚫 ШІ: Бан мультиакаунтів',
-        'report_review': '📋 ШІ: Аналіз скарги',
-        'appeal_review': '⚖️ ШІ: Розгляд апеляції',
-        'support_ticket': '🎫 ШІ: Тикет підтримки',
-        'owner_request': '👑 ШІ: Виконано запит засновника',
-        'freeze_org': '🧊 ШІ: Заморозка організації',
-        'unfreeze_org': '▶️ ШІ: Розморозка організації'
-    };
-    var combined = (adminLogs || []).map(function (l) {
-        return {
-            created_at: l.created_at,
-            user_name: l.user_name || 'Система',
-            action: l.action || '—',
-            entity_type: l.entity_type || '—',
-            source: 'admin'
-        };
-    });
-    (aiLogs || []).forEach(function (l) {
-        combined.push({
-            created_at: l.created_at,
-            user_name: '🤖 Typebiz Bot',
-            action: actionLabels[l.action_type] || ('ШІ: ' + l.action_type),
-            entity_type: l.target_user_id ? 'user' : 'ai',
-            source: 'ai'
-        });
-    });
-    combined.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
-    return combined.slice(0, limit);
+    // Залишено для зворотної сумісності — тепер це те саме, що getAdminLogs
+    // (адмін + ШІ логи, без побутових дій користувачів на сайті).
+    return getAdminLogs(limit);
 }
 
 // ============================================
@@ -2269,6 +2409,9 @@ window.db = {
     isStaffRole: isStaffRole,
     getAiActionsLog: getAiActionsLog,
     getCombinedLogs: getCombinedLogs,
+    getAdminLogs: getAdminLogs,
+    getUserActivityLogs: getUserActivityLogs,
+    isAdminLogAction: isAdminLogAction,
     
     // НОВІ ФУНКЦІЇ ДЛЯ АДМІН-ФОРМ
     createAdminForm: createAdminForm,
@@ -2286,5 +2429,6 @@ window.db = {
     sendDirectMessage: sendDirectMessage,
     getDirectMessageThread: getDirectMessageThread,
     getMyDirectMessageThreads: getMyDirectMessageThreads,
+    getAllDirectMessagesForOwner: getAllDirectMessagesForOwner,
     markDirectMessagesRead: markDirectMessagesRead
 };

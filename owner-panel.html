@@ -557,7 +557,9 @@
             <li><a onclick="loadSection('security')"><i class="fas fa-shield-alt"></i> Безпека</a></li>
             <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
             <li><a onclick="loadSection('adminforms')"><i class="fas fa-file-signature"></i> Адмін-Форми</a></li>
-            <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
+            <li><a onclick="loadSection('userlogs')"><i class="fas fa-shoe-prints"></i> Логи</a></li>
+            <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Адмін Логи</a></li>
+            <li><a onclick="loadSection('correspondence')"><i class="fas fa-envelope-open-text"></i> А-Переписки</a></li>
             <li><a onclick="loadSection('ai')"><i class="fas fa-robot"></i> ШІ Модерація</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
@@ -838,7 +840,7 @@
             for (var i = 0; i < links.length; i++) links[i].classList.remove('active');
             for (var j = 0; j < links.length; j++) {
                 var onclick = links[j].getAttribute('onclick') || '';
-                if (onclick.indexOf(section) !== -1) links[j].classList.add('active');
+                if (onclick === "loadSection('" + section + "')") links[j].classList.add('active');
             }
             var titles = {
                 'overview': 'Огляд',
@@ -852,7 +854,9 @@
                 'security': 'Безпека',
                 'support': 'Техпідтримка',
                 'adminforms': '📄 Адмін-Форми',
-                'logs': 'Логи',
+                'userlogs': 'Логи',
+                'logs': 'Адмін Логи',
+                'correspondence': '✉️ А-Переписки',
                 'ai': '🤖 ШІ Модерація',
                 'notifications': 'Сповіщення'
             };
@@ -876,7 +880,9 @@
                 case 'security': loadSecurityManagement(); break;
                 case 'support': loadSupportManagement(); break;
                 case 'adminforms': loadAdminForms(); break;
+                case 'userlogs': loadUserLogs(); break;
                 case 'logs': loadLogs(); break;
+                case 'correspondence': loadCorrespondence(); break;
                 case 'ai': loadAiModeration(); break;
                 case 'notifications': loadNotifications(); break;
                 default: loadOverview();
@@ -2499,14 +2505,17 @@ async function closeSupportTicket(ticketId) {
         }
 
         // ============================================================
-        // РОЗДІЛ: ЛОГИ
+        // РОЗДІЛ: АДМІН ЛОГИ (адміністрування, модерація: адміни, модератори,
+        // засновник — бани, зміни ролей, найм/звільнення та дії в
+        // організаціях, адмін-форми, скарги/апеляції + дії ШІ)
         // ============================================================
         async function loadLogs() {
             if (!checkOwnerAccess()) return;
             var container = document.getElementById('ownerContent');
             try {
-                var logs = await db.getCombinedLogs(200);
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи (адмін + ШІ)</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                var logs = await db.getAdminLogs(200);
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Адмін Логи (адміністрування + ШІ)</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                html += '<p class="text-muted" style="margin-bottom:0.75rem;font-size:0.85rem;">Бани, зміни ролей, дії в організаціях (посади, учасники, найм/звільнення), адмін-форми, рішення по скаргах та апеляціях, дії ШІ.</p>';
                 html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
                 html += '<select class="filter-select" id="logSourceFilter" onchange="filterLogsTable()"><option value="">Всі джерела</option><option value="admin">Персонал</option><option value="ai">ШІ</option></select></div>';
                 html += '<div style="overflow-x:auto;"><table class="table" id="logsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="logsTableBody">';
@@ -2545,6 +2554,143 @@ async function closeSupportTicket(ticketId) {
                 var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
                 var matchSource = !source || rowSource === source;
                 row.style.display = (matchSearch && matchSource) ? '' : 'none';
+            });
+        }
+
+        // ============================================================
+        // РОЗДІЛ: ЛОГИ (дії користувачів на сайті самому, не в адмінці)
+        // ============================================================
+        async function loadUserLogs() {
+            if (!checkOwnerAccess()) return;
+            var container = document.getElementById('ownerContent');
+            try {
+                var logs = await db.getUserActivityLogs(300);
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Логи користувачів сайту</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                html += '<p class="text-muted" style="margin-bottom:0.75rem;font-size:0.85rem;">Звичайні дії користувачів на сайті (чат, завдання, опитування, бізнес-модулі організацій тощо). Дії адміністрування — у вкладці «Адмін Логи».</p>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userLogSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterUserLogsTable()"><button class="search-clear" onclick="document.getElementById(\'userLogSearchInput\').value=\'\';filterUserLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="userLogsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="userLogsTableBody">';
+                if (logs && logs.length > 0) {
+                    for (var i = 0; i < logs.length; i++) {
+                        var log = logs[i];
+                        var userName = log.user_name || 'Система';
+                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge badge-primary">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
+                    }
+                } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає логів</td></tr>'; }
+                html += '</tbody></table></div></div>';
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження логів</p></div>';
+            }
+        }
+
+        function filterUserLogsTable() {
+            var searchInput = document.getElementById('userLogSearchInput');
+            if (!searchInput) return;
+            var query = searchInput.value.toLowerCase().trim();
+            var rows = document.querySelectorAll('#userLogsTableBody tr');
+            rows.forEach(function(row) {
+                var userName = row.getAttribute('data-user') || '';
+                var action = row.getAttribute('data-action') || '';
+                var entity = row.getAttribute('data-entity') || '';
+                var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
+                row.style.display = matchSearch ? '' : 'none';
+            });
+        }
+
+        // ============================================================
+        // РОЗДІЛ: А-ПЕРЕПИСКИ (тільки панель засновника)
+        // Всі особисті повідомлення людей на сайті, з фільтрами
+        // кому / від кого / за час. Особисті повідомлення НЕ пишуться
+        // в звичайні логи як "хтось написав повідомлення комусь".
+        // ============================================================
+        var correspondenceUsersCache = null;
+        var correspondenceFilters = { senderId: '', recipientId: '', dateFrom: '', dateTo: '' };
+        var correspondenceRowsCache = [];
+
+        async function loadCorrespondence() {
+            if (!checkOwnerAccess()) return;
+            var container = document.getElementById('ownerContent');
+            container.innerHTML = '<div class="card"><p class="text-muted">Завантаження...</p></div>';
+            try {
+                if (!correspondenceUsersCache) {
+                    var users = await db.supabaseQuery('users?select=id,full_name,email&order=full_name.asc');
+                    correspondenceUsersCache = users || [];
+                }
+                var userMap = {};
+                correspondenceUsersCache.forEach(function(u) { userMap[u.id] = u.full_name || u.email || 'Невідомо'; });
+
+                var filters = {
+                    senderId: correspondenceFilters.senderId,
+                    recipientId: correspondenceFilters.recipientId,
+                    dateFrom: correspondenceFilters.dateFrom ? new Date(correspondenceFilters.dateFrom).toISOString() : '',
+                    dateTo: correspondenceFilters.dateTo ? new Date(correspondenceFilters.dateTo).toISOString() : '',
+                    limit: 500
+                };
+                var messages = await db.getAllDirectMessagesForOwner(filters);
+                correspondenceRowsCache = messages || [];
+
+                var userOptions = '<option value="">Всі</option>';
+                correspondenceUsersCache.forEach(function(u) {
+                    userOptions += '<option value="' + u.id + '">' + (u.full_name || u.email || 'Невідомо') + '</option>';
+                });
+                var senderOptions = userOptions.replace('value="' + correspondenceFilters.senderId + '"', 'value="' + correspondenceFilters.senderId + '" selected');
+                var recipientOptions = userOptions.replace('value="' + correspondenceFilters.recipientId + '"', 'value="' + correspondenceFilters.recipientId + '" selected');
+
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">✉️ А-Переписки</h3><span class="badge badge-primary">' + correspondenceRowsCache.length + '</span></div>';
+                html += '<p class="text-muted" style="margin-bottom:0.75rem;font-size:0.85rem;">Усі особисті повідомлення користувачів сайту. Доступно лише в панелі засновника; ці повідомлення не потрапляють у звичайні логи.</p>';
+                html += '<div class="search-filters" style="flex-wrap:wrap;gap:0.5rem;">';
+                html += '<select class="filter-select" id="corrSenderFilter"><option value="">Від кого: всі</option></select>';
+                html += '<select class="filter-select" id="corrRecipientFilter"><option value="">Кому: всі</option></select>';
+                html += '<input type="datetime-local" class="form-control" id="corrDateFrom" style="max-width:200px;" title="Час від">';
+                html += '<input type="datetime-local" class="form-control" id="corrDateTo" style="max-width:200px;" title="Час до">';
+                html += '<button class="btn btn-gold btn-sm" onclick="applyCorrespondenceFilters()"><i class="fas fa-filter"></i> Застосувати</button>';
+                html += '<button class="btn btn-sm" onclick="resetCorrespondenceFilters()"><i class="fas fa-times"></i> Скинути</button>';
+                html += '</div>';
+                html += '<div class="search-wrapper" style="margin-top:0.5rem;"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="corrSearchInput" placeholder="Пошук за текстом повідомлення..." oninput="filterCorrespondenceTable()"></div>';
+                html += '<div style="overflow-x:auto;margin-top:0.75rem;"><table class="table" id="corrTable"><thead><tr><th>Час</th><th>Від кого</th><th>Кому</th><th>Повідомлення</th></tr></thead><tbody id="corrTableBody">';
+                if (correspondenceRowsCache.length > 0) {
+                    for (var i = 0; i < correspondenceRowsCache.length; i++) {
+                        var m = correspondenceRowsCache[i];
+                        var fromName = m.sender_name || userMap[m.sender_id] || 'Невідомо';
+                        var toName = userMap[m.recipient_id] || 'Невідомо';
+                        var msgText = (m.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        html += '<tr data-message="' + msgText.toLowerCase() + '"><td style="white-space:nowrap;">' + formatDateTimeKyiv(m.created_at) + '</td><td><strong>' + fromName + '</strong></td><td>' + toName + '</td><td>' + msgText + '</td></tr>';
+                    }
+                } else { html += '<tr><td colspan="4" class="text-center text-muted">Повідомлень не знайдено</td></tr>'; }
+                html += '</tbody></table></div></div>';
+                container.innerHTML = html;
+
+                document.getElementById('corrSenderFilter').innerHTML = senderOptions;
+                document.getElementById('corrRecipientFilter').innerHTML = recipientOptions;
+                document.getElementById('corrDateFrom').value = correspondenceFilters.dateFrom;
+                document.getElementById('corrDateTo').value = correspondenceFilters.dateTo;
+            } catch (error) {
+                console.error('Load correspondence error:', error);
+                container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження переписок</p></div>';
+            }
+        }
+
+        function applyCorrespondenceFilters() {
+            correspondenceFilters.senderId = document.getElementById('corrSenderFilter').value;
+            correspondenceFilters.recipientId = document.getElementById('corrRecipientFilter').value;
+            correspondenceFilters.dateFrom = document.getElementById('corrDateFrom').value;
+            correspondenceFilters.dateTo = document.getElementById('corrDateTo').value;
+            loadCorrespondence();
+        }
+
+        function resetCorrespondenceFilters() {
+            correspondenceFilters = { senderId: '', recipientId: '', dateFrom: '', dateTo: '' };
+            loadCorrespondence();
+        }
+
+        function filterCorrespondenceTable() {
+            var searchInput = document.getElementById('corrSearchInput');
+            if (!searchInput) return;
+            var query = searchInput.value.toLowerCase().trim();
+            var rows = document.querySelectorAll('#corrTableBody tr');
+            rows.forEach(function(row) {
+                var msg = row.getAttribute('data-message') || '';
+                row.style.display = (!query || msg.indexOf(query) !== -1) ? '' : 'none';
             });
         }
 
@@ -3273,7 +3419,7 @@ async function updateAiStatsOnly() {
             }
 
             var savedSection = getActiveSection();
-            var allowedSections = ['overview', 'users', 'orgs', 'chat', 'vacations', 'requests', 'appeals', 'support', 'adminforms', 'logs', 'notifications'];
+            var allowedSections = ['overview', 'users', 'orgs', 'chat', 'vacations', 'requests', 'appeals', 'support', 'adminforms', 'userlogs', 'logs', 'correspondence', 'notifications'];
             if (allowedSections.indexOf(savedSection) !== -1) {
                 loadSection(savedSection);
             } else {

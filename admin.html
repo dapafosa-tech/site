@@ -557,7 +557,8 @@
             <li><a onclick="loadSection('appeals')"><i class="fas fa-gavel"></i> Апеляції</a></li>
             <li><a onclick="loadSection('support')"><i class="fas fa-headset"></i> Техпідтримка</a></li>
             <li><a onclick="loadSection('adminforms')"><i class="fas fa-file-signature"></i> Адмін-Форми</a></li>
-            <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Логи</a></li>
+            <li><a onclick="loadSection('userlogs')"><i class="fas fa-shoe-prints"></i> Логи</a></li>
+            <li><a onclick="loadSection('logs')"><i class="fas fa-history"></i> Адмін Логи</a></li>
             <li class="logout-btn"><a onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Вийти</a></li>
         </ul>
     </aside>
@@ -843,7 +844,7 @@
             try {
                 var user = auth.getCurrentUser();
                 if (!canViewData(user)) { document.getElementById('recentLogs').innerHTML = '<p class="text-muted">Немає доступу до логів</p>'; return; }
-                var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=20');
+                var logs = await db.getAdminLogs(20);
                 var container = document.getElementById('recentLogs');
                 if (!logs || logs.length === 0) { container.innerHTML = '<p class="text-muted">Логів поки немає</p>'; return; }
                 var html = '<div style="overflow-x:auto;"><table class="table"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody>';
@@ -864,7 +865,7 @@
             for (var i = 0; i < links.length; i++) links[i].classList.remove('active');
             for (var j = 0; j < links.length; j++) {
                 var onclick = links[j].getAttribute('onclick') || '';
-                if (onclick.indexOf(section) !== -1) links[j].classList.add('active');
+                if (onclick === "loadSection('" + section + "')") links[j].classList.add('active');
             }
             var titles = {
                 'overview': 'Огляд',
@@ -876,7 +877,8 @@
                 'appeals': 'Апеляції',
                 'support': 'Техпідтримка',
                 'adminforms': '📄 Адмін-Форми',
-                'logs': 'Логи',
+                'userlogs': 'Логи',
+                'logs': 'Адмін Логи',
                 'notifications': 'Сповіщення'
             };
             document.getElementById('pageTitle').textContent = titles[section] || 'Адмін-панель';
@@ -896,6 +898,7 @@
                 case 'appeals': loadAppeals(); break;
                 case 'support': loadSupportManagement(); break;
                 case 'adminforms': loadAdminForms(); break;
+                case 'userlogs': loadUserLogs(); break;
                 case 'logs': loadLogs(); break;
                 case 'notifications': loadNotifications(); break;
                 default: loadOverview();
@@ -1896,32 +1899,26 @@
         }
 
         // ============================================================
-        // РОЗДІЛ: ЛОГИ
+        // РОЗДІЛ: АДМІН ЛОГИ (адміністрування, модерація: адміни, модератори,
+        // засновник — бани, зміни ролей, найм/звільнення та дії в
+        // організаціях, адмін-форми, скарги/апеляції + дії ШІ)
         // ============================================================
         async function loadLogs() {
             var container = document.getElementById('adminContent');
             var user = auth.getCurrentUser();
             if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
             try {
-                var logs = await db.supabaseQuery('activity_logs?order=created_at.desc&limit=200');
-                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Всі логи системи</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
-                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                var logs = await db.getAdminLogs(200);
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Адмін Логи (адміністрування + ШІ)</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                html += '<p class="text-muted" style="margin-bottom:0.75rem;font-size:0.85rem;">Бани, зміни ролей, дії в організаціях (посади, учасники, найм/звільнення), адмін-форми, рішення по скаргах та апеляціях, дії ШІ.</p>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="logSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterLogsTable()"><button class="search-clear" onclick="document.getElementById(\'logSearchInput\').value=\'\';filterLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div>';
+                html += '<select class="filter-select" id="logSourceFilter" onchange="filterLogsTable()"><option value="">Всі джерела</option><option value="admin">Персонал</option><option value="ai">ШІ</option></select></div>';
                 html += '<div style="overflow-x:auto;"><table class="table" id="logsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="logsTableBody">';
                 if (logs && logs.length > 0) {
-                    var users = await db.supabaseQuery('users?select=id,full_name,email');
-                    var userMap = {};
-                    if (users) { for (var i = 0; i < users.length; i++) { userMap[users[i].id] = users[i].full_name || users[i].email || 'Невідомо'; } }
                     for (var i = 0; i < logs.length; i++) {
                         var log = logs[i];
-                        var userName = log.user_name || userMap[log.user_id] || 'Система';
-                        // Українські назви дій
-                        var actionMap = {
-                            'message_moderate': 'Модерація повідомлення',
-                            'message_censored': 'Цензура повідомлення',
-                            'owner_console_request': 'Запит через консоль засновника'
-                        };
-                        var actionLabel = actionMap[log.action] || log.action || '—';
-                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge badge-primary">' + actionLabel + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
+                        var userName = log.user_name || 'Система';
+                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '" data-source="' + (log.source || 'admin') + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge ' + (log.source === 'ai' ? 'badge-warning' : 'badge-primary') + '">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
                     }
                 } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає логів</td></tr>'; }
                 html += '</tbody></table></div></div>';
@@ -1931,9 +1928,52 @@
 
         function filterLogsTable() {
             var searchInput = document.getElementById('logSearchInput');
+            var sourceFilter = document.getElementById('logSourceFilter');
             if (!searchInput) return;
             var query = searchInput.value.toLowerCase().trim();
+            var source = sourceFilter ? sourceFilter.value : '';
             var rows = document.querySelectorAll('#logsTableBody tr');
+            rows.forEach(function(row) {
+                var userName = row.getAttribute('data-user') || '';
+                var action = row.getAttribute('data-action') || '';
+                var entity = row.getAttribute('data-entity') || '';
+                var rowSource = row.getAttribute('data-source') || 'admin';
+                var matchSearch = userName.indexOf(query) !== -1 || action.indexOf(query) !== -1 || entity.indexOf(query) !== -1;
+                var matchSource = !source || rowSource === source;
+                row.style.display = (matchSearch && matchSource) ? '' : 'none';
+            });
+        }
+
+        // ============================================================
+        // РОЗДІЛ: ЛОГИ (дії користувачів на сайті самому, не в адмінці)
+        // ============================================================
+        async function loadUserLogs() {
+            var container = document.getElementById('adminContent');
+            var user = auth.getCurrentUser();
+            if (!canViewData(user)) { container.innerHTML = '<div class="card"><p class="text-danger">Немає доступу</p></div>'; return; }
+            try {
+                var logs = await db.getUserActivityLogs(300);
+                var html = '<div class="card"><div class="card-header"><h3 class="card-title">Логи користувачів сайту</h3><span class="badge badge-primary">' + (logs ? logs.length : 0) + '</span></div>';
+                html += '<p class="text-muted" style="margin-bottom:0.75rem;font-size:0.85rem;">Звичайні дії користувачів на сайті (чат, завдання, опитування, бізнес-модулі організацій тощо). Дії адміністрування — у вкладці «Адмін Логи».</p>';
+                html += '<div class="search-filters"><div class="search-wrapper"><i class="fas fa-search search-icon"></i><input type="text" class="search-input" id="userLogSearchInput" placeholder="Пошук за користувачем, дією або типом..." oninput="filterUserLogsTable()"><button class="search-clear" onclick="document.getElementById(\'userLogSearchInput\').value=\'\';filterUserLogsTable();this.classList.remove(\'visible\');"><i class="fas fa-times"></i></button></div></div>';
+                html += '<div style="overflow-x:auto;"><table class="table" id="userLogsTable"><thead><tr><th>Час</th><th>Користувач</th><th>Дія</th><th>Тип</th></tr></thead><tbody id="userLogsTableBody">';
+                if (logs && logs.length > 0) {
+                    for (var i = 0; i < logs.length; i++) {
+                        var log = logs[i];
+                        var userName = log.user_name || 'Система';
+                        html += '<tr data-user="' + userName.toLowerCase() + '" data-action="' + (log.action || '').toLowerCase() + '" data-entity="' + (log.entity_type || '').toLowerCase() + '"><td>' + formatDateTimeKyiv(log.created_at) + '</td><td><strong>' + userName + '</strong></td><td><span class="badge badge-primary">' + (log.action || '—') + '</span></td><td>' + (log.entity_type || '—') + '</td></tr>';
+                    }
+                } else { html += '<tr><td colspan="4" class="text-center text-muted">Немає логів</td></tr>'; }
+                html += '</tbody></table></div></div>';
+                container.innerHTML = html;
+            } catch (error) { console.error('Load user logs error:', error); container.innerHTML = '<div class="card"><p class="text-danger">Помилка завантаження логів</p></div>'; }
+        }
+
+        function filterUserLogsTable() {
+            var searchInput = document.getElementById('userLogSearchInput');
+            if (!searchInput) return;
+            var query = searchInput.value.toLowerCase().trim();
+            var rows = document.querySelectorAll('#userLogsTableBody tr');
             rows.forEach(function(row) {
                 var userName = row.getAttribute('data-user') || '';
                 var action = row.getAttribute('data-action') || '';
@@ -1983,7 +2023,7 @@
             }
 
             var savedSection = getActiveSection();
-            var allowedSections = ['overview', 'users', 'orgs', 'chat', 'vacations', 'requests', 'appeals', 'support', 'adminforms', 'logs', 'notifications'];
+            var allowedSections = ['overview', 'users', 'orgs', 'chat', 'vacations', 'requests', 'appeals', 'support', 'adminforms', 'userlogs', 'logs', 'notifications'];
             if (allowedSections.indexOf(savedSection) !== -1) {
                 loadSection(savedSection);
             } else {
